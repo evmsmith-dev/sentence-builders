@@ -7,9 +7,8 @@
 //   reveal()        show the right answer after a second miss
 //   lock()          no more changes
 // Types that answer on a tap call answer(correct) themselves.
-import { checkBuild, checkMark, joinTiles, parseBuild, parseFix, parseMark, parseWhich } from "../lib/parse.js";
+import { checkBuild, checkMark, joinTiles, paletteFor, parseBuild, parseFix, parseMark, parseWhich } from "../lib/parse.js";
 import { shuffle } from "../lib/select.js";
-import { MARK_ORDER, PALETTES } from "../config.js";
 import { esc } from "./dom.js";
 
 const MARK_NAMES = { ",": "comma", ".": "period", "?": "question mark", "!": "exclamation point", '"': "quotation mark", ":": "colon", ";": "semicolon", "'": "apostrophe" };
@@ -28,13 +27,14 @@ function markAnswerHtml(parsed) {
 
 function renderMark(root, item, { onChange, onTap }) {
   const parsed = parseMark(item);
-  const extra = item.marks ? [] : PALETTES[item.skill]?.[item.level - 1] || [];
-  parsed.palette = [...new Set([...parsed.palette, ...extra])].sort((a, b) => MARK_ORDER.indexOf(a) - MARK_ORDER.indexOf(b));
+  parsed.palette = paletteFor(item, parsed);
+  // One mark to choose from: tapping a space adds or removes it, no palette needed.
+  const single = parsed.palette.length === 1 ? parsed.palette[0] : null;
   const filled = parsed.words.map(() => "").concat("");
   let selected = null;
   let locked = false;
 
-  root.innerHTML = `<div class="sentence marks" data-type="mark"></div>
+  root.innerHTML = `<div class="sentence marks" data-type="mark" data-palette="${esc(parsed.palette.join(""))}"></div>
     <div class="palette" hidden><p class="palette-label"></p><div class="palette-buttons"></div></div>`;
   const sentence = root.querySelector(".sentence");
   const palette = root.querySelector(".palette");
@@ -59,7 +59,11 @@ function renderMark(root, item, { onChange, onTap }) {
     if (locked) return;
     const gap = event.target.closest("[data-gap]");
     const mark = event.target.closest("[data-mark]");
-    if (gap) {
+    if (gap && single) {
+      const i = Number(gap.dataset.gap);
+      filled[i] = filled[i] ? "" : single;
+      onTap();
+    } else if (gap) {
       const i = Number(gap.dataset.gap);
       selected = selected === i ? null : i;
       onTap();
@@ -76,7 +80,7 @@ function renderMark(root, item, { onChange, onTap }) {
   });
   draw();
   return {
-    prompt: "Tap a space, then add the marks that go there.",
+    prompt: single ? `Tap each space where ${single === "," ? "a comma" : `a ${MARK_NAMES[single] || single}`} goes.` : "Tap a space, then add the marks that go there.",
     usesCheck: true,
     canCheck: () => filled.some(Boolean),
     check: () => checkMark(parsed, filled),

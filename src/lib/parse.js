@@ -1,5 +1,6 @@
 // Turns an item from data/content.json into what the screen shows and what counts as right.
-// Pure functions, unit-tested. The formats are described at the top of data/README.md.
+// Pure functions, unit-tested. The formats are described in data/README.md.
+import { MARK_ORDER, PALETTES } from "../config.js";
 
 const BRACKET_LEAD = /^\[([^\]]*)\]/;
 const BRACKET_TRAIL = /\[([^\]]*)\]$/;
@@ -59,6 +60,12 @@ export function parseMark(item) {
   }
   const palette = item.marks || [...new Set([main, ...alts].flatMap((spec) => spec.gaps.flatMap((gap) => [...gap.marks])))];
   return { words: main.words, answers: [main, ...alts], palette };
+}
+
+/** The marks offered for an item: the level's palette plus any mark the answer needs, in a fixed order. */
+export function paletteFor(item, parsed = parseMark(item)) {
+  const base = item.marks || PALETTES[item.skill]?.[item.level - 1] || [];
+  return [...new Set([...base, ...parsed.palette])].sort((a, b) => MARK_ORDER.indexOf(a) - MARK_ORDER.indexOf(b));
 }
 
 /** Is a filled-in set of gaps right? `filled` has one string per gap. */

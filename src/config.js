@@ -41,13 +41,15 @@ export const SKILLS = [
   },
 ];
 
-// The marks offered on "Mark it" items, per skill and level. Items can add their own; the
-// right marks are always offered. More choices than needed, so the palette doesn't give the answer away.
-const DIALOGUE_MARKS = [",", '"', ".", "?", "!"];
+// The marks offered on "Mark it" items, per skill and level; the right marks are always added.
+// Only real decisions: every sentence already ends with its period, so a period is offered only
+// in Dialogue levels 2-3, where a period instead of the comma inside the quotation marks
+// ("I am hungry." said Max) is the mistake those levels teach. With a single mark, tapping a
+// space adds or removes it directly.
 export const PALETTES = {
-  commas: [[",", "."], [",", "."], [",", ":", "."]],
-  dialogue: [DIALOGUE_MARKS, DIALOGUE_MARKS, DIALOGUE_MARKS],
-  apostrophes: [["'", ","], ["'", ","], ["'", ","]],
+  commas: [[","], [","], [",", ":"]],
+  dialogue: [[",", '"'], [",", '"', ".", "?", "!"], [",", '"', ".", "?", "!"]],
+  apostrophes: [["'"], ["'"], ["'"]],
 };
 export const MARK_ORDER = [",", ".", "?", "!", '"', "'", ":", ";"];
 

@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
-  answerText, checkBuild, checkMark, joinTiles, parseBuild, parseFix, parseMark, parseMarkText, parseWhich, spokenText,
+  answerText, paletteFor, checkBuild, checkMark, joinTiles, parseBuild, parseFix, parseMark, parseMarkText, parseWhich, spokenText,
 } from "../../src/lib/parse.js";
 import { pickLevelItems, rankItems } from "../../src/lib/select.js";
 import {
@@ -143,4 +143,15 @@ test("a failed level isn't passed and nothing is lost", () => {
   assert.equal(out.stars, 0);
   assert.equal(out.passed, false);
   assert.equal(out.player.levels["commas-1"].plays, 1);
+});
+
+test("palettes: no period where every sentence already ends with one", () => {
+  const marks = (id) => paletteFor(content.items.find((item) => item.id === id));
+  assert.deepEqual(marks("commas-1-01"), [","]);
+  assert.deepEqual(marks("commas-3-02"), [",", ":"]);
+  assert.deepEqual(marks("dialogue-1-01"), [",", '"']);
+  assert.deepEqual(marks("dialogue-2-01"), [",", ".", "?", "!", '"']);
+  for (const item of content.items.filter((i) => i.type === "mark" && i.skill === "commas")) {
+    assert.ok(!paletteFor(item).includes("."), item.id);
+  }
 });

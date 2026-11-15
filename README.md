@@ -16,7 +16,7 @@ Word Works, Sentence Studio and Flow Factory (Shurley Q&A Flow) are shown as "Co
 
 - Up to 4 players per device, each with a name, avatar and grade. Levels at or below a player's grade start unlocked, so an older child can review anything.
 - A level opens with a Tip Card (the rule and an example, with read-aloud), then 8 items: 6 on the skill and 2 review items from levels already passed.
-- Four kinds of items: **Mark it** (tap a space, add the marks), **Fix it** (find the wrong word and fix it), **Which is right?** and **Build it** (put the pieces in order).
+- Four kinds of items: **Mark it** (tap a space, add the marks; where commas are the only choice, a tap adds or removes one), **Fix it** (find the wrong word and fix it), **Which is right?** and **Build it** (put the pieces in order).
 - A first miss shows a hint and allows a second try; a second miss shows the answer, and the item comes back later.
 - Points: 1 for right on the first try, ½ on the second. Stars at 6, 7 and 8 points; under 6 means "build it again", and nothing is lost.
 - Gold on a skill: 7 or more on its level 3 on two different days. That turns its tower into a lighthouse.

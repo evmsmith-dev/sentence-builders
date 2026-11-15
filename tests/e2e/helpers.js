@@ -1,6 +1,6 @@
 import { expect } from "@playwright/test";
 import { readFileSync } from "node:fs";
-import { parseBuild, parseFix, parseMark, parseWhich } from "../../src/lib/parse.js";
+import { paletteFor, parseBuild, parseFix, parseMark, parseWhich } from "../../src/lib/parse.js";
 
 const content = JSON.parse(readFileSync(new URL("../../data/content.json", import.meta.url), "utf8"));
 export const itemById = (id) => content.items.find((item) => item.id === id);
@@ -42,10 +42,16 @@ export async function miss(page) {
   const item = await currentItem(page);
   if (item.type === "mark") {
     const parsed = parseMark(item);
+    const palette = paletteFor(item);
     const i = parsed.answers[0].gaps.findIndex((gap) => !gap.marks && !gap.optional);
-    await page.locator(`#item [data-gap="${i}"]`).click();
-    await page.locator("#item [data-erase]").click();
-    await page.locator(`#item [data-mark='${parsed.palette[0]}']`).click();
+    const gap = page.locator(`#item [data-gap="${i}"]`);
+    if (palette.length === 1) {
+      if (!(await gap.evaluate((el) => el.classList.contains("filled")))) await gap.click();
+    } else {
+      await gap.click();
+      await page.locator("#item [data-erase]").click();
+      await page.locator(`#item [data-mark='${palette[0]}']`).click();
+    }
     await page.locator("#check-btn").click();
   } else if (item.type === "fix") {
     const parsed = parseFix(item);
@@ -79,12 +85,17 @@ export async function answer(page) {
     const parsed = parseMark(item);
     const gaps = parsed.answers[0].gaps;
     const target = gaps.map((gap, i) => ({ i, marks: gap.marks })).filter((g) => g.marks);
+    const single = paletteFor(item).length === 1;
     // Clear anything placed on an earlier try.
     for (const filled of await page.locator("#item .gap.filled").all()) {
       await filled.click();
-      await page.locator("#item [data-erase]").click();
+      if (!single) await page.locator("#item [data-erase]").click();
     }
     for (const { i, marks } of target) {
+      if (single) {
+        await page.locator(`#item [data-gap="${i}"]`).click();
+        continue;
+      }
       await page.locator(`#item [data-gap="${i}"]`).click();
       await page.locator("#item [data-erase]").click();
       for (const mark of marks) await page.locator(`#item [data-mark='${mark}']`).click();
