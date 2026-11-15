@@ -18,7 +18,7 @@ export const MAX_PLAYERS = 4;
 export const WORLDS = [
   { id: "port", name: "Punctuation Port", emoji: "⚓", ready: true, blurb: "Commas, colons, quotation marks and apostrophes" },
   { id: "works", name: "Word Works", emoji: "⚙️", ready: true, blurb: "Verb tenses, agreement and pronouns" },
-  { id: "studio", name: "Sentence Studio", emoji: "🎨", ready: false, blurb: "Fragments, run-ons, compound and complex sentences" },
+  { id: "studio", name: "Sentence Studio", emoji: "🎨", ready: true, blurb: "Fragments, run-ons, compound and complex sentences" },
   { id: "flow", name: "Flow Factory", emoji: "🏭", ready: false, blurb: "Label every word with the Q&A Flow" },
 ];
 
@@ -54,6 +54,21 @@ export const SKILLS = [
     grades: [3, 4, 5], benchmarks: "MN 3.2.1.3, 4.2.1.3, 5.2.1.3",
     badge: { id: "pronoun-pro", name: "Pronoun Pro", emoji: "🪞" },
   },
+  {
+    id: "fragments", world: "studio", name: "Fragments and run-ons", short: "Fragments", color: "#e2681f",
+    grades: [3, 4, 5], benchmarks: "MN grammar in 3.2.1.1, 4.2.1.1, 5.2.1.1; 5.2.3.2",
+    badge: { id: "sentence-doctor", name: "Sentence Doctor", emoji: "🩺" },
+  },
+  {
+    id: "compound", world: "studio", name: "Compound sentences", short: "Compound", color: "#3f51b5",
+    grades: [3, 4, 5], benchmarks: "MN 3.2.1.3, 4.2.1.3, 5.2.1.1",
+    badge: { id: "bridge-builder", name: "Bridge Builder", emoji: "🌉" },
+  },
+  {
+    id: "complex", world: "studio", name: "Complex sentences", short: "Complex", color: "#795548",
+    grades: [4, 4, 5], benchmarks: "MN 4.2.1.1, 4.2.1.3",
+    badge: { id: "master-architect", name: "Master Architect", emoji: "📐" },
+  },
 ];
 
 // The marks offered on "Mark it" items, per skill and level; the right marks are always added.
@@ -65,6 +80,8 @@ export const PALETTES = {
   commas: [[","], [","], [",", ":"]],
   dialogue: [[",", '"'], [",", '"', ".", "?", "!"], [",", '"', ".", "?", "!"]],
   apostrophes: [["'"], ["'"], ["'"]],
+  compound: [[","], [","], [",", ";"]],
+  complex: [[","], [","], [","]],
 };
 export const MARK_ORDER = [",", ".", "?", "!", '"', "'", ":", ";"];
 
@@ -78,6 +95,7 @@ export const TIER_NAMES = ["Bronze", "Silver", "Gold"];
 export const WORLD_BADGES = [
   { id: "port-champion", world: "port", name: "Port Champion", emoji: "🏆", how: "Get every Punctuation Port skill to Silver." },
   { id: "works-wizard", world: "works", name: "Works Wizard", emoji: "🧙", how: "Get every Word Works skill to Silver." },
+  { id: "studio-star", world: "studio", name: "Studio Star", emoji: "⭐", how: "Get every Sentence Studio skill to Silver." },
 ];
 export const HABIT_BADGES = [
   { id: "first-brick", name: "First Brick", emoji: "🧱", how: "Finish your first level.", goal: 1, measure: "levelsPassed" },

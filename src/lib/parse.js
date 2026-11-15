@@ -140,6 +140,29 @@ export function checkSort(parsed, placed) {
   return parsed.tiles.every((tile) => placed[tile.text] === tile.bin);
 }
 
+/** Sentence check: is it complete, a fragment or a run-on? Then, if it isn't complete, pick the best fix. */
+export const CHECK_KINDS = { complete: "Complete sentence", fragment: "Fragment", runon: "Run-on" };
+
+export function parseCheck(item) {
+  // Run-ons are taught in level 3, so earlier levels only ask complete or fragment.
+  const kinds = item.labels || (item.level >= 3 ? ["complete", "fragment", "runon"] : ["complete", "fragment"]);
+  const fixes = item.fixes ? [...item.fixes] : [];
+  const kindName = CHECK_KINDS[item.kind];
+  return {
+    text: item.text, kind: item.kind, kinds, fixes, fix: fixes[0] || null,
+    answerText: item.kind === "complete" ? `${item.text} (${kindName.toLowerCase()})` : `${kindName}. Fix: ${fixes[0]}`,
+  };
+}
+
+/** Join it: pick the joining word for two sentences, then decide where (if anywhere) the comma goes. */
+export function parseJoin(item) {
+  const result = parseMarkText(item.result);
+  return {
+    first: item.first, second: item.second, words: [...item.words], word: item.words[0],
+    result, answerText: markSentence(result.words, result.gaps),
+  };
+}
+
 /** What read-aloud says for an item's sentence: plain words, no marks to place. */
 export function spokenText(item) {
   if (item.type === "mark") return parseMark(item).words.join(" ");
@@ -149,6 +172,8 @@ export function spokenText(item) {
     return which.kind === "blank" ? `${which.before}blank${which.after}` : "";
   }
   if (item.type === "sort") return parseSort(item).tiles.map((tile) => tile.text).join(", ");
+  if (item.type === "check") return item.text;
+  if (item.type === "join") return `${item.first} ${item.second}`;
   return "";
 }
 
@@ -162,10 +187,12 @@ export function answerText(item) {
   if (item.type === "which") return parseWhich(item).answerText;
   if (item.type === "build") return parseBuild(item).answerText;
   if (item.type === "sort") return parseSort(item).answerText;
+  if (item.type === "check") return parseCheck(item).answerText;
+  if (item.type === "join") return parseJoin(item).answerText;
   throw new Error(`Unknown item type: ${item.type}`);
 }
 
-export const ITEM_TYPES = ["mark", "fix", "which", "build", "sort"];
+export const ITEM_TYPES = ["mark", "fix", "which", "build", "sort", "check", "join"];
 
 /** Throws if an item can't be shown or can't be answered. Used by the validator. */
 export function validateItem(item) {
@@ -200,6 +227,18 @@ export function validateItem(item) {
     if (parsed.bins.length < 2 || parsed.tiles.length < 4) throw new Error(`${item.id}: a sort needs 2+ bins and 4+ tiles`);
     if (new Set(parsed.tiles.map((t) => t.text)).size !== parsed.tiles.length) throw new Error(`${item.id}: repeated tiles`);
     if (parsed.bins.some((bin) => !bin.tiles.length)) throw new Error(`${item.id}: an empty bin`);
+  }
+  if (item.type === "check") {
+    const parsed = parseCheck(item);
+    if (!parsed.kinds.includes(item.kind)) throw new Error(`${item.id}: kind ${item.kind} isn't one of the choices at this level`);
+    if (item.kind === "complete" && item.fixes) throw new Error(`${item.id}: a complete sentence has no fixes`);
+    if (item.kind !== "complete" && (parsed.fixes.length < 2 || new Set(parsed.fixes).size !== parsed.fixes.length)) throw new Error(`${item.id}: needs 2+ different fixes, the right one first`);
+  }
+  if (item.type === "join") {
+    const parsed = parseJoin(item);
+    if (parsed.words.length < 2 || new Set(parsed.words).size !== parsed.words.length) throw new Error(`${item.id}: needs 2+ different joining words`);
+    if (!parsed.result.words.join(" ").includes(parsed.word)) throw new Error(`${item.id}: the result doesn't use ${parsed.word}`);
+    if (parsed.result.gaps.some((gap) => gap.marks && gap.marks !== ",")) throw new Error(`${item.id}: a join result can only place commas`);
   }
   return true;
 }

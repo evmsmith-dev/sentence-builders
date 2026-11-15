@@ -225,6 +225,13 @@ button:disabled { cursor: default; }
 .bin-tiles .tile { font-size: 1.1rem; width: 100%; padding: 4px 6px; }
 .tile.selected { background: var(--accent); border-color: #b88400; }
 
+/* Sentence check and Join it */
+.check-sentence { padding: 4px 8px; border-left: 5px solid var(--accent); }
+.kinds { margin-top: 16px; }
+.fix-step, .word-step, .comma-step { margin-top: 14px; padding-top: 12px; border-top: 2px solid var(--primary-soft); }
+.join-parts .sentence { margin: 0 0 4px; }
+.comma-sentence .sentence { font-size: 1.35rem; }
+
 /* Feedback */
 .feedback { border-radius: 14px; padding: 0 14px; font-size: 1.05rem; }
 .feedback p { margin: 6px 0; }

@@ -1,6 +1,8 @@
 import { expect } from "@playwright/test";
 import { readFileSync } from "node:fs";
-import { paletteFor, parseBuild, parseFix, parseMark, parseSort, parseWhich } from "../../src/lib/parse.js";
+import {
+  CHECK_KINDS, paletteFor, parseBuild, parseCheck, parseFix, parseJoin, parseMark, parseMarkText, parseSort, parseWhich,
+} from "../../src/lib/parse.js";
 
 const content = JSON.parse(readFileSync(new URL("../../data/content.json", import.meta.url), "utf8"));
 export const itemById = (id) => content.items.find((item) => item.id === id);
@@ -66,6 +68,36 @@ export async function miss(page) {
       }
     }
     return false;
+  } else if (item.type === "check") {
+    const parsed = parseCheck(item);
+    const fixStep = await page.locator("#item .fix-step").isVisible();
+    const wrong = fixStep ? parsed.fixes.filter((f) => f !== parsed.fix) : parsed.kinds.filter((k) => k !== parsed.kind).map((k) => CHECK_KINDS[k]);
+    const attr = fixStep ? "data-fix" : "data-kind";
+    for (const text of wrong) {
+      const button = page.locator(`#item [${attr}]`).filter({ hasText: exact(text) }).first();
+      if (await button.isEnabled()) {
+        await button.click();
+        return true;
+      }
+    }
+    return false;
+  } else if (item.type === "join") {
+    const parsed = parseJoin(item);
+    if (await page.locator("#item .comma-sentence [data-gap]").count()) {
+      // Put a comma in a space where none goes.
+      const i = parsed.result.gaps.findIndex((gap, n) => n > 0 && n < parsed.result.words.length && !gap.marks);
+      await page.locator(`#item .comma-sentence [data-gap="${i}"]`).click();
+      await page.locator("#check-btn").click();
+      return true;
+    }
+    for (const word of parsed.words.filter((w) => w !== parsed.word)) {
+      const button = page.locator("#item [data-join-word]").filter({ hasText: exact(word) }).first();
+      if (await button.isEnabled()) {
+        await button.click();
+        return true;
+      }
+    }
+    return false;
   } else if (item.type === "sort") {
     // Everything in the first box (some words always belong elsewhere).
     while (await page.locator("#item .sort-bank .tile").count()) {
@@ -115,6 +147,24 @@ export async function answer(page) {
   } else if (item.type === "which") {
     const parsed = parseWhich(item);
     await page.locator("#item [data-choice]").filter({ hasText: exact(parsed.correct) }).first().click();
+  } else if (item.type === "check") {
+    const parsed = parseCheck(item);
+    if (!(await page.locator("#item .fix-step").isVisible())) {
+      await page.locator(`#item [data-kind="${parsed.kind}"]`).click();
+    }
+    if (parsed.kind !== "complete") await page.locator("#item [data-fix]").filter({ hasText: exact(parsed.fix) }).first().click();
+  } else if (item.type === "join") {
+    const parsed = parseJoin(item);
+    if (!(await page.locator("#item .comma-sentence [data-gap]").count())) {
+      await page.locator("#item [data-join-word]").filter({ hasText: exact(parsed.word) }).first().click();
+    }
+    const result = parseMarkText(item.result);
+    // Clear any comma from an earlier try, then place the right ones.
+    for (const filled of await page.locator("#item .comma-sentence .gap.filled").all()) await filled.click();
+    for (const [i, gap] of result.gaps.entries()) {
+      if (gap.marks) await page.locator(`#item .comma-sentence [data-gap="${i}"]`).click();
+    }
+    await page.locator("#check-btn").click();
   } else if (item.type === "sort") {
     const parsed = parseSort(item);
     for (const tile of parsed.tiles) {

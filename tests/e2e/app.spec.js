@@ -13,7 +13,8 @@ test("first visit: make a player and land in the town", async ({ page }) => {
   await expect(page.locator("#pip-home")).toContainText("Next up: Commas and colons, level 1");
   await expect(page.locator(".town")).toBeVisible();
   await expect(page.locator('[data-world="works"]')).toBeEnabled();
-  await expect(page.locator('[data-world="studio"]')).toBeDisabled();
+  await expect(page.locator('[data-world="studio"]')).toBeEnabled();
+  await expect(page.locator('[data-world="flow"]')).toBeDisabled();
 });
 
 test("a 4th grader starts with grade 4 levels open; a 7th grader can review everything", async ({ page }) => {
@@ -43,12 +44,12 @@ test("play a whole level right: 3 stars, a building and badges", async ({ page }
   await expect(page.locator("#result-badges")).toContainText("First Brick");
   await expect(page.locator("#result-badges")).toContainText("Comma Captain");
   await page.locator("#result-town").click();
-  await expect(page.locator(".town")).toHaveAttribute("aria-label", /1 of 18 buildings/);
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /1 of 27 buildings/);
   await expect(page.locator("#pip-home")).toContainText("Next up: Commas and colons, level 2");
 
   // Saved on the device: still there after a reload.
   await page.reload();
-  await expect(page.locator(".town")).toHaveAttribute("aria-label", /1 of 18 buildings/);
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /1 of 27 buildings/);
 });
 
 test("a miss gives a hint and a second try; a second miss shows the answer", async ({ page }) => {
@@ -126,7 +127,7 @@ test("Word Works: play a level with every item type it uses, including Sort it",
     await expect(page.locator("#result-title")).toHaveText("Perfect build!");
     await page.locator("#result-town").click();
   }
-  await expect(page.locator(".town")).toHaveAttribute("aria-label", /3 of 18 buildings/);
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /3 of 27 buildings/);
 });
 
 test("Sort it: a wrong sort gives a hint, then the answer", async ({ page }) => {
@@ -197,4 +198,48 @@ test("grown-up view: adult check, progress, break reminder, backup and restore",
   await expect(page.locator('[data-parent-player="p2"]')).toHaveCount(0);
   await page.locator("#backup-file").setInputFiles({ name: "x.json", mimeType: "application/json", buffer: Buffer.from("{}") });
   await expect(page.locator("#backup-status")).toContainText("isn't a Sentence Builders backup");
+});
+
+test("Sentence Studio: every level of all three skills, with Sentence check and Join it", async ({ page }) => {
+  await openApp(page, { players: [player({ grade: 7 })], current: "p1" });
+  for (const skill of ["fragments", "compound", "complex"]) {
+    for (const level of [1, 2, 3]) {
+      await startLevel(page, skill, level, "studio");
+      for (let n = 0; n < 8; n++) {
+        await answer(page);
+        await expect(page.locator("#feedback.good")).toBeVisible();
+        await page.locator("#next-btn").click();
+      }
+      await expect(page.locator("#result-title")).toHaveText("Perfect build!");
+      await page.locator("#result-town").click();
+    }
+  }
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /9 of 27 buildings/);
+});
+
+test("Sentence check and Join it: a miss gives a hint, two show the answer", async ({ page }) => {
+  await openApp(page, { players: [player({ grade: 7 })], current: "p1" });
+  const seen = new Set();
+  for (const [skill, level] of [["fragments", 3], ["compound", 1], ["complex", 1]]) {
+    await startLevel(page, skill, level, "studio");
+    for (let n = 0; n < 8; n++) {
+      const item = await currentItem(page);
+      if (["check", "join"].includes(item.type) && !seen.has(item.type)) {
+        await miss(page);
+        await expect(page.locator("#feedback.hint")).toContainText(item.hint);
+        if (await miss(page)) {
+          await expect(page.locator("#feedback.shown")).toBeVisible();
+          seen.add(item.type);
+        } else {
+          await answer(page);
+        }
+      } else {
+        await answer(page);
+      }
+      await page.locator("#next-btn").click();
+    }
+    await page.locator("#result-town").click().catch(() => {});
+    if (await page.locator("#result-overlay").isVisible()) await page.locator("#result-town").click();
+  }
+  expect([...seen].sort()).toEqual(["check", "join"]);
 });

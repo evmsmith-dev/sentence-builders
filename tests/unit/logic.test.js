@@ -190,3 +190,28 @@ test("numbers in words for the grown-up check", async () => {
   assert.equal(numberWords(865), "eight hundred sixty-five");
   assert.equal(numberWords(200), "two hundred");
 });
+
+test("sentence check: levels 1-2 ask complete or fragment, level 3 adds run-on", async () => {
+  const { parseCheck } = await import("../../src/lib/parse.js");
+  const frag = parseCheck(content.items.find((i) => i.id === "fragments-1-01"));
+  assert.deepEqual(frag.kinds, ["complete", "fragment"]);
+  assert.equal(frag.fix, "My dog ran to the park.");
+  assert.equal(frag.answerText, "Fragment. Fix: My dog ran to the park.");
+  const runon = parseCheck(content.items.find((i) => i.id === "fragments-3-01"));
+  assert.deepEqual(runon.kinds, ["complete", "fragment", "runon"]);
+  const complete = parseCheck(content.items.find((i) => i.id === "fragments-1-02"));
+  assert.equal(complete.answerText, "The puppy chewed my shoe. (complete sentence)");
+});
+
+test("join: the word comes first, the comma follows the result", async () => {
+  const { parseJoin, checkMark, parseMarkText } = await import("../../src/lib/parse.js");
+  const withComma = parseJoin(content.items.find((i) => i.id === "compound-1-01"));
+  assert.equal(withComma.word, "but");
+  assert.equal(withComma.answerText, "I wanted pizza, but my sister wanted tacos.");
+  const noComma = content.items.find((i) => i.id === "complex-1-01");
+  const parsed = { answers: [parseMarkText(noComma.result)] };
+  const blank = parsed.answers[0].gaps.map(() => "");
+  assert.equal(checkMark(parsed, blank), true, "no comma needed when because comes in the middle");
+  const extra = [...blank]; extra[4] = ",";
+  assert.equal(checkMark(parsed, extra), false);
+});

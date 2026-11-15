@@ -199,7 +199,11 @@ function readItem() {
 
 function updateCheck() {
   const ctrl = state.play?.ctrl;
-  if (ctrl?.usesCheck) $("check-btn").disabled = state.play.done || !ctrl.canCheck();
+  if (!ctrl) return;
+  // Some items change as they go (pick a word, then place a comma), so the prompt and Check button follow along.
+  $("prompt").textContent = ctrl.prompt;
+  $("check-btn").hidden = !ctrl.usesCheck || state.play.done;
+  if (ctrl.usesCheck) $("check-btn").disabled = state.play.done || !ctrl.canCheck();
 }
 
 function handleAnswer(right) {

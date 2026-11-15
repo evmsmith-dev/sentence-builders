@@ -2,7 +2,7 @@
 
 A grammar and punctuation game for grades 3–5 that installs as an app on phones, tablets and computers (PWA) and works offline. Players fix and build sentences; each level they pass puts up a building in their town, and badges reward mastery and steady practice. Skills follow the 2020 Minnesota K–12 ELA standards.
 
-Two worlds are playable: **Punctuation Port** and **Word Works**.
+Three worlds are playable: **Punctuation Port**, **Word Works** and **Sentence Studio**.
 
 | Skill | Level 1 | Level 2 | Level 3 |
 | --- | --- | --- | --- |
@@ -16,17 +16,23 @@ Two worlds are playable: **Punctuation Port** and **Word Works**.
 | Agreement | Subject and verb (gr 4) | In compound and complex sentences (gr 4) | Tricky subjects: of-phrases, each, everyone, there is/are (gr 5) |
 | Pronouns | Reflexive pronouns (gr 3) | Pronouns that match (gr 4) | who, which, that, whose, where, when (gr 5) |
 
-Sentence Studio and Flow Factory (Shurley Q&A Flow) are shown as "Coming soon".
+| Skill | Level 1 | Level 2 | Level 3 |
+| --- | --- | --- | --- |
+| Fragments and run-ons | Complete sentence or fragment (gr 3) | Fragments that start with because, when, if (gr 4) | Run-ons and comma splices (gr 5) |
+| Compound sentences | and, but, so with a comma (gr 3) | The best joining word, including or and yet (gr 4) | Semicolons (gr 5) |
+| Complex sentences | because, when, if, after, before (gr 4) | although, until, while, since (gr 4) | The comma: front or end (gr 5) |
+
+Flow Factory (Shurley Q&A Flow) is shown as "Coming soon".
 
 ## How it plays
 
 - Up to 4 players per device, each with a name, avatar and grade. Levels at or below a player's grade start unlocked, so an older child can review anything.
 - A level opens with a Tip Card (the rule and an example, with read-aloud), then 8 items: 6 on the skill and 2 review items from levels already passed.
-- Five kinds of items: **Mark it** (tap a space, add the marks; where commas are the only choice, a tap adds or removes one), **Fix it** (find the wrong word and fix it), **Which is right?**, **Build it** (put the pieces in order) and **Sort it** (tap a word, then the box it belongs in).
+- Seven kinds of items: **Mark it** (tap a space, add the marks; where commas are the only choice, a tap adds or removes one), **Fix it** (find the wrong word and fix it), **Which is right?**, **Build it** (put the pieces in order) **Sort it** (tap a word, then the box it belongs in), **Sentence check** (complete, fragment or run-on, then the best fix) and **Join it** (pick the joining word, then decide if a comma goes in).
 - A first miss shows a hint and allows a second try; a second miss shows the answer, and the item comes back later.
 - Points: 1 for right on the first try, ½ on the second. Stars at 6, 7 and 8 points; under 6 means "build it again", and nothing is lost.
 - Gold on a skill: 7 or more on its level 3 on two different days. That turns its tower into a lighthouse.
-- Badges: one per skill (Bronze, Silver, Gold), one per world (Port Champion, Works Wizard), First Brick, Builder's Week and Fix-It Pro.
+- Badges: one per skill (Bronze, Silver, Gold), one per world (Port Champion, Works Wizard, Studio Star), First Brick, Builder's Week and Fix-It Pro.
 - Settings per player: read every sentence aloud, Pip's comments, sounds, grade.
 - **Grown-up view** (from the player screen or Settings, behind a "type this number" check): per child, minutes and days played this week, stars and badge for every skill, the sentences missed most, and a break reminder (off, 15, 20, 30 or 45 minutes). It also saves and restores a backup file.
 - Everything is saved on the device (localStorage). No accounts, ads, tracking or network calls.
