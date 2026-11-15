@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Sentence Builders</title>
+  <meta name="description" content="Fix sentences, build a town. A grammar and punctuation game for grades 3–5 that works offline.">
+  <meta name="theme-color" content="#1f4e8c">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Sentence Builders">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="vendor/fonts/fredoka.css">
+  <link rel="stylesheet" href="src/styles.css">
+  <script src="vendor/confetti.browser.js" defer></script>
+  <script type="module" src="src/main.js"></script>
+</head>
+<body>
+  <!-- ==================== Who's playing ==================== -->
+  <main id="players" class="screen" hidden>
+    <header class="top">
+      <h1 class="brand"><span aria-hidden="true">🏗️</span> Sentence Builders</h1>
+    </header>
+    <h2 class="screen-title">Who's playing?</h2>
+    <div id="player-list" class="player-list"></div>
+  </main>
+
+  <!-- ==================== Add a player ==================== -->
+  <main id="add-player" class="screen" hidden>
+    <header class="top">
+      <button type="button" class="back" data-go="players" aria-label="Back">←</button>
+      <h1 class="screen-title">New player</h1>
+    </header>
+    <form id="player-form" class="card form" autocomplete="off">
+      <label for="player-name">Name</label>
+      <input id="player-name" name="name" maxlength="16" required placeholder="First name or nickname">
+      <fieldset>
+        <legend>Pick an avatar</legend>
+        <div id="avatar-grid" class="avatar-grid"></div>
+      </fieldset>
+      <label for="player-grade">Grade</label>
+      <select id="player-grade" name="grade"></select>
+      <p class="note">Levels for your grade and below start unlocked. Grades 6–8 can review everything.</p>
+      <button type="submit" class="primary big">Start building</button>
+    </form>
+  </main>
+
+  <!-- ==================== Home: the town ==================== -->
+  <main id="home" class="screen" hidden>
+    <header class="top">
+      <button type="button" id="who-btn" class="who" aria-label="Switch player"></button>
+      <h1 class="brand small"><span aria-hidden="true">🏗️</span> Sentence Builders</h1>
+      <button type="button" id="settings-btn" class="icon-btn" aria-label="Settings">⚙️</button>
+    </header>
+    <div id="pip-home" class="pip-row"></div>
+    <section class="card town-card" aria-labelledby="town-title">
+      <div class="card-head">
+        <h2 id="town-title">Your town</h2>
+        <button type="button" id="badges-btn" class="chip"></button>
+      </div>
+      <div id="town"></div>
+    </section>
+    <h2 class="section-title">Worlds</h2>
+    <div id="world-list" class="world-list"></div>
+  </main>
+
+  <!-- ==================== A world: skills and levels ==================== -->
+  <main id="world" class="screen" hidden>
+    <header class="top">
+      <button type="button" class="back" data-go="home" aria-label="Back to town">←</button>
+      <h1 id="world-title" class="screen-title"></h1>
+    </header>
+    <div id="skill-list" class="skill-list"></div>
+  </main>
+
+  <!-- ==================== Playing a level ==================== -->
+  <main id="play" class="screen" hidden>
+    <header class="top play-top">
+      <button type="button" id="quit-btn" class="back" aria-label="Leave this level">✕</button>
+      <div class="progress" aria-hidden="true"><div id="progress-fill"></div></div>
+      <span id="progress-text" class="progress-text"></span>
+    </header>
+    <p id="play-skill" class="play-skill"></p>
+    <div class="prompt-row">
+      <p id="prompt" class="prompt"></p>
+      <button type="button" id="say-btn" class="say-btn" aria-label="Read it aloud">🔊</button>
+    </div>
+    <div id="item" class="item"></div>
+    <div id="feedback" class="feedback" role="status" aria-live="polite"></div>
+    <div class="play-actions">
+      <button type="button" id="check-btn" class="primary big">Check</button>
+      <button type="button" id="next-btn" class="primary big" hidden>Next</button>
+    </div>
+  </main>
+
+  <!-- ==================== Badges ==================== -->
+  <main id="badges" class="screen" hidden>
+    <header class="top">
+      <button type="button" class="back" data-go="home" aria-label="Back to town">←</button>
+      <h1 class="screen-title">Badges</h1>
+    </header>
+    <div id="badge-list" class="badge-list"></div>
+  </main>
+
+  <!-- ==================== Overlays ==================== -->
+  <div id="tip-overlay" class="overlay" hidden>
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="tip-title">
+      <p id="tip-level" class="eyebrow"></p>
+      <h2 id="tip-title"></h2>
+      <p id="tip-rule" class="tip-rule"></p>
+      <p class="eyebrow">Example</p>
+      <p id="tip-example" class="tip-example"></p>
+      <div class="sheet-actions">
+        <button type="button" id="tip-say" class="secondary">🔊 Read it</button>
+        <button type="button" id="tip-start" class="primary big">Let's build</button>
+      </div>
+      <button type="button" class="link" data-close>Not now</button>
+    </div>
+  </div>
+
+  <div id="result-overlay" class="overlay" hidden>
+    <div class="sheet result" role="dialog" aria-modal="true" aria-labelledby="result-title">
+      <div id="result-stars" class="result-stars" aria-hidden="true"></div>
+      <h2 id="result-title"></h2>
+      <p id="result-score" class="result-score"></p>
+      <div id="result-pip" class="pip-row"></div>
+      <div id="result-badges" class="result-badges"></div>
+      <div class="sheet-actions stack">
+        <button type="button" id="result-next" class="primary big"></button>
+        <button type="button" id="result-again" class="secondary">Play again</button>
+        <button type="button" id="result-town" class="link">Back to town</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="settings-overlay" class="overlay" hidden>
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+      <h2 id="settings-title">Settings</h2>
+      <label class="toggle"><input type="checkbox" id="set-autoread"> Read every sentence aloud</label>
+      <label class="toggle"><input type="checkbox" id="set-pip"> Pip's comments</label>
+      <label class="toggle"><input type="checkbox" id="set-sound"> Sounds</label>
+      <label for="set-grade">Grade</label>
+      <select id="set-grade"></select>
+      <div class="sheet-actions stack">
+        <button type="button" id="switch-player" class="secondary">Switch player</button>
+        <button type="button" id="delete-player" class="danger-link">Delete this player</button>
+        <button type="button" class="primary" data-close>Done</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="quit-overlay" class="overlay" hidden>
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="quit-title">
+      <h2 id="quit-title">Leave this level?</h2>
+      <p>Your stars from earlier stay. This try won't count.</p>
+      <div class="sheet-actions">
+        <button type="button" class="secondary" data-close>Keep going</button>
+        <button type="button" id="quit-yes" class="primary">Leave</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

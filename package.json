@@ -1,0 +1,20 @@
+{
+  "name": "sentence-builders",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Grammar and punctuation game for grades 3-5 that works offline",
+  "type": "module",
+  "scripts": {
+    "start": "node scripts/serve.mjs . 8080",
+    "build": "node scripts/build.mjs",
+    "preview": "npm run build && node scripts/serve.mjs dist 8080",
+    "validate:items": "node scripts/validate-items.mjs",
+    "test:unit": "node --test \"tests/unit/*.test.js\"",
+    "test:e2e": "npm run build && playwright test",
+    "test": "npm run validate:items && npm run test:unit && npm run test:e2e"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "esbuild": "^0.25.10"
+  }
+}

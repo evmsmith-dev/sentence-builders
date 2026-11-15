@@ -1,0 +1,16 @@
+# Writing items
+
+`content.json` holds the Tip Cards (`tips`, one per skill and level, keyed like `commas-2`) and the items. Run `npm run validate:items` after any change; it checks that every item can be shown and answered.
+
+Every item has `id`, `skill`, `level` (1–3), `type` and `hint` (shown after a first miss). Ids are permanent: progress is saved by id, so don't reuse or renumber them.
+
+In every format, **the first choice is the right one**; the game shuffles choices.
+
+| Type | Field | Example | Notes |
+| --- | --- | --- | --- |
+| `mark` | `text` | `We packed apples[,] grapes[,?] and crackers.` | Brackets hold the marks to place. `[,?]` is optional (right either way). Several marks in one space: `[,"]` (order matters). Punctuation outside brackets is given. `alts`: other complete answers, written the same way. `marks`: replace the default palette (from `src/config.js`). |
+| `fix` | `text` | `[Mayas\|Maya's\|Mayas'] bike has a flat tire.` | Shown word, right word, then wrong choices. |
+| `which` | `text` or `options` | `The team lost [its\|it's] first game.` or `"options": ["Right sentence.", "Wrong one."]` | A blank in a sentence, or whole sentences. |
+| `build` | `tiles` | `My sister said\|,\|"I\|love\|this\|song."` | Pieces in the right order, separated by `\|`. Lone punctuation joins the word before it. `alts`: other right orders. |
+
+Style: sentences under 15 words, about things kids care about (pets, sports, games, science, weather), a mix of names, no trick questions. Hints name the rule in one sentence.
