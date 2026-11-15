@@ -11,6 +11,7 @@ In every format, **the first choice is the right one**; the game shuffles choice
 | `mark` | `text` | `We packed apples[,] grapes[,?] and crackers.` | Brackets hold the marks to place. `[,?]` is optional (right either way). Several marks in one space: `[,"]` (order matters). Punctuation outside brackets is given. `alts`: other complete answers, written the same way. `marks`: replace the default palette (from `src/config.js`). |
 | `fix` | `text` | `[Mayas\|Maya's\|Mayas'] bike has a flat tire.` | Shown word, right word, then wrong choices. |
 | `which` | `text` or `options` | `The team lost [its\|it's] first game.` or `"options": ["Right sentence.", "Wrong one."]` | A blank in a sentence, or whole sentences. |
+| `sort` | `bins` | `{"Past": ["walked", "swam"], "Present": ["jumps", "eats"]}` | Two or three boxes, in the order shown, each with the words that belong in it. Every word appears once. |
 | `build` | `tiles` | `My sister said\|,\|"I\|love\|this\|song."` | Pieces in the right order, separated by `\|`. Lone punctuation joins the word before it. `alts`: other right orders. |
 
 Tense: keep a sentence's verbs in one time frame (all past, all present, or all future). Shifts are fine only where the grammar calls for them: a present-tense if/when part with a future result ("If it rains, we will stay inside"), and quoted words, which keep the speaker's own tense. Avoid verbs that look the same in past and present (read, lead), because read-aloud may say the wrong one.

@@ -1,6 +1,6 @@
 import { expect } from "@playwright/test";
 import { readFileSync } from "node:fs";
-import { paletteFor, parseBuild, parseFix, parseMark, parseWhich } from "../../src/lib/parse.js";
+import { paletteFor, parseBuild, parseFix, parseMark, parseSort, parseWhich } from "../../src/lib/parse.js";
 
 const content = JSON.parse(readFileSync(new URL("../../data/content.json", import.meta.url), "utf8"));
 export const itemById = (id) => content.items.find((item) => item.id === id);
@@ -25,8 +25,8 @@ export function player({ id = "p1", name = "Ava", avatar = "🦊", grade = 4, le
   };
 }
 
-export async function startLevel(page, skill, level) {
-  await page.locator(`[data-world="port"]`).click();
+export async function startLevel(page, skill, level, world = "port") {
+  await page.locator(`[data-world="${world}"]`).click();
   await page.locator(`.level-btn[data-skill="${skill}"][data-level="${level}"]`).click();
   await expect(page.locator("#tip-overlay")).toBeVisible();
   await page.locator("#tip-start").click();
@@ -66,6 +66,13 @@ export async function miss(page) {
       }
     }
     return false;
+  } else if (item.type === "sort") {
+    // Everything in the first box (some words always belong elsewhere).
+    while (await page.locator("#item .sort-bank .tile").count()) {
+      await page.locator("#item .sort-bank .tile").first().click();
+      await page.locator('#item .sort-bin[data-bin="0"] .bin-head').click();
+    }
+    await page.locator("#check-btn").click();
   } else if (item.type === "build") {
     const parsed = parseBuild(item);
     if (await page.locator("#item .build-bank .tile").count()) {
@@ -108,6 +115,14 @@ export async function answer(page) {
   } else if (item.type === "which") {
     const parsed = parseWhich(item);
     await page.locator("#item [data-choice]").filter({ hasText: exact(parsed.correct) }).first().click();
+  } else if (item.type === "sort") {
+    const parsed = parseSort(item);
+    for (const tile of parsed.tiles) {
+      await page.locator("#item [data-sort-tile]").filter({ hasText: exact(tile.text) }).first().click();
+      const bin = parsed.bins.findIndex((b) => b.name === tile.bin);
+      await page.locator(`#item .sort-bin[data-bin="${bin}"] .bin-head`).click();
+    }
+    await page.locator("#check-btn").click();
   } else if (item.type === "build") {
     const parsed = parseBuild(item);
     // Send back anything placed on an earlier try, then build it in order.

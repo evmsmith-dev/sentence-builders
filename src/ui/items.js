@@ -7,7 +7,9 @@
 //   reveal()        show the right answer after a second miss
 //   lock()          no more changes
 // Types that answer on a tap call answer(correct) themselves.
-import { checkBuild, checkMark, joinTiles, paletteFor, parseBuild, parseFix, parseMark, parseWhich } from "../lib/parse.js";
+import {
+  checkBuild, checkMark, checkSort, joinTiles, paletteFor, parseBuild, parseFix, parseMark, parseSort, parseWhich,
+} from "../lib/parse.js";
 import { shuffle } from "../lib/select.js";
 import { esc } from "./dom.js";
 
@@ -228,8 +230,69 @@ function renderBuild(root, item, { onChange, onTap }) {
   };
 }
 
+function renderSort(root, item, { onChange, onTap }) {
+  const parsed = parseSort(item);
+  const tiles = shuffle(parsed.tiles.map((tile, id) => ({ ...tile, id })));
+  const placed = {}; // tile id → bin index
+  let selected = null;
+  let locked = false;
+  root.innerHTML = `<div class="sort-bank" data-type="sort" aria-label="Words to sort"></div>
+    <div class="sort-bins" style="--bins:${parsed.bins.length}">${parsed.bins.map((bin, i) =>
+      `<div class="sort-bin" data-bin="${i}"><button type="button" class="bin-head" data-bin-target="${i}">${esc(bin.name)}</button><div class="bin-tiles"></div></div>`).join("")}</div>`;
+  const bankEl = root.querySelector(".sort-bank");
+  const tile = (t) => `<button type="button" class="tile${selected === t.id ? " selected" : ""}" data-sort-tile="${t.id}" aria-pressed="${selected === t.id}" ${locked ? "disabled" : ""}>${esc(t.text)}</button>`;
+  function draw() {
+    const inBank = tiles.filter((t) => placed[t.id] === undefined);
+    bankEl.innerHTML = inBank.length ? inBank.map(tile).join("")
+      : '<span class="slots-empty">All sorted. Tap a word to move it.</span>';
+    parsed.bins.forEach((bin, i) => {
+      const box = root.querySelector(`.sort-bin[data-bin="${i}"]`);
+      box.classList.toggle("ready", selected !== null && !locked);
+      box.querySelector(".bin-tiles").innerHTML = tiles.filter((t) => placed[t.id] === i).map(tile).join("");
+    });
+  }
+  root.addEventListener("click", (event) => {
+    if (locked) return;
+    const tileEl = event.target.closest("[data-sort-tile]");
+    const binEl = event.target.closest("[data-bin]");
+    if (tileEl) {
+      const id = Number(tileEl.dataset.sortTile);
+      selected = selected === id ? null : id;
+      onTap();
+    } else if (binEl && selected !== null) {
+      placed[selected] = Number(binEl.dataset.bin);
+      selected = null;
+      onTap();
+    } else if (event.target.closest(".sort-bank") && selected !== null) {
+      delete placed[selected];
+      selected = null;
+    } else {
+      return;
+    }
+    draw();
+    onChange();
+  });
+  draw();
+  const byText = () => Object.fromEntries(tiles.filter((t) => placed[t.id] !== undefined).map((t) => [t.text, parsed.bins[placed[t.id]].name]));
+  return {
+    prompt: "Tap a word, then tap the box it belongs in.",
+    usesCheck: true,
+    canCheck: () => tiles.every((t) => placed[t.id] !== undefined),
+    check: () => checkSort(parsed, byText()),
+    retry: () => { selected = null; draw(); },
+    reveal: () => {
+      locked = true;
+      for (const t of tiles) placed[t.id] = parsed.bins.findIndex((bin) => bin.name === t.bin);
+      selected = null;
+      draw();
+      root.querySelectorAll(".sort-bin").forEach((box) => box.classList.add("answer"));
+    },
+    lock: () => { locked = true; selected = null; draw(); },
+  };
+}
+
 export function renderItem(root, item, hooks) {
-  const render = { mark: renderMark, fix: renderFix, which: renderWhich, build: renderBuild }[item.type];
+  const render = { mark: renderMark, fix: renderFix, which: renderWhich, build: renderBuild, sort: renderSort }[item.type];
   if (!render) throw new Error(`Unknown item type: ${item.type}`);
   root.innerHTML = "";
   return render(root, item, hooks);

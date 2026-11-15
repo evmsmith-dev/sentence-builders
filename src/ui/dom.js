@@ -6,7 +6,7 @@ export function esc(text) {
   return String(text).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 }
 
-const SCREENS = ["players", "add-player", "home", "world", "play", "badges"];
+const SCREENS = ["players", "add-player", "home", "world", "play", "badges", "parent"];
 
 export function showScreen(id) {
   for (const screen of SCREENS) $(screen).hidden = screen !== id;

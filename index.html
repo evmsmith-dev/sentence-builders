@@ -26,6 +26,7 @@
     </header>
     <h2 class="screen-title">Who's playing?</h2>
     <div id="player-list" class="player-list"></div>
+    <p class="grownup-link"><button type="button" class="link" data-grownup>Grown-ups: progress and backup</button></p>
   </main>
 
   <!-- ==================== Add a player ==================== -->
@@ -105,7 +106,41 @@
     <div id="badge-list" class="badge-list"></div>
   </main>
 
+  <!-- ==================== Grown-up view ==================== -->
+  <main id="parent" class="screen" hidden>
+    <header class="top">
+      <button type="button" id="parent-back" class="back" aria-label="Back">←</button>
+      <h1 class="screen-title">Grown-up view</h1>
+    </header>
+    <p class="note">Progress for each player on this device. Everything stays on this device.</p>
+    <div id="parent-players"></div>
+    <section class="card parent-backup" aria-labelledby="backup-title">
+      <h2 id="backup-title">Backup</h2>
+      <p class="note">Save a backup file before resetting or replacing this device, then restore it on the new one.</p>
+      <div class="sheet-actions start">
+        <button type="button" id="backup-save" class="secondary">Save a backup file</button>
+        <label class="secondary file-btn">Restore from a file<input type="file" id="backup-file" accept="application/json,.json" hidden></label>
+      </div>
+      <p id="backup-status" class="note" role="status"></p>
+    </section>
+  </main>
+
   <!-- ==================== Overlays ==================== -->
+  <div id="adult-overlay" class="overlay" hidden>
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="adult-title">
+      <h2 id="adult-title">Grown-ups only</h2>
+      <form id="adult-form">
+        <label for="adult-answer" id="adult-question"></label>
+        <input id="adult-answer" inputmode="numeric" autocomplete="off" class="adult-input">
+        <p id="adult-wrong" class="note" hidden>That's not it. Try again.</p>
+        <div class="sheet-actions">
+          <button type="button" class="secondary" data-close>Cancel</button>
+          <button type="submit" class="primary">Open</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <div id="tip-overlay" class="overlay" hidden>
     <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="tip-title">
       <p id="tip-level" class="eyebrow"></p>
@@ -146,6 +181,7 @@
       <select id="set-grade"></select>
       <div class="sheet-actions stack">
         <button type="button" id="switch-player" class="secondary">Switch player</button>
+        <button type="button" class="secondary" data-grownup>Grown-up view</button>
         <button type="button" id="delete-player" class="danger-link">Delete this player</button>
         <button type="button" class="primary" data-close>Done</button>
       </div>

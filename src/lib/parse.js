@@ -128,6 +128,18 @@ export function checkBuild(parsed, order) {
   return parsed.answers.some((answer) => answer.length === order.length && answer.every((tile, i) => tile === order[i]));
 }
 
+/** Sort it: { bins: { "Past": ["walked", ...], "Present": [...] } } → bins in order and every tile. */
+export function parseSort(item) {
+  const bins = Object.entries(item.bins || {}).map(([name, tiles]) => ({ name, tiles: [...tiles] }));
+  const tiles = bins.flatMap((bin) => bin.tiles.map((text) => ({ text, bin: bin.name })));
+  return { bins, tiles, answerText: bins.map((bin) => `${bin.name.replace(/\s*\.\.\.$/, "")}: ${bin.tiles.join(", ")}`).join(". ") + "." };
+}
+
+/** placed: { tile text: bin name } for every tile. */
+export function checkSort(parsed, placed) {
+  return parsed.tiles.every((tile) => placed[tile.text] === tile.bin);
+}
+
 /** What read-aloud says for an item's sentence: plain words, no marks to place. */
 export function spokenText(item) {
   if (item.type === "mark") return parseMark(item).words.join(" ");
@@ -136,7 +148,7 @@ export function spokenText(item) {
     const which = parseWhich(item);
     return which.kind === "blank" ? `${which.before}blank${which.after}` : "";
   }
-  if (item.type === "build") return "";
+  if (item.type === "sort") return parseSort(item).tiles.map((tile) => tile.text).join(", ");
   return "";
 }
 
@@ -149,10 +161,11 @@ export function answerText(item) {
   if (item.type === "fix") return parseFix(item).fixed;
   if (item.type === "which") return parseWhich(item).answerText;
   if (item.type === "build") return parseBuild(item).answerText;
+  if (item.type === "sort") return parseSort(item).answerText;
   throw new Error(`Unknown item type: ${item.type}`);
 }
 
-export const ITEM_TYPES = ["mark", "fix", "which", "build"];
+export const ITEM_TYPES = ["mark", "fix", "which", "build", "sort"];
 
 /** Throws if an item can't be shown or can't be answered. Used by the validator. */
 export function validateItem(item) {
@@ -181,6 +194,12 @@ export function validateItem(item) {
     const parsed = parseBuild(item);
     if (parsed.tiles.length < 3) throw new Error(`${item.id}: a build needs at least 3 tiles`);
     if (!checkBuild(parsed, parsed.tiles)) throw new Error(`${item.id}: its own answer isn't accepted`);
+  }
+  if (item.type === "sort") {
+    const parsed = parseSort(item);
+    if (parsed.bins.length < 2 || parsed.tiles.length < 4) throw new Error(`${item.id}: a sort needs 2+ bins and 4+ tiles`);
+    if (new Set(parsed.tiles.map((t) => t.text)).size !== parsed.tiles.length) throw new Error(`${item.id}: repeated tiles`);
+    if (parsed.bins.some((bin) => !bin.tiles.length)) throw new Error(`${item.id}: an empty bin`);
   }
   return true;
 }

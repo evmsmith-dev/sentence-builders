@@ -17,7 +17,7 @@ export const MAX_PLAYERS = 4;
 
 export const WORLDS = [
   { id: "port", name: "Punctuation Port", emoji: "⚓", ready: true, blurb: "Commas, colons, quotation marks and apostrophes" },
-  { id: "works", name: "Word Works", emoji: "⚙️", ready: false, blurb: "Verb tenses, agreement and pronouns" },
+  { id: "works", name: "Word Works", emoji: "⚙️", ready: true, blurb: "Verb tenses, agreement and pronouns" },
   { id: "studio", name: "Sentence Studio", emoji: "🎨", ready: false, blurb: "Fragments, run-ons, compound and complex sentences" },
   { id: "flow", name: "Flow Factory", emoji: "🏭", ready: false, blurb: "Label every word with the Q&A Flow" },
 ];
@@ -38,6 +38,21 @@ export const SKILLS = [
     id: "apostrophes", world: "port", name: "Apostrophes", short: "Apostrophes", color: "#d9822b",
     grades: [3, 4, 5], benchmarks: "MN 3.2.1.1",
     badge: { id: "apostrophe-ace", name: "Apostrophe Ace", emoji: "🎯" },
+  },
+  {
+    id: "verbs", world: "works", name: "Verb tenses", short: "Verbs", color: "#2e8b57",
+    grades: [3, 4, 5], benchmarks: "MN 3.2.1.3; grammar in 4.2.1.1, 5.2.1.1",
+    badge: { id: "time-traveler", name: "Time Traveler", emoji: "⏳" },
+  },
+  {
+    id: "agreement", world: "works", name: "Agreement", short: "Agreement", color: "#c2185b",
+    grades: [4, 4, 5], benchmarks: "MN 4.2.1.3",
+    badge: { id: "perfect-match", name: "Perfect Match", emoji: "🧩" },
+  },
+  {
+    id: "pronouns", world: "works", name: "Pronouns", short: "Pronouns", color: "#00897b",
+    grades: [3, 4, 5], benchmarks: "MN 3.2.1.3, 4.2.1.3, 5.2.1.3",
+    badge: { id: "pronoun-pro", name: "Pronoun Pro", emoji: "🪞" },
   },
 ];
 
@@ -62,6 +77,7 @@ export const TIER_NAMES = ["Bronze", "Silver", "Gold"];
 // Silver = pass level 2, Gold = mastery of level 3).
 export const WORLD_BADGES = [
   { id: "port-champion", world: "port", name: "Port Champion", emoji: "🏆", how: "Get every Punctuation Port skill to Silver." },
+  { id: "works-wizard", world: "works", name: "Works Wizard", emoji: "🧙", how: "Get every Word Works skill to Silver." },
 ];
 export const HABIT_BADGES = [
   { id: "first-brick", name: "First Brick", emoji: "🧱", how: "Finish your first level.", goal: 1, measure: "levelsPassed" },

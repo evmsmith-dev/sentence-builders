@@ -155,3 +155,38 @@ test("palettes: no period where every sentence already ends with one", () => {
     assert.ok(!paletteFor(item).includes("."), item.id);
   }
 });
+
+test("sort items: check and answer text", async () => {
+  const { parseSort, checkSort } = await import("../../src/lib/parse.js");
+  const item = content.items.find((i) => i.id === "verbs-1-04");
+  const parsed = parseSort(item);
+  const right = Object.fromEntries(parsed.tiles.map((t) => [t.text, t.bin]));
+  assert.equal(checkSort(parsed, right), true);
+  assert.equal(checkSort(parsed, { ...right, walked: "Present" }), false);
+  assert.equal(parsed.answerText, "Past: walked, swam, told. Present: jumps, eats, sings.");
+});
+
+test("time played, week summary, most missed, and old saves", async () => {
+  const { weekSummary, mostMissed, normalizePlayer, MAX_LEVEL_MS } = await import("../../src/lib/progress.js");
+  const now = new Date("2026-11-15T10:00:00").getTime();
+  let player = newPlayer({ id: "p", name: "A", avatar: "🦊", grade: 4, now });
+  const results = [{ id: "a", tries: 2, correct: true }, { id: "b", tries: 2, correct: false }, { id: "c", tries: 1, correct: true }];
+  player = recordLevel(player, { skill: "verbs", level: 1, results, now, durationMs: 4 * 60000 }).player;
+  player = recordLevel(player, { skill: "verbs", level: 1, results, now: now + 864e5 * 8, durationMs: 3 * 3600000 }).player;
+  assert.equal(player.time["2026-11-15"], 4 * 60000);
+  assert.equal(player.time["2026-11-23"], MAX_LEVEL_MS, "a game left open counts at most 15 minutes");
+  assert.deepEqual(weekSummary(player, now + 864e5), { minutes: 4, daysPlayed: 1 });
+  assert.deepEqual(mostMissed(player).map((m) => m.id).sort(), ["a", "b"]);
+  const old = normalizePlayer({ id: "o", name: "Old", avatar: "🐼", grade: 5, levels: {}, goldDays: {}, items: {}, secondTryWins: 0, days: [], badges: {}, settings: { pip: false } });
+  assert.equal(old.settings.pip, false);
+  assert.equal(old.settings.breakMinutes, 0);
+  assert.deepEqual(old.time, {});
+});
+
+test("numbers in words for the grown-up check", async () => {
+  const { numberWords } = await import("../../src/lib/words.js");
+  assert.equal(numberWords(712), "seven hundred twelve");
+  assert.equal(numberWords(340), "three hundred forty");
+  assert.equal(numberWords(865), "eight hundred sixty-five");
+  assert.equal(numberWords(200), "two hundred");
+});

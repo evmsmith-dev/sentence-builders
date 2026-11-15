@@ -14,14 +14,40 @@ export function localDate(ms) {
 export function newPlayer({ id, name, avatar, grade, now }) {
   return {
     id, name: name.trim(), avatar, grade: Number(grade), created: now,
-    settings: { autoRead: false, pip: true, sound: true },
+    settings: { autoRead: false, pip: true, sound: true, breakMinutes: 0 },
     levels: {}, // "commas-1": { best, stars, plays }
     goldDays: {}, // "commas": ["2026-11-15", ...] days with GOLD_POINTS+ on level 3
     items: {}, // item id: { seen, misses, last }
     secondTryWins: 0,
     days: [], // dates played
+    time: {}, // date: milliseconds spent in levels that day
     badges: {}, // badge id: highest tier earned (kept even if data is later trimmed)
   };
+}
+
+/** Fills in fields added after a player was first saved, so older saves keep working. */
+export function normalizePlayer(player) {
+  const base = newPlayer({ id: player.id, name: player.name || "Player", avatar: player.avatar, grade: player.grade || 4, now: player.created || 0 });
+  return { ...base, ...player, settings: { ...base.settings, ...(player.settings || {}) } };
+}
+
+// A level's time counts at most this much, so a game left open doesn't count as practice.
+export const MAX_LEVEL_MS = 15 * 60 * 1000;
+
+/** Minutes played in the 7 days ending on `now` (today included), and on how many of those days. */
+export function weekSummary(player, now) {
+  const days = Array.from({ length: 7 }, (_, i) => localDate(now - i * 864e5));
+  const ms = days.reduce((sum, day) => sum + (player.time?.[day] || 0), 0);
+  return { minutes: Math.round(ms / 60000), daysPlayed: days.filter((day) => player.days.includes(day)).length };
+}
+
+/** The items missed most, most first. */
+export function mostMissed(player, limit = 5) {
+  return Object.entries(player.items)
+    .filter(([, s]) => s.misses > 0)
+    .sort((a, b) => b[1].misses - a[1].misses || b[1].last - a[1].last)
+    .slice(0, limit)
+    .map(([id, s]) => ({ id, misses: s.misses, seen: s.seen }));
 }
 
 export function starsFor(points) {
@@ -79,8 +105,8 @@ export function currentBadges(player) {
  * Records a finished level. results: [{ id, tries, correct }] in play order.
  * Returns the updated player plus what to celebrate. The input player isn't changed.
  */
-export function recordLevel(player, { skill, level, results, now }) {
-  const next = JSON.parse(JSON.stringify(player));
+export function recordLevel(player, { skill, level, results, now, durationMs = 0 }) {
+  const next = normalizePlayer(JSON.parse(JSON.stringify(player)));
   const date = localDate(now);
   const points = results.reduce((sum, result) => sum + pointsFor(result), 0);
   const stars = starsFor(points);
@@ -94,6 +120,9 @@ export function recordLevel(player, { skill, level, results, now }) {
     if (result.correct && result.tries === 2) next.secondTryWins += 1;
   }
   if (!next.days.includes(date)) next.days.push(date);
+  next.time[date] = (next.time[date] || 0) + Math.min(Math.max(durationMs, 0), MAX_LEVEL_MS);
+  // Keep about two months of daily times.
+  for (const day of Object.keys(next.time).sort().slice(0, -60)) delete next.time[day];
   if (level === 3 && points >= GOLD_POINTS) {
     const days = next.goldDays[skill] || [];
     if (!days.includes(date)) next.goldDays[skill] = [...days, date];

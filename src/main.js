@@ -4,9 +4,11 @@ import {
   GOLD_DAYS, skillById, skillsInWorld,
 } from "./config.js";
 import { answerText, spokenText } from "./lib/parse.js";
+import { numberWords } from "./lib/words.js";
 import { pickLevelItems } from "./lib/select.js";
 import {
-  currentBadges, habitValue, isPassed, isUnlocked, levelStars, newPlayer, passedKeys, recordLevel, skillTier,
+  currentBadges, habitValue, isPassed, isUnlocked, levelStars, localDate, mostMissed, newPlayer, normalizePlayer,
+  passedKeys, recordLevel, skillTier, weekSummary,
 } from "./lib/progress.js";
 import { loadCurrentId, loadPlayers, saveCurrentId, savePlayers } from "./storage.js";
 import { pipSays, townSvg } from "./ui/art.js";
@@ -21,6 +23,7 @@ const state = {
   player: null,
   newAvatar: AVATARS[0],
   play: null, // the level being played
+  sessionStart: null, // when this stretch of play began, for the break reminder
 };
 
 const settings = () => state.player?.settings || { sound: true, pip: true, autoRead: false };
@@ -153,7 +156,8 @@ function startLevel(skillId, level) {
   const items = pickLevelItems({
     items: state.content.items, skill: skillId, level, stats: state.player.items, passedKeys: passedKeys(state.player),
   });
-  state.play = { skillId, level, items, index: 0, tries: 0, results: [], ctrl: null, done: false };
+  state.play = { skillId, level, items, index: 0, tries: 0, results: [], ctrl: null, done: false, startedAt: Date.now() };
+  if (!state.sessionStart) state.sessionStart = Date.now();
   showScreen("play");
   showItem();
 }
@@ -249,7 +253,8 @@ function nextItem() {
 
 function finishLevel() {
   const play = state.play;
-  const out = recordLevel(state.player, { skill: play.skillId, level: play.level, results: play.results, now: Date.now() });
+  const now = Date.now();
+  const out = recordLevel(state.player, { skill: play.skillId, level: play.level, results: play.results, now, durationMs: now - play.startedAt });
   savePlayer(out.player);
   const s = settings();
   const skill = skillById(play.skillId);
@@ -260,6 +265,11 @@ function finishLevel() {
   let pipLine = out.passed ? pick(PIP.passed) : PIP.notYet;
   if (out.passed && play.level === 3 && skillTier(out.player, skill.id) < 3) {
     pipLine += out.points >= 7 ? ` Gold progress: ${out.goldProgress} of ${GOLD_DAYS} days.` : " Score 7 or more here on two days for Gold.";
+  }
+  const breakMinutes = out.player.settings.breakMinutes;
+  if (breakMinutes && now - state.sessionStart >= breakMinutes * 60000) {
+    pipLine += ` You've been building for ${Math.round((now - state.sessionStart) / 60000)} minutes. Time for a stretch break!`;
+    state.sessionStart = null;
   }
   $("result-pip").innerHTML = pipSays(pipLine, true);
   $("result-badges").innerHTML = out.newBadges.map(({ id, tier }) => {
@@ -301,6 +311,97 @@ function renderBadges() {
   showScreen("badges");
 }
 
+/* ==================== Grown-up view ==================== */
+
+function openAdultCheck() {
+  const number = 200 + Math.floor(Math.random() * 700);
+  state.adultNumber = number;
+  $("adult-question").textContent = `Type the number ${numberWords(number)}:`;
+  $("adult-answer").value = "";
+  $("adult-wrong").hidden = true;
+  closeOverlay("settings-overlay");
+  openOverlay("adult-overlay");
+  $("adult-answer").focus();
+}
+
+const BREAK_CHOICES = [0, 15, 20, 30, 45];
+
+function renderParent() {
+  const now = Date.now();
+  const itemById = (id) => state.content.items.find((item) => item.id === id);
+  $("parent-players").innerHTML = state.players.length ? state.players.map((p) => {
+    const week = weekSummary(p, now);
+    const badges = Object.values(currentBadges(p)).filter(Boolean).length;
+    const last = p.days.length ? [...p.days].sort().at(-1) : null;
+    const worlds = WORLDS.filter((w) => w.ready).map((world) => {
+      const rows = skillsInWorld(world.id).map((skill) => {
+        const tier = skillTier(p, skill.id);
+        const cells = [1, 2, 3].map((level) => {
+          const stars = levelStars(p, skill.id, level);
+          const open = isUnlocked(p, skill.id, level);
+          return `<td>${stars ? `<span class="stars-mini" aria-label="${stars} stars">${"★".repeat(stars)}</span>` : open ? '<span class="muted">open</span>' : '<span class="muted" aria-label="locked">🔒</span>'}</td>`;
+        }).join("");
+        return `<tr><th scope="row">${esc(skill.name)}</th>${cells}<td>${tier ? TIER_NAMES[tier - 1] : "—"}</td></tr>`;
+      }).join("");
+      return `<h4>${world.emoji} ${esc(world.name)}</h4><table class="progress-table"><thead><tr><th scope="col">Skill</th><th scope="col">Level 1</th><th scope="col">Level 2</th><th scope="col">Level 3</th><th scope="col">Badge</th></tr></thead><tbody>${rows}</tbody></table>`;
+    }).join("");
+    const missed = mostMissed(p).map(({ id, misses }) => {
+      const item = itemById(id);
+      if (!item) return "";
+      return `<li><span class="missed-skill">${esc(skillById(item.skill)?.name || item.skill)}, level ${item.level} · missed ${misses}×</span>${esc(answerText(item))}</li>`;
+    }).join("");
+    const choices = BREAK_CHOICES.map((m) => `<option value="${m}" ${p.settings.breakMinutes === m ? "selected" : ""}>${m ? `After ${m} minutes` : "Off"}</option>`).join("");
+    return `<section class="card parent-card" data-parent-player="${esc(p.id)}">
+      <h3><span aria-hidden="true">${p.avatar}</span> ${esc(p.name)} <span class="muted">· Grade ${p.grade}</span></h3>
+      <div class="parent-stats">
+        <div><strong>${week.minutes}</strong><span>minutes this week</span></div>
+        <div><strong>${week.daysPlayed}</strong><span>days played this week</span></div>
+        <div><strong>${passedKeys(p).length}</strong><span>levels passed</span></div>
+        <div><strong>${badges}</strong><span>badges</span></div>
+      </div>
+      <p class="note">${last ? `Last played ${last === localDate(now) ? "today" : last}.` : "Hasn't played yet."}</p>
+      ${worlds}
+      <h4>Sentences missed most</h4>
+      ${missed ? `<ol class="missed-list">${missed}</ol>` : '<p class="note">None yet.</p>'}
+      <label class="break-row">Break reminder <select data-break="${esc(p.id)}">${choices}</select></label>
+    </section>`;
+  }).join("") : '<p class="note">No players yet.</p>';
+  $("backup-status").textContent = "";
+  showScreen("parent");
+}
+
+function saveBackup() {
+  const data = JSON.stringify({ app: "sentence-builders", version: 1, saved: new Date().toISOString(), players: state.players }, null, 1);
+  const url = URL.createObjectURL(new Blob([data], { type: "application/json" }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `sentence-builders-backup-${localDate(Date.now())}.json`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  $("backup-status").textContent = "Backup file saved to your downloads.";
+}
+
+async function restoreBackup(file) {
+  try {
+    const data = JSON.parse(await file.text());
+    const ok = data?.app === "sentence-builders" && Array.isArray(data.players)
+      && data.players.every((p) => p && typeof p.id === "string" && typeof p.name === "string" && p.levels && typeof p.levels === "object");
+    if (!ok) throw new Error("not a backup");
+    const names = data.players.map((p) => p.name).join(", ");
+    if (!window.confirm(`Replace the players on this device with the backup (${names})?`)) return;
+    state.players = data.players.slice(0, MAX_PLAYERS).map(normalizePlayer);
+    savePlayers(state.players);
+    state.player = state.players.find((p) => p.id === state.player?.id) || null;
+    saveCurrentId(state.player?.id || null);
+    renderParent();
+    $("backup-status").textContent = `Restored ${names}.`;
+  } catch {
+    $("backup-status").textContent = "That file isn't a Sentence Builders backup.";
+  }
+}
+
 /* ==================== Settings ==================== */
 
 function openSettings() {
@@ -319,7 +420,7 @@ function changeSetting() {
   const player = {
     ...state.player,
     grade: Number($("set-grade").value),
-    settings: { autoRead: $("set-autoread").checked, pip: $("set-pip").checked, sound: $("set-sound").checked },
+    settings: { ...state.player.settings, autoRead: $("set-autoread").checked, pip: $("set-pip").checked, sound: $("set-sound").checked },
   };
   savePlayer(player);
 }
@@ -348,9 +449,11 @@ function wire() {
     if (close) {
       closeOverlay(close.closest(".overlay").id);
       if (close.closest("#settings-overlay") && state.player) renderHome();
+      if (close.closest("#adult-overlay") && state.player && document.body.dataset.screen === "home") renderHome();
       return;
     }
     if (target.closest("[data-add-player]")) return openAddPlayer();
+    if (target.closest("[data-grownup]")) return openAdultCheck();
     const playerBtn = target.closest("[data-player]");
     if (playerBtn) return choosePlayer(playerBtn.dataset.player);
     const avatar = target.closest("[data-avatar]");
@@ -377,6 +480,32 @@ function wire() {
   });
 
   $("who-btn").addEventListener("click", renderPlayers);
+  $("adult-form").addEventListener("submit", (event) => {
+    event.preventDefault();
+    if (Number($("adult-answer").value.trim()) === state.adultNumber) {
+      closeOverlay("adult-overlay");
+      renderParent();
+    } else {
+      $("adult-wrong").hidden = false;
+      $("adult-answer").select();
+    }
+  });
+  $("parent-back").addEventListener("click", () => (state.player ? renderHome() : renderPlayers()));
+  $("parent-players").addEventListener("change", (event) => {
+    const select = event.target.closest("[data-break]");
+    if (!select) return;
+    const p = state.players.find((x) => x.id === select.dataset.break);
+    const updated = { ...p, settings: { ...p.settings, breakMinutes: Number(select.value) } };
+    state.players = state.players.map((x) => (x.id === p.id ? updated : x));
+    if (state.player?.id === p.id) state.player = updated;
+    savePlayers(state.players);
+  });
+  $("backup-save").addEventListener("click", saveBackup);
+  $("backup-file").addEventListener("change", (event) => {
+    const file = event.target.files?.[0];
+    if (file) restoreBackup(file);
+    event.target.value = "";
+  });
   $("settings-btn").addEventListener("click", openSettings);
   $("badges-btn").addEventListener("click", renderBadges);
   $("tip-say").addEventListener("click", () => {
@@ -457,7 +586,7 @@ async function start() {
     document.body.innerHTML = '<p class="load-error">The sentences didn\'t load. Check the internet connection once, then the game works offline.</p>';
     return;
   }
-  state.players = loadPlayers();
+  state.players = loadPlayers().map(normalizePlayer);
   const currentId = loadCurrentId();
   if (!state.players.length) openAddPlayer();
   else if (state.players.some((p) => p.id === currentId)) choosePlayer(currentId);
