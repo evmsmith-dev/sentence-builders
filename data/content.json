@@ -38,7 +38,7 @@
    "apostrophes-2": {
      "title": "More than one owner",
      "rule": "If a plural word already ends in s, add only an apostrophe. If it doesn't end in s, add 's.",
-     "example": "The girls' team read the children's books."
+     "example": "The girls' team carried the children's books."
    },
    "apostrophes-3": {
      "title": "Sound-alike words",
@@ -54,7 +54,7 @@
   {"id": "commas-1-05", "skill": "commas", "level": 1, "type": "which", "options": ["I need pencils, paper, and glue.", "I need pencils paper, and glue.", "I need, pencils, paper, and glue."], "hint": "Use commas to separate three or more things in a list."},
   {"id": "commas-1-06", "skill": "commas", "level": 1, "type": "which", "options": ["Do you want milk, juice, or water?", "Do you want milk juice or water?", "Do you want, milk, juice, or water?"], "hint": "Use commas to separate three or more things in a list."},
   {"id": "commas-1-07", "skill": "commas", "level": 1, "type": "mark", "text": "Our garden has tomatoes[,] beans[,] carrots[,?] and peas.", "hint": "Use commas to separate three or more things in a list."},
-  {"id": "commas-1-08", "skill": "commas", "level": 1, "type": "mark", "text": "On Saturday we cleaned[,] cooked[,?] and read books.", "hint": "Use commas to separate three or more things in a list."},
+  {"id": "commas-1-08", "skill": "commas", "level": 1, "type": "mark", "text": "On Saturday we cleaned[,] cooked[,?] and played games.", "hint": "Use commas to separate three or more things in a list."},
   {"id": "commas-1-09", "skill": "commas", "level": 1, "type": "which", "options": ["Grandma baked muffins, cookies, and bread.", "Grandma baked, muffins cookies and bread.", "Grandma baked muffins cookies, and, bread."], "hint": "Use commas to separate three or more things in a list."},
   {"id": "commas-1-10", "skill": "commas", "level": 1, "type": "mark", "text": "Bring your hat[,] gloves[,?] and boots to the sledding hill.", "hint": "Use commas to separate three or more things in a list."},
   {"id": "commas-2-01", "skill": "commas", "level": 2, "type": "mark", "text": "When the bell rang[,] we lined up.", "hint": "When a sentence starts with a part like When, If or After, put a comma after that part."},
