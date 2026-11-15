@@ -8,9 +8,10 @@
 //   lock()          no more changes
 // Types that answer on a tap call answer(correct) themselves.
 import {
-  CHECK_KINDS, checkBuild, checkMark, checkSort, joinTiles, paletteFor, parseBuild, parseCheck, parseFix, parseJoin, parseMark,
-  parseSort, parseWhich,
+  CHECK_KINDS, checkBuild, checkLabels, checkMark, checkSort, joinTiles, paletteFor, parseBuild, parseCheck, parseFix, parseFlow,
+  parseJoin, parseLabels, parseMark, parseSort, parseWhich,
 } from "../lib/parse.js";
+import { LABELS, PATTERNS, SENTENCE_KINDS } from "../config.js";
 import { shuffle } from "../lib/select.js";
 import { esc } from "./dom.js";
 
@@ -422,9 +423,220 @@ function renderJoin(root, item, hooks) {
   };
 }
 
+const KIND_HINT = "Look at the end mark: a period makes a statement, a question mark a question, and an exclamation point shows strong feeling.";
+const PATTERN_HINT = "Look at the labels after the verb: nothing more is P1, a DO is P2, an IO and a DO is P3, a PrN is P4, a PA is P5.";
+
+/**
+ * Q&A Flow: one question at a time. For a question, tap the word that answers it, then pick its label;
+ * for a word already pointed out, just pick its label. Then the kind of sentence (and, in level 3, the pattern).
+ * A miss gives a hint for that step; a second miss on the same step shows it and moves on.
+ */
+function renderFlow(root, item, { hint, complete, onChange, onTap }) {
+  const parsed = parseFlow(item);
+  const stages = [...parsed.steps.map((step) => ({ ...step, kind: "step" })), { kind: "kind" }];
+  if (parsed.pattern) stages.push({ kind: "pattern" });
+  const shown = {}; // word index → label shown above it
+  let at = 0;
+  let phase = "word"; // "word" (tap a word) or "label" (pick a label) for steps
+  let stepMisses = 0;
+  let misses = 0;
+  let revealed = false;
+  let done = false;
+
+  root.innerHTML = `<div class="flow" data-type="flow">
+    <div class="flow-sentence">${parsed.words.map((w, i) =>
+      `<button type="button" class="flow-word" data-fw="${i}"><span class="fw-label" aria-hidden="true"></span><span class="fw-text">${esc(w.word)}</span></button>`).join("")}</div>
+    <div class="flow-ask"><p class="flow-count"></p><p class="flow-q"></p><div class="flow-choices"></div></div>
+  </div>`;
+  const stage = () => stages[at];
+  const labelChips = () => parsed.labels.map((label) =>
+    `<button type="button" class="label-chip" data-label="${esc(label)}"><strong>${esc(label)}</strong><small>${esc(LABELS[label].name)}</small></button>`).join("");
+
+  function draw() {
+    const st = stage();
+    root.querySelectorAll(".flow-word").forEach((btn) => {
+      const i = Number(btn.dataset.fw);
+      btn.querySelector(".fw-label").textContent = shown[i] || "";
+      btn.classList.toggle("labeled", Boolean(shown[i]));
+      btn.classList.toggle("current", !done && st?.kind === "step" && (phase === "label" || st.question === null) && st.index === i);
+      btn.disabled = done || st?.kind !== "step" || phase !== "word";
+      btn.setAttribute("aria-label", `${parsed.words[i].word}${shown[i] ? `, ${LABELS[shown[i]].name}` : ""}`);
+    });
+    const count = root.querySelector(".flow-count");
+    const q = root.querySelector(".flow-q");
+    const choices = root.querySelector(".flow-choices");
+    if (done) {
+      count.textContent = "";
+      q.textContent = `${parsed.labelLine}${parsed.pattern ? ` · ${PATTERNS[parsed.pattern]}` : ""}`;
+      choices.innerHTML = "";
+      return;
+    }
+    count.textContent = st.kind === "step" ? `Question ${at + 1} of ${parsed.steps.length}` : "Last question";
+    if (st.kind === "step") {
+      q.textContent = st.question && phase === "word" ? st.question
+        : st.question ? `${st.question} ${parsed.words[st.index].word.replace(/[.!?]$/, "")}. Now pick its label.`
+          : `Label this word: ${parsed.words[st.index].word.replace(/[.!?]$/, "")}`;
+      choices.innerHTML = phase === "label" || st.question === null ? labelChips() : '<p class="palette-label">Tap the word in the sentence that answers it.</p>';
+    } else if (st.kind === "kind") {
+      q.textContent = "What kind of sentence is it?";
+      choices.innerHTML = Object.entries(SENTENCE_KINDS).map(([key, text]) =>
+        `<button type="button" class="choice sentence-choice" data-kind-pick="${key}">${esc(text)}</button>`).join("");
+    } else {
+      q.textContent = "Which pattern is it?";
+      choices.innerHTML = Object.entries(PATTERNS).map(([key, text]) =>
+        `<button type="button" class="choice" data-pattern="${key}">${esc(text)}</button>`).join("");
+    }
+  }
+
+  function advance() {
+    stepMisses = 0;
+    at += 1;
+    phase = "word";
+    if (stage()?.kind === "step" && stage().question === null) phase = "label";
+    if (at >= stages.length) {
+      done = true;
+      draw();
+      complete({ tries: misses ? 2 : 1, correct: !revealed });
+      return;
+    }
+    draw();
+    onChange();
+  }
+
+  function miss(hintText, showText, apply) {
+    misses += 1;
+    stepMisses += 1;
+    if (stepMisses === 1) {
+      hint(hintText);
+      return;
+    }
+    revealed = true;
+    apply();
+    hint(`Here's that one: ${showText}`);
+    advance();
+  }
+
+  root.addEventListener("click", (event) => {
+    if (done) return;
+    const st = stage();
+    const word = event.target.closest("[data-fw]");
+    const chip = event.target.closest("[data-label]");
+    const kindPick = event.target.closest("[data-kind-pick]");
+    const pattern = event.target.closest("[data-pattern]");
+    const showStep = () => { shown[st.index] = st.label; };
+    const stepText = () => `${parsed.words[st.index].word.replace(/[.!?]$/, "")} is ${st.label}, the ${LABELS[st.label].name}.`;
+    if (word && st.kind === "step" && phase === "word") {
+      onTap();
+      if (Number(word.dataset.fw) === st.index) {
+        phase = "label";
+        hint(null);
+        draw();
+        onChange();
+      } else {
+        miss(`Read the question again: "${st.question}" Which word answers it?`, stepText(), showStep);
+        draw();
+      }
+    } else if (chip && st.kind === "step" && phase === "label") {
+      onTap();
+      if (chip.dataset.label === st.label) {
+        showStep();
+        hint(null);
+        advance();
+      } else {
+        chip.disabled = true;
+        miss(LABELS[st.label].hint, stepText(), showStep);
+      }
+    } else if (kindPick && st.kind === "kind") {
+      onTap();
+      if (kindPick.dataset.kindPick === parsed.kind) {
+        hint(null);
+        advance();
+      } else {
+        kindPick.disabled = true;
+        miss(KIND_HINT, SENTENCE_KINDS[parsed.kind], () => {});
+      }
+    } else if (pattern && st.kind === "pattern") {
+      onTap();
+      if (Number(pattern.dataset.pattern) === parsed.pattern) {
+        hint(null);
+        advance();
+      } else {
+        pattern.disabled = true;
+        miss(PATTERN_HINT, PATTERNS[parsed.pattern], () => {});
+      }
+    }
+  });
+  if (stage().question === null) phase = "label";
+  draw();
+  return {
+    get prompt() {
+      const st = stage();
+      if (done || !st) return "Labelled!";
+      if (st.kind === "kind") return "What kind of sentence is it?";
+      if (st.kind === "pattern") return "Which pattern is it?";
+      return st.question && phase === "word" ? st.question : "Pick its label.";
+    },
+    usesCheck: false,
+    selfScoring: true,
+    retry: () => {},
+    reveal: () => {},
+    lock: () => { done = true; draw(); },
+  };
+}
+
+/** Build from labels: put the word tiles in the spaces so each word matches the label over its space. */
+function renderLabels(root, item, { onChange, onTap }) {
+  const parsed = parseLabels(item);
+  let bank = parsed.tiles.map((t, id) => ({ ...t, id }));
+  for (let tries = 0; tries < 10; tries++) {
+    bank = shuffle(bank);
+    if (bank.some((t, i) => t.word !== parsed.tiles[i].word)) break;
+  }
+  const slots = parsed.line.map(() => null);
+  let locked = false;
+  root.innerHTML = `<div class="label-slots" data-type="labels"></div><div class="build-bank"></div>`;
+  const tile = (t, where) => `<button type="button" class="tile" data-ltile="${t.id}" data-where="${where}" ${locked ? "disabled" : ""}>${esc(t.word)}</button>`;
+  function draw() {
+    root.querySelector(".label-slots").innerHTML = parsed.line.map((label, i) =>
+      `<div class="label-slot"><span class="slot-label" title="${esc(LABELS[label].name)}">${esc(label)}</span>${slots[i] ? tile(slots[i], "slot") : '<span class="slot-empty" aria-label="empty"></span>'}</div>`).join("");
+    root.querySelector(".build-bank").innerHTML = bank.map((t) => tile(t, "bank")).join("");
+  }
+  root.addEventListener("click", (event) => {
+    const el = event.target.closest("[data-ltile]");
+    if (!el || locked) return;
+    const id = Number(el.dataset.ltile);
+    if (el.dataset.where === "bank") {
+      const free = slots.indexOf(null);
+      if (free < 0) return;
+      slots[free] = bank.splice(bank.findIndex((t) => t.id === id), 1)[0];
+    } else {
+      const i = slots.findIndex((t) => t?.id === id);
+      bank.push(slots[i]);
+      slots[i] = null;
+    }
+    onTap();
+    draw();
+    onChange();
+  });
+  draw();
+  return {
+    prompt: "Build a sentence that matches the labels.",
+    usesCheck: true,
+    canCheck: () => slots.every(Boolean),
+    check: () => checkLabels(parsed, slots.map((t) => t.word)),
+    retry: () => {},
+    reveal: () => {
+      locked = true;
+      root.innerHTML = `<p class="label-line">${esc(parsed.line.join(" "))}</p><p class="sentence answer"><mark>${esc(parsed.answerText)}</mark></p>`;
+    },
+    lock: () => { locked = true; draw(); },
+  };
+}
+
 export function renderItem(root, item, hooks) {
   const render = {
     mark: renderMark, fix: renderFix, which: renderWhich, build: renderBuild, sort: renderSort, check: renderCheck, join: renderJoin,
+    flow: renderFlow, labels: renderLabels,
   }[item.type];
   if (!render) throw new Error(`Unknown item type: ${item.type}`);
   root.innerHTML = "";

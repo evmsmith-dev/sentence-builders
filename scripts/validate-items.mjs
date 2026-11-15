@@ -20,8 +20,15 @@ for (const item of content.items) {
 }
 for (const skill of SKILLS) {
   for (const level of [1, 2, 3]) {
-    const count = content.items.filter((item) => item.skill === skill.id && item.level === level).length;
-    if (count < ITEMS_PER_LEVEL) problems.push(`${skill.id} level ${level}: only ${count} items (needs ${ITEMS_PER_LEVEL}+)`);
+    const own = content.items.filter((item) => item.skill === skill.id && item.level === level);
+    if (skill.levelPlan) {
+      for (const { type, count } of skill.levelPlan) {
+        const have = own.filter((item) => item.type === type).length;
+        if (have < count) problems.push(`${skill.id} level ${level}: only ${have} ${type} items (needs ${count}+)`);
+      }
+    } else if (own.length < ITEMS_PER_LEVEL) {
+      problems.push(`${skill.id} level ${level}: only ${own.length} items (needs ${ITEMS_PER_LEVEL}+)`);
+    }
     const tip = content.tips[`${skill.id}-${level}`];
     if (!tip?.title || !tip?.rule || !tip?.example) problems.push(`${skill.id} level ${level}: Tip Card missing`);
   }

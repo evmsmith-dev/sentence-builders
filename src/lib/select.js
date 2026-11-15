@@ -26,8 +26,14 @@ export function rankItems(items, stats = {}, random = Math.random) {
  * levels the player has already passed (so old skills keep coming back).
  * passedKeys: ["commas-1", ...] the levels already passed, other than this one.
  */
-export function pickLevelItems({ items, skill, level, stats = {}, passedKeys = [], random = Math.random }) {
+export function pickLevelItems({ items, skill, level, stats = {}, passedKeys = [], random = Math.random, plan = null }) {
   const key = `${skill}-${level}`;
+  if (plan) {
+    // A fixed mix of item types in a fixed order (Flow Factory: 3 flows, then 2 Build from labels), no review.
+    return plan.flatMap(({ type, count }) => rankItems(
+      items.filter((item) => item.skill === skill && item.level === level && item.type === type), stats, random,
+    ).slice(0, count));
+  }
   const own = rankItems(items.filter((item) => item.skill === skill && item.level === level), stats, random);
   const reviewPool = rankItems(
     items.filter((item) => passedKeys.includes(`${item.skill}-${item.level}`) && `${item.skill}-${item.level}` !== key),

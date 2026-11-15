@@ -14,7 +14,7 @@ test("first visit: make a player and land in the town", async ({ page }) => {
   await expect(page.locator(".town")).toBeVisible();
   await expect(page.locator('[data-world="works"]')).toBeEnabled();
   await expect(page.locator('[data-world="studio"]')).toBeEnabled();
-  await expect(page.locator('[data-world="flow"]')).toBeDisabled();
+  await expect(page.locator('[data-world="flow"]')).toBeEnabled();
 });
 
 test("a 4th grader starts with grade 4 levels open; a 7th grader can review everything", async ({ page }) => {
@@ -44,12 +44,12 @@ test("play a whole level right: 3 stars, a building and badges", async ({ page }
   await expect(page.locator("#result-badges")).toContainText("First Brick");
   await expect(page.locator("#result-badges")).toContainText("Comma Captain");
   await page.locator("#result-town").click();
-  await expect(page.locator(".town")).toHaveAttribute("aria-label", /1 of 27 buildings/);
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /1 of 30 buildings/);
   await expect(page.locator("#pip-home")).toContainText("Next up: Commas and colons, level 2");
 
   // Saved on the device: still there after a reload.
   await page.reload();
-  await expect(page.locator(".town")).toHaveAttribute("aria-label", /1 of 27 buildings/);
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /1 of 30 buildings/);
 });
 
 test("a miss gives a hint and a second try; a second miss shows the answer", async ({ page }) => {
@@ -127,7 +127,7 @@ test("Word Works: play a level with every item type it uses, including Sort it",
     await expect(page.locator("#result-title")).toHaveText("Perfect build!");
     await page.locator("#result-town").click();
   }
-  await expect(page.locator(".town")).toHaveAttribute("aria-label", /3 of 27 buildings/);
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /3 of 30 buildings/);
 });
 
 test("Sort it: a wrong sort gives a hint, then the answer", async ({ page }) => {
@@ -214,7 +214,7 @@ test("Sentence Studio: every level of all three skills, with Sentence check and 
       await page.locator("#result-town").click();
     }
   }
-  await expect(page.locator(".town")).toHaveAttribute("aria-label", /9 of 27 buildings/);
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /9 of 30 buildings/);
 });
 
 test("Sentence check and Join it: a miss gives a hint, two show the answer", async ({ page }) => {
@@ -242,4 +242,43 @@ test("Sentence check and Join it: a miss gives a hint, two show the answer", asy
     if (await page.locator("#result-overlay").isVisible()) await page.locator("#result-town").click();
   }
   expect([...seen].sort()).toEqual(["check", "join"]);
+});
+
+test("Flow Factory: all three levels, 3 Q&A Flows then 2 Build from labels", async ({ page }) => {
+  await openApp(page, { players: [player({ grade: 7 })], current: "p1" });
+  for (const level of [1, 2, 3]) {
+    await startLevel(page, "flow", level, "flow");
+    const types = [];
+    for (let n = 0; n < 5; n++) {
+      await expect(page.locator("#progress-text")).toHaveText(`${n + 1} of 5`);
+      types.push((await currentItem(page)).type);
+      await answer(page);
+      await expect(page.locator("#feedback.good")).toBeVisible();
+      await page.locator("#next-btn").click();
+    }
+    expect(types).toEqual(["flow", "flow", "flow", "labels", "labels"]);
+    await expect(page.locator("#result-title")).toHaveText("Perfect build!");
+    await expect(page.locator("#result-score")).toContainText("5 of 5 points");
+    await page.locator("#result-town").click();
+  }
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /3 of 30 buildings/);
+});
+
+test("Q&A Flow: a miss gives a step hint; a second miss shows that step and moves on", async ({ page }) => {
+  await openApp(page, { players: [player({ grade: 7 })], current: "p1" });
+  await startLevel(page, "flow", 2, "flow");
+  await expect(page.locator("#item .flow-count")).toHaveText("Question 1 of " + (await currentItem(page)).steps.length);
+  await miss(page); // wrong word
+  await expect(page.locator("#feedback.hint")).toContainText("Read the question again");
+  await miss(page); // wrong word again: the step is shown
+  await expect(page.locator("#feedback.hint")).toContainText("Here's that one");
+  await expect(page.locator("#item .flow-count")).toContainText("Question 2");
+  await answer(page);
+  await expect(page.locator("#feedback.shown")).toContainText("will come back later");
+
+  await page.locator("#next-btn").click();
+  await miss(page);
+  await expect(page.locator("#feedback.hint")).toBeVisible();
+  await answer(page);
+  await expect(page.locator("#feedback.good")).toContainText("A hint helped");
 });

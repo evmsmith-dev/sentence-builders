@@ -1,6 +1,6 @@
 // Turns an item from data/content.json into what the screen shows and what counts as right.
 // Pure functions, unit-tested. The formats are described in data/README.md.
-import { MARK_ORDER, PALETTES } from "../config.js";
+import { LEVEL_LABELS, MARK_ORDER, PALETTES, PATTERNS, SENTENCE_KINDS } from "../config.js";
 
 const BRACKET_LEAD = /^\[([^\]]*)\]/;
 const BRACKET_TRAIL = /\[([^\]]*)\]$/;
@@ -163,6 +163,42 @@ export function parseJoin(item) {
   };
 }
 
+const parseTags = (tags) => tags.trim().split(/ +/).map((pair) => {
+  const at = pair.lastIndexOf("|");
+  return { word: pair.slice(0, at), label: pair.slice(at + 1) };
+});
+
+/** Q&A Flow: the sentence's words with their final labels, the question steps in order, then kind (and pattern). */
+export function parseFlow(item) {
+  const words = parseTags(item.tags);
+  const steps = item.steps.map(([question, index, label]) => ({ question, index, label: label || words[index].label }));
+  return {
+    words, steps, kind: item.kind, pattern: item.pattern || null,
+    labels: LEVEL_LABELS[item.level - 1],
+    labelLine: words.map((w) => w.label).join(" "),
+    answerText: `${words.map((w) => w.word).join(" ")} → ${words.map((w) => w.label).join(" ")}`
+      + (item.pattern ? ` · ${PATTERNS[item.pattern]}` : "") + ` · ${SENTENCE_KINDS[item.kind].split(":")[0].toLowerCase()}`,
+  };
+}
+
+/** Build from labels: tiles in the right order, each with its label. */
+export function parseLabels(item) {
+  const tiles = parseTags(item.tiles);
+  return { tiles, line: tiles.map((t) => t.label), answerText: tiles.map((t) => t.word).join(" ") };
+}
+
+/**
+ * placed: the tile words in slot order. Right when every word's label matches its slot, the capitalized word
+ * is first and the word with the end mark is last (so two adjectives may swap places).
+ */
+export function checkLabels(parsed, placed) {
+  if (placed.length !== parsed.tiles.length) return false;
+  const labelOf = (word) => parsed.tiles.find((t) => t.word === word)?.label;
+  return placed.every((word, i) => labelOf(word) === parsed.line[i])
+    && placed[0] === parsed.tiles[0].word
+    && placed.at(-1) === parsed.tiles.at(-1).word;
+}
+
 /** What read-aloud says for an item's sentence: plain words, no marks to place. */
 export function spokenText(item) {
   if (item.type === "mark") return parseMark(item).words.join(" ");
@@ -174,6 +210,8 @@ export function spokenText(item) {
   if (item.type === "sort") return parseSort(item).tiles.map((tile) => tile.text).join(", ");
   if (item.type === "check") return item.text;
   if (item.type === "join") return `${item.first} ${item.second}`;
+  if (item.type === "flow") return parseFlow(item).words.map((w) => w.word).join(" ");
+  if (item.type === "labels") return parseLabels(item).line.join(", ");
   return "";
 }
 
@@ -189,10 +227,12 @@ export function answerText(item) {
   if (item.type === "sort") return parseSort(item).answerText;
   if (item.type === "check") return parseCheck(item).answerText;
   if (item.type === "join") return parseJoin(item).answerText;
+  if (item.type === "flow") return parseFlow(item).answerText;
+  if (item.type === "labels") return parseLabels(item).answerText;
   throw new Error(`Unknown item type: ${item.type}`);
 }
 
-export const ITEM_TYPES = ["mark", "fix", "which", "build", "sort", "check", "join"];
+export const ITEM_TYPES = ["mark", "fix", "which", "build", "sort", "check", "join", "flow", "labels"];
 
 /** Throws if an item can't be shown or can't be answered. Used by the validator. */
 export function validateItem(item) {
@@ -239,6 +279,30 @@ export function validateItem(item) {
     if (parsed.words.length < 2 || new Set(parsed.words).size !== parsed.words.length) throw new Error(`${item.id}: needs 2+ different joining words`);
     if (!parsed.result.words.join(" ").includes(parsed.word)) throw new Error(`${item.id}: the result doesn't use ${parsed.word}`);
     if (parsed.result.gaps.some((gap) => gap.marks && gap.marks !== ",")) throw new Error(`${item.id}: a join result can only place commas`);
+  }
+  if (item.type === "flow") {
+    const parsed = parseFlow(item);
+    const allowed = parsed.labels;
+    const finalLabel = {};
+    for (const step of parsed.steps) {
+      if (!parsed.words[step.index]) throw new Error(`${item.id}: a step points past the last word`);
+      if (!allowed.includes(step.label)) throw new Error(`${item.id}: ${step.label} isn't taught by level ${item.level}`);
+      finalLabel[step.index] = step.label;
+    }
+    parsed.words.forEach((w, i) => {
+      if (!(i in finalLabel)) throw new Error(`${item.id}: no step labels "${w.word}"`);
+      if (finalLabel[i] !== w.label) throw new Error(`${item.id}: the last step for "${w.word}" gives ${finalLabel[i]}, not ${w.label}`);
+    });
+    if (!SENTENCE_KINDS[item.kind]) throw new Error(`${item.id}: unknown sentence kind ${item.kind}`);
+    if (item.level === 3 && !PATTERNS[item.pattern]) throw new Error(`${item.id}: level 3 flows need a pattern`);
+    if (!/[.!?]$/.test(parsed.words.at(-1).word)) throw new Error(`${item.id}: the last word needs its end mark`);
+  }
+  if (item.type === "labels") {
+    const parsed = parseLabels(item);
+    if (parsed.tiles.length < 3) throw new Error(`${item.id}: needs 3+ words`);
+    if (!parsed.line.every((l) => LEVEL_LABELS[item.level - 1].includes(l))) throw new Error(`${item.id}: uses a label not taught by level ${item.level}`);
+    if (new Set(parsed.tiles.map((t) => t.word)).size !== parsed.tiles.length) throw new Error(`${item.id}: repeated words`);
+    if (!checkLabels(parsed, parsed.tiles.map((t) => t.word))) throw new Error(`${item.id}: its own answer isn't accepted`);
   }
   return true;
 }

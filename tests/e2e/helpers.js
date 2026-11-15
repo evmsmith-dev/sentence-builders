@@ -1,8 +1,19 @@
 import { expect } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import {
-  CHECK_KINDS, paletteFor, parseBuild, parseCheck, parseFix, parseJoin, parseMark, parseMarkText, parseSort, parseWhich,
+  CHECK_KINDS, paletteFor, parseBuild, parseCheck, parseFix, parseFlow, parseJoin, parseLabels, parseMark, parseMarkText, parseSort,
+  parseWhich,
 } from "../../src/lib/parse.js";
+
+/** Which step of a Q&A Flow is on screen: a step index, "kind" or "pattern". */
+async function flowStage(page) {
+  const count = (await page.locator("#item .flow-count").textContent()) || "";
+  const m = count.match(/Question (\d+)/);
+  if (m) return Number(m[1]) - 1;
+  if (await page.locator("#item [data-kind-pick]").count()) return "kind";
+  if (await page.locator("#item [data-pattern]").count()) return "pattern";
+  return null;
+}
 
 const content = JSON.parse(readFileSync(new URL("../../data/content.json", import.meta.url), "utf8"));
 export const itemById = (id) => content.items.find((item) => item.id === id);
@@ -98,6 +109,30 @@ export async function miss(page) {
       }
     }
     return false;
+  } else if (item.type === "flow") {
+    const parsed = parseFlow(item);
+    const at = await flowStage(page);
+    if (at === "kind") {
+      await page.locator(`#item [data-kind-pick]:not([data-kind-pick="${parsed.kind}"]):not([disabled])`).first().click();
+    } else if (at === "pattern") {
+      await page.locator(`#item [data-pattern]:not([data-pattern="${parsed.pattern}"]):not([disabled])`).first().click();
+    } else {
+      const step = parsed.steps[at];
+      if (await page.locator(`#item [data-fw="${step.index}"]`).isEnabled()) {
+        await page.locator(`#item [data-fw="${step.index === 0 ? 1 : 0}"]`).click();
+      } else {
+        await page.locator(`#item [data-label]:not([data-label="${step.label}"]):not([disabled])`).first().click();
+      }
+    }
+    return true;
+  } else if (item.type === "labels") {
+    const parsed = parseLabels(item);
+    while (await page.locator("#item .label-slots .tile").count()) await page.locator("#item .label-slots .tile").first().click();
+    for (const tile of [...parsed.tiles].reverse()) {
+      await page.locator("#item .build-bank .tile").filter({ hasText: exact(tile.word) }).first().click();
+    }
+    await page.locator("#check-btn").click();
+    return true;
   } else if (item.type === "sort") {
     // Everything in the first box (some words always belong elsewhere).
     while (await page.locator("#item .sort-bank .tile").count()) {
@@ -147,6 +182,28 @@ export async function answer(page) {
   } else if (item.type === "which") {
     const parsed = parseWhich(item);
     await page.locator("#item [data-choice]").filter({ hasText: exact(parsed.correct) }).first().click();
+  } else if (item.type === "flow") {
+    const parsed = parseFlow(item);
+    for (let guard = 0; guard < 40 && !(await page.locator("#next-btn").isVisible()); guard++) {
+      const at = await flowStage(page);
+      if (at === "kind") {
+        await page.locator(`#item [data-kind-pick="${parsed.kind}"]`).click();
+      } else if (at === "pattern") {
+        await page.locator(`#item [data-pattern="${parsed.pattern}"]`).click();
+      } else {
+        const step = parsed.steps[at];
+        const word = page.locator(`#item [data-fw="${step.index}"]`);
+        if (await word.isEnabled()) await word.click();
+        await page.locator(`#item [data-label="${step.label}"]`).click();
+      }
+    }
+  } else if (item.type === "labels") {
+    const parsed = parseLabels(item);
+    while (await page.locator("#item .label-slots .tile").count()) await page.locator("#item .label-slots .tile").first().click();
+    for (const tile of parsed.tiles) {
+      await page.locator("#item .build-bank .tile").filter({ hasText: exact(tile.word) }).first().click();
+    }
+    await page.locator("#check-btn").click();
   } else if (item.type === "check") {
     const parsed = parseCheck(item);
     if (!(await page.locator("#item .fix-step").isVisible())) {

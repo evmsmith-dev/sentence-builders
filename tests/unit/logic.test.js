@@ -98,7 +98,8 @@ test("ranking puts unseen first, then the most missed", () => {
 });
 
 test("stars: 6, 7 and 8 points", () => {
-  assert.deepEqual([5.5, 6, 7, 7.5, 8].map(starsFor), [0, 1, 2, 2, 3]);
+  assert.deepEqual([5.5, 6, 7, 7.5, 8].map((p) => starsFor(p)), [0, 1, 2, 2, 3]);
+  assert.deepEqual([3.5, 4, 4.5, 5].map((p) => starsFor(p, 5)), [0, 1, 2, 3], "a 5-item Flow Factory level");
 });
 
 test("unlocking follows passes and the player's grade", () => {
@@ -214,4 +215,35 @@ test("join: the word comes first, the comma follows the result", async () => {
   assert.equal(checkMark(parsed, blank), true, "no comma needed when because comes in the middle");
   const extra = [...blank]; extra[4] = ",";
   assert.equal(checkMark(parsed, extra), false);
+});
+
+test("Build from labels: words match their labels; capital first, end mark last", async () => {
+  const { parseLabels, checkLabels } = await import("../../src/lib/parse.js");
+  const horses = parseLabels(content.items.find((i) => i.tiles === "Five|Adj brown|Adj horses|SN galloped|V swiftly.|Adv"));
+  assert.equal(checkLabels(horses, ["Five", "brown", "horses", "galloped", "swiftly."]), true);
+  assert.equal(checkLabels(horses, ["brown", "Five", "horses", "galloped", "swiftly."]), false, "capitalized word goes first");
+  const whale = parseLabels(content.items.find((i) => i.tiles === "The|A whale|SN is|LV a|A mammal.|PrN"));
+  assert.equal(checkLabels(whale, ["a", "whale", "is", "The", "mammal."]), false);
+  const loud = parseLabels(content.items.find((i) => i.tiles === "We|SP laughed|V very|Adv loudly.|Adv"));
+  assert.equal(checkLabels(loud, ["We", "laughed", "loudly.", "very"]), false, "end mark goes last");
+});
+
+test("Flow Factory: 5-item levels, and Gold needs the label sentences right", async () => {
+  const { SKILLS } = await import("../../src/config.js");
+  const flowSkill = SKILLS.find((s) => s.id === "flow");
+  const picked = pickLevelItems({ items: content.items, skill: "flow", level: 3, plan: flowSkill.levelPlan, random: seeded(4) });
+  assert.deepEqual(picked.map((i) => i.type), ["flow", "flow", "flow", "labels", "labels"]);
+  const day = (d) => new Date(`2026-11-${d}T10:00:00`).getTime();
+  const results = (labelsRight) => [
+    ...[1, 2, 3].map((n) => ({ id: `f${n}`, type: "flow", tries: 1, correct: true })),
+    { id: "l1", type: "labels", tries: 1, correct: true },
+    { id: "l2", type: "labels", tries: 2, correct: labelsRight },
+  ];
+  let p = newPlayer({ id: "p", name: "A", avatar: "🦊", grade: 5, now: 0 });
+  p = recordLevel(p, { skill: "flow", level: 3, results: results(false), now: day(15) }).player; // 4 points: 1 star, no gold
+  assert.equal(p.levels["flow-3"].stars, 1);
+  assert.equal((p.goldDays.flow || []).length, 0);
+  p = recordLevel(p, { skill: "flow", level: 3, results: results(true), now: day(15) }).player; // 4.5 points, labels right
+  p = recordLevel(p, { skill: "flow", level: 3, results: results(true), now: day(16) }).player;
+  assert.equal(skillTier(p, "flow"), 3);
 });

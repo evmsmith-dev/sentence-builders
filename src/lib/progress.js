@@ -50,8 +50,9 @@ export function mostMissed(player, limit = 5) {
     .map(([id, s]) => ({ id, misses: s.misses, seen: s.seen }));
 }
 
-export function starsFor(points) {
-  return STAR_THRESHOLDS.filter((threshold) => points >= threshold).length;
+/** Stars for points out of `total` items (thresholds are set for 8 items and scale to other lengths). */
+export function starsFor(points, total = 8) {
+  return STAR_THRESHOLDS.filter((threshold) => points >= (threshold / 8) * total).length;
 }
 
 export function pointsFor(result) {
@@ -109,7 +110,8 @@ export function recordLevel(player, { skill, level, results, now, durationMs = 0
   const next = normalizePlayer(JSON.parse(JSON.stringify(player)));
   const date = localDate(now);
   const points = results.reduce((sum, result) => sum + pointsFor(result), 0);
-  const stars = starsFor(points);
+  const total = results.length;
+  const stars = starsFor(points, total);
   const key = levelKey(skill, level);
   const before = next.levels[key] || { best: 0, stars: 0, plays: 0 };
   next.levels[key] = { best: Math.max(before.best, points), stars: Math.max(before.stars, stars), plays: before.plays + 1 };
@@ -123,7 +125,9 @@ export function recordLevel(player, { skill, level, results, now, durationMs = 0
   next.time[date] = (next.time[date] || 0) + Math.min(Math.max(durationMs, 0), MAX_LEVEL_MS);
   // Keep about two months of daily times.
   for (const day of Object.keys(next.time).sort().slice(0, -60)) delete next.time[day];
-  if (level === 3 && points >= GOLD_POINTS) {
+  const needsRight = skillById(skill)?.goldNeedsAllRight;
+  const goldOk = !needsRight || results.filter((r) => r.type === needsRight).every((r) => r.correct);
+  if (level === 3 && points >= (GOLD_POINTS / 8) * total && goldOk) {
     const days = next.goldDays[skill] || [];
     if (!days.includes(date)) next.goldDays[skill] = [...days, date];
   }

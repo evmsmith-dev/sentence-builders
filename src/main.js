@@ -155,6 +155,7 @@ function startLevel(skillId, level) {
   closeOverlay("tip-overlay");
   const items = pickLevelItems({
     items: state.content.items, skill: skillId, level, stats: state.player.items, passedKeys: passedKeys(state.player),
+    plan: skillById(skillId).levelPlan || null,
   });
   state.play = { skillId, level, items, index: 0, tries: 0, results: [], ctrl: null, done: false, startedAt: Date.now() };
   if (!state.sessionStart) state.sessionStart = Date.now();
@@ -168,8 +169,8 @@ function showItem() {
   const skill = skillById(item.skill);
   play.tries = 1;
   play.done = false;
-  $("progress-fill").style.width = `${(play.index / ITEMS_PER_LEVEL) * 100}%`;
-  $("progress-text").textContent = `${play.index + 1} of ${ITEMS_PER_LEVEL}`;
+  $("progress-fill").style.width = `${(play.index / play.items.length) * 100}%`;
+  $("progress-text").textContent = `${play.index + 1} of ${play.items.length}`;
   $("play-skill").textContent = item.review ? `Review: ${skill.name}` : `${skill.name} · Level ${item.level}`;
   $("play-skill").classList.toggle("review", Boolean(item.review));
   $("feedback").innerHTML = "";
@@ -178,6 +179,8 @@ function showItem() {
   $("item").dataset.itemId = item.id;
   play.ctrl = renderItem($("item"), item, {
     answer: (right) => handleAnswer(right),
+    hint: (text) => showStepHint(text),
+    complete: (result) => completeItem(result),
     onChange: updateCheck,
     onTap: () => sound("tap", settings().sound),
   });
@@ -212,7 +215,7 @@ function handleAnswer(right) {
   const item = play.items[play.index];
   const s = settings();
   if (right) {
-    play.results.push({ id: item.id, tries: play.tries, correct: true });
+    play.results.push({ id: item.id, type: item.type, tries: play.tries, correct: true });
     finishItem();
     (play.ctrl.showRight || play.ctrl.lock)();
     sound("right", s.sound);
@@ -228,7 +231,7 @@ function handleAnswer(right) {
     $("feedback").innerHTML = `<p><strong>${esc(PIP.hint)}</strong> ${esc(item.hint)}</p><p class="try-again">Try again.</p>`;
     updateCheck();
   } else {
-    play.results.push({ id: item.id, tries: 2, correct: false });
+    play.results.push({ id: item.id, type: item.type, tries: 2, correct: false });
     finishItem();
     play.ctrl.reveal();
     $("feedback").className = "feedback shown";
@@ -236,11 +239,43 @@ function handleAnswer(right) {
   }
 }
 
+/** A hint for one step of a many-step item (Q&A Flow); null clears it. */
+function showStepHint(text) {
+  if (!text) {
+    $("feedback").innerHTML = "";
+    $("feedback").className = "feedback";
+    return;
+  }
+  sound("wrong", settings().sound);
+  $("feedback").className = "feedback hint";
+  $("feedback").innerHTML = `<p>${esc(text)}</p>`;
+}
+
+/** A many-step item reports its own result when it's finished. */
+function completeItem({ tries, correct }) {
+  const play = state.play;
+  if (!play || play.done) return;
+  const item = play.items[play.index];
+  play.results.push({ id: item.id, type: item.type, tries, correct });
+  finishItem();
+  play.ctrl.lock();
+  const s = settings();
+  if (correct) {
+    sound("right", s.sound);
+    buzz(10);
+    $("feedback").className = "feedback good";
+    $("feedback").innerHTML = `<p><strong>✓ ${esc(tries === 1 ? pick(PIP.right) : "All labelled. A hint helped on the way.")}</strong></p>`;
+  } else {
+    $("feedback").className = "feedback shown";
+    $("feedback").innerHTML = `<p><strong>All labelled. Some steps were shown, so this one will come back later.</strong></p><p class="answer-line">${esc(answerText(item))}</p>`;
+  }
+}
+
 function finishItem() {
   state.play.done = true;
   $("check-btn").hidden = true;
   $("next-btn").hidden = false;
-  $("next-btn").textContent = state.play.index + 1 < ITEMS_PER_LEVEL ? "Next" : "See my building";
+  $("next-btn").textContent = state.play.index + 1 < state.play.items.length ? "Next" : "See my building";
   $("next-btn").focus({ preventScroll: true });
 }
 
@@ -265,10 +300,12 @@ function finishLevel() {
   $("progress-fill").style.width = "100%";
   $("result-stars").innerHTML = [1, 2, 3].map((n) => `<span class="${n <= out.stars ? "on" : ""}">★</span>`).join("");
   $("result-title").textContent = ["Almost there", "Built it!", "Great build!", "Perfect build!"][out.stars];
-  $("result-score").textContent = `${points(out.points)} of ${ITEMS_PER_LEVEL} points · ${skill.name} level ${play.level}`;
+  $("result-score").textContent = `${points(out.points)} of ${play.results.length} points · ${skill.name} level ${play.level}`;
   let pipLine = out.passed ? pick(PIP.passed) : PIP.notYet;
   if (out.passed && play.level === 3 && skillTier(out.player, skill.id) < 3) {
-    pipLine += out.points >= 7 ? ` Gold progress: ${out.goldProgress} of ${GOLD_DAYS} days.` : " Score 7 or more here on two days for Gold.";
+    const goldAt = (7 / 8) * play.results.length;
+    pipLine += out.points >= goldAt && out.goldProgress ? ` Gold progress: ${out.goldProgress} of ${GOLD_DAYS} days.`
+      : ` Score ${points(Math.ceil(goldAt * 2) / 2)} or more here on two days for Gold${skill.goldNeedsAllRight ? ", with the label sentences right" : ""}.`;
   }
   const breakMinutes = out.player.settings.breakMinutes;
   if (breakMinutes && now - state.sessionStart >= breakMinutes * 60000) {
