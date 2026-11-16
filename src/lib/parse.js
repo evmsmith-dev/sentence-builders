@@ -269,7 +269,7 @@ export const ITEM_TYPES = ["mark", "fix", "which", "build", "sort", "check", "jo
 /** A diagram in words, for the results review: the baseline, then what hangs under each word. */
 export function diagramText(item) {
   const { tree, slots } = buildDiagram(item);
-  const t = (n) => slots[n.slot].text;
+  const t = (n) => (n.fork ? `${slots[n.parts[0].slot].text} ${slots[n.conjSlot].text} ${slots[n.parts[1].slot].text}` : slots[n.slot].text);
   let base = `${t(tree.subject)} | ${t(tree.verb)}`;
   if (tree.complement) base += tree.complement.kind === "DO" ? ` | ${t(tree.complement.node)}` : ` \\ ${t(tree.complement.node)}`;
   if (tree.objectComplement) base += ` \\ ${t(tree.objectComplement.node)}`;
@@ -279,7 +279,8 @@ export function diagramText(item) {
     else hangs.push(`${m.pSlot === null ? "" : `${slots[m.pSlot].text} `}${t(m.node)} under ${t(n)}`);
     walk(m.node);
   });
-  [tree.subject, tree.verb, tree.complement?.node, tree.objectComplement?.node].filter(Boolean).forEach(walk);
+  [tree.subject, tree.verb, tree.complement?.node, tree.objectComplement?.node].filter(Boolean)
+    .flatMap((n) => (n.fork ? n.parts : [n])).forEach(walk);
   return `${base}${hangs.length ? `; ${hangs.join("; ")}` : ""}`;
 }
 

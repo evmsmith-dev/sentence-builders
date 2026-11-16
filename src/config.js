@@ -158,7 +158,7 @@ export const WORD_LISTS = [
   { id: "relative", title: "Relative pronouns", note: "They start a part that tells more about a noun: the girl who won.", words: ["who", "whom", "whose", "which", "that"] },
 ];
 // Which word list goes with which label in the Labels reminder.
-export const LABEL_LISTS = { A: "articles", P: "prepositions", HV: "helping", LV: "linking", SP: "subject-pronouns", PPA: "possessive" };
+export const LABEL_LISTS = { A: "articles", P: "prepositions", HV: "helping", LV: "linking", SP: "subject-pronouns", CSP: "subject-pronouns", PPA: "possessive", C: "joining" };
 
 // Shurley-style labels for the Q&A Flow. Each level adds labels; earlier ones stay.
 export const LABELS = {
@@ -181,6 +181,10 @@ export const LABELS = {
   PA: { name: "predicate adjective", hint: "A predicate adjective comes after a linking verb and describes the subject." , find: 'Ask subject + verb + what; it describes the subject: "Soup is what?" → hot' },
   OCN: { name: "object complement noun", hint: "An object complement noun comes after the direct object and renames it: verb + DO + what?" , find: 'Ask verb + DO + what; it renames the DO: "named hamster what?" → Peanut' },
   OCA: { name: "object complement adjective", hint: "An object complement adjective comes after the direct object and describes it: verb + DO + what?" , find: 'Ask verb + DO + what; it describes the DO: "made trail what?" → muddy' },
+  CSN: { name: "compound subject noun", hint: "Two subject nouns joined by and, or or but share the same verb. Each one is a compound subject noun." , find: 'Ask who or what; two answers: "Who sang?" → Mia and Leo' },
+  CSP: { name: "compound subject pronoun", hint: "Two subject pronouns (or a noun and a pronoun) joined by and or or. Each pronoun is a compound subject pronoun." , find: 'Ask who; two answers: "Who left?" → he and I' },
+  CV: { name: "compound verb", hint: "Two verbs joined by and, or or but that tell about the same subject. Each one is a compound verb." , find: 'Ask what is being said about the subject; two answers: "swam and fished"' },
+  C: { name: "conjunction", hint: "A conjunction (and, or, but) joins the two parts of a compound." , find: 'The joining word between compound parts: and, or, but' },
 };
 export const LEVEL_LABELS = [
   ["SN", "SP", "V", "A", "Adj", "Adv"],
@@ -189,9 +193,10 @@ export const LEVEL_LABELS = [
 ];
 const ALL_GRADE5 = LEVEL_LABELS[2];
 const WITH_COMPLEMENTS = [...ALL_GRADE5, "OCN", "OCA"];
+const WITH_COMPOUNDS = [...WITH_COMPLEMENTS, "C", "CSN", "CSP", "CV"];
 // Labels and pattern choices per Q&A Flow skill and level.
 export const FLOW_LABELS = {
-  flow: LEVEL_LABELS, flow2: [ALL_GRADE5, WITH_COMPLEMENTS, WITH_COMPLEMENTS], diagram: [LEVEL_LABELS[1], ALL_GRADE5, WITH_COMPLEMENTS],
+  flow: LEVEL_LABELS, flow2: [ALL_GRADE5, WITH_COMPLEMENTS, WITH_COMPOUNDS], diagram: [LEVEL_LABELS[1], ALL_GRADE5, WITH_COMPOUNDS],
 };
 export const FLOW_PATTERNS = {
   flow: [[1], [1], [1, 2, 3, 4, 5]],

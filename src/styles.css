@@ -545,3 +545,4 @@ body.theme-studio .bubble::before, body.theme-studio .bubble::after { display: n
 .dg-why summary { cursor: pointer; font-weight: 700; min-height: 44px; display: flex; align-items: center; color: var(--primary); }
 .dg-why ol { margin: 4px 0 0; padding-left: 1.3em; }
 .dg-why li { margin: 6px 0; }
+.dg-dashes line { stroke: var(--text); stroke-width: 2; stroke-dasharray: 6 5; }

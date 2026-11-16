@@ -1,9 +1,9 @@
 // Shurley Skill Check ("Mark it up"): after the Q&A Flow, mark the sentence the way it's done on paper.
 // Pure: works from the word labels, so every classified sentence can be marked without extra content.
 
-export const NOUN_LABELS = ["SN", "OP", "DO", "IO", "PrN", "OCN"];
-export const SUBJECT_LABELS = ["SN", "SP"];
-export const VERB_LABELS = ["V", "V-t", "LV", "HV"];
+export const NOUN_LABELS = ["SN", "CSN", "OP", "DO", "IO", "PrN", "OCN"];
+export const SUBJECT_LABELS = ["SN", "SP", "CSN", "CSP"];
+export const VERB_LABELS = ["V", "V-t", "LV", "HV", "CV"];
 
 /** Indexes of the words in prepositional phrases: from each P to its object (OP). */
 export function phraseIndexes(labels) {
@@ -20,7 +20,8 @@ export function phraseIndexes(labels) {
 /** The index of the first word of the complete predicate (where the slash goes), or -1 when it doesn't apply. */
 export function predicateStart(labels, kind) {
   if (kind === "Int") return -1; // in a question the verb comes before the subject
-  const subject = labels.findIndex((l) => SUBJECT_LABELS.includes(l));
+  // After the last part of the subject (a compound subject has two).
+  const subject = labels.findLastIndex((l) => SUBJECT_LABELS.includes(l));
   return subject >= 0 && subject < labels.length - 1 ? subject + 1 : -1;
 }
 
@@ -35,7 +36,7 @@ export function markupTasks(labels, kind) {
   if (nouns.length) {
     tasks.push({ id: "circle", mark: "circle", mode: "multi", answer: nouns,
       prompt: "Noun check: circle every noun.",
-      hint: "Nouns are the words labeled SN, OP, DO, IO, PrN or OCN. Pronouns like he and we aren't circled." });
+      hint: "Nouns are the words labeled SN, CSN, OP, DO, IO, PrN or OCN. Pronouns like he and we aren't circled." });
   }
   const phrases = phraseIndexes(labels);
   if (phrases.length) {
@@ -51,10 +52,10 @@ export function markupTasks(labels, kind) {
   }
   tasks.push({ id: "subject", mark: "u1", mode: "multi", answer: pick(SUBJECT_LABELS),
     prompt: "Underline the simple subject once.",
-    hint: "The simple subject is the SN or SP: the word that answers who or what." });
+    hint: "The simple subject is the SN or SP (both parts of a compound subject): the word that answers who or what." });
   tasks.push({ id: "verb", mark: "u2", mode: "multi", answer: pick(VERB_LABELS),
     prompt: "Underline the verb twice. Include any helping verb.",
-    hint: "The verb is labeled V, V-t or LV. A helping verb (HV) gets underlined too." });
+    hint: "The verb is labeled V, V-t, LV or CV (both parts of a compound verb). A helping verb (HV) gets underlined too." });
   return tasks;
 }
 

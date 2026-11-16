@@ -307,3 +307,23 @@ test("Mark it up: Shurley Skill Check tasks come from the labels", async () => {
   assert.deepEqual(cmd[0].answer, [3]);
   assert.equal(predicateStart(["SP", "V-t", "A", "DO"], "Imp"), 1);
 });
+
+test("diagrams: compound parts fork, very hangs from the word it describes, adverb pairs tell about the verb", async () => {
+  const { buildDiagram, layoutDiagram, explainSlot } = await import("../../src/lib/diagram.js");
+  const parentOf = (d, text) => d.slots[d.slots.find((s) => s.text === text).parent]?.text;
+  const very = buildDiagram({ tags: "The|A huge|Adj dog|SN barked|V very|Adv loudly!|Adv" });
+  assert.equal(parentOf(very, "very"), "loudly");
+  assert.equal(parentOf(very, "loudly"), "barked");
+  assert.match(explainSlot(very, very.slots.find((s) => s.text === "very")), /joined to loudly's line/);
+  const pair = buildDiagram({ tags: "He|SP smiled|V proudly|Adv today.|Adv" });
+  assert.equal(parentOf(pair, "today"), "smiled");
+  const fork = buildDiagram({ tags: "Mia|CSN and|C Leo|CSN sang|V loudly.|Adv" });
+  assert.equal(fork.tree.subject.fork, true);
+  assert.deepEqual(fork.slots.filter((s) => s.baseline).map((s) => s.text), ["Mia", "Leo", "and", "sang"]);
+  const layout = layoutDiagram(fork);
+  assert.equal(layout.dashes.length, 1);
+  const verbs = buildDiagram({ tags: "We|SP swam|CV and|C fished.|CV" });
+  assert.equal(verbs.tree.verb.fork, true);
+  // Not diagrammed: three compound parts, or a compound verb with a direct object.
+  assert.equal(buildDiagram({ tags: "We|SP washed|CV and|C dried|CV the|A dishes.|DO" }), null);
+});

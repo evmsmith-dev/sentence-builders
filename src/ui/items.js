@@ -927,7 +927,9 @@ function renderDiagram(root, item, hooks) {
         <rect x="${rx.toFixed(1)}" y="-24" width="${rw.toFixed(1)}" height="22" rx="6" />
         <text x="${flat ? 0 : 15}" y="-7" text-anchor="${flat ? "middle" : "start"}">${esc(text)}</text></g>`;
     }).join("");
-    svg.innerHTML = `<g class="dg-lines">${lines}</g>${slots}`;
+    const dashes = layout.dashes.map(([x1, y1, x2, y2]) =>
+      `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" />`).join("");
+    svg.innerHTML = `<g class="dg-lines">${lines}</g><g class="dg-dashes">${dashes}</g>${slots}`;
     const placed = new Set(Object.values(filled));
     const want = guided ? order[guideAt] : null;
     root.querySelector(".dg-bank").innerHTML = chips.filter((c) => !placed.has(c.id)).map((c) =>
