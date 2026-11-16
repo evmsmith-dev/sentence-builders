@@ -48,12 +48,12 @@ test("play a whole level right: 3 stars, a building and badges", async ({ page }
   await expect(page.locator("#result-badges")).toContainText("First Brick");
   await expect(page.locator("#result-badges")).toContainText("Comma Captain");
   await page.locator("#result-town").click();
-  await expect(page.locator(".town")).toHaveAttribute("aria-label", /1 of 30 buildings/);
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /1 of 33 buildings/);
   await expect(page.locator("#pip-home")).toContainText("Next up: Commas and colons, level 2");
 
   // Saved on the device: still there after a reload.
   await page.reload();
-  await expect(page.locator(".town")).toHaveAttribute("aria-label", /1 of 30 buildings/);
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /1 of 33 buildings/);
 });
 
 test("a miss gives a hint and a second try; a second miss shows the answer", async ({ page }) => {
@@ -131,7 +131,7 @@ test("Word Works: play a level with every item type it uses, including Sort it",
     await expect(page.locator("#result-title")).toHaveText("Perfect build!");
     await page.locator("#result-town").click();
   }
-  await expect(page.locator(".town")).toHaveAttribute("aria-label", /3 of 30 buildings/);
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /3 of 33 buildings/);
 });
 
 test("Sort it: a wrong sort gives a hint, then the answer", async ({ page }) => {
@@ -213,7 +213,7 @@ test("Sentence Studio: every level of all three skills, with Sentence check and 
       await page.locator("#result-town").click();
     }
   }
-  await expect(page.locator(".town")).toHaveAttribute("aria-label", /9 of 51 buildings/);
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /9 of 54 buildings/);
 });
 
 test("Sentence check and Join it: a miss gives a hint, two show the answer", async ({ page }) => {
@@ -260,7 +260,7 @@ test("Flow Factory: all three levels, 3 Q&A Flows then 2 Build from labels", asy
     await expect(page.locator("#result-score")).toContainText("5 of 5 points");
     await page.locator("#result-town").click();
   }
-  await expect(page.locator(".town")).toHaveAttribute("aria-label", /3 of 51 buildings/);
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /3 of 54 buildings/);
 });
 
 test("Q&A Flow: a miss gives a step hint; a second miss shows that step and moves on", async ({ page }) => {
@@ -286,10 +286,10 @@ test("Editing Desk: closed below grade 6, open for a 7th grader with grades 6-7 
   await openApp(page, { players: [player({ grade: 4 }), player({ id: "p2", name: "Max", avatar: "🐯", grade: 7 })], current: "p1" });
   await expect(page.locator('[data-world="desk"]')).toBeDisabled();
   await expect(page.locator('[data-world="desk"]')).toContainText("Grade 6+");
-  await expect(page.locator(".town")).toHaveAttribute("aria-label", /of 30 buildings/);
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /of 33 buildings/);
   await page.locator("#who-btn").click();
   await page.locator('[data-player="p2"]').click();
-  await expect(page.locator(".town")).toHaveAttribute("aria-label", /of 51 buildings/);
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /of 54 buildings/);
   await page.locator('[data-world="desk"]').click();
   await expect(page.locator('.level-btn[data-skill="case"][data-level="2"]')).toBeEnabled();
   await expect(page.locator('.level-btn[data-skill="case"][data-level="3"]')).toBeDisabled();
@@ -885,4 +885,23 @@ test("Rule Book: word endings (-ed, plurals, will, -s/-ing, irregular verbs) in 
   await page.locator("#spell-future summary").click();
   await expect(page.locator("#spell-future")).toContainText("will + the plain verb");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+});
+
+test("Capital letters: a Punctuation Port skill, and the town wraps a fourth skill onto its own street", async ({ page }) => {
+  await openApp(page, { players: [player({ grade: 5 })], current: "p1" });
+  await expect(page.locator('.town [data-skill="capitals"]')).toHaveCount(1);
+  await startLevel(page, "capitals", 3);
+  for (let n = 0; n < 8; n++) {
+    await answer(page);
+    await page.locator("#next-btn").click();
+  }
+  await expect(page.locator("#result-title")).toHaveText("Perfect build!");
+  await page.locator("#result-town").click();
+  // Every building lot fits on screen: nothing runs off the right edge of the town.
+  const overflow = await page.evaluate(() => {
+    const svg = document.querySelector(".town");
+    const width = svg.viewBox.baseVal.width;
+    return [...svg.querySelectorAll("[data-skill] rect")].some((r) => r.getBBox().x + r.getBBox().width > width + 0.5);
+  });
+  expect(overflow).toBe(false);
 });

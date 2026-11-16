@@ -50,6 +50,11 @@ export const SKILLS = [
     badge: { id: "apostrophe-ace", name: "Apostrophe Ace", emoji: "🎯" },
   },
   {
+    id: "capitals", world: "port", name: "Capital letters", short: "Capitals", color: "#3949ab",
+    grades: [3, 4, 5], benchmarks: "MN 3.2.1.1, 4.2.1.1, 5.2.1.1 (capitalization)",
+    badge: { id: "capital-captain", name: "Capital Captain", emoji: "🔠" },
+  },
+  {
     id: "verbs", world: "works", name: "Verb tenses", short: "Verbs", color: "#2e8b57",
     grades: [3, 4, 5], benchmarks: "MN 3.2.1.3; grammar in 4.2.1.1, 5.2.1.1",
     badge: { id: "time-traveler", name: "Time Traveler", emoji: "⏳" },

@@ -21,6 +21,7 @@ export function pipSays(text, on = true) {
 }
 
 const LOT_W = 34;
+const PER_STREET = 3; // skills that fit across one street
 const TOP = 34; // sky above the first street
 const ROW = 126; // height of one street: buildings, then grass with the labels
 
@@ -50,8 +51,7 @@ function emptyLot(x, ground) {
 }
 
 /** One street: one block per skill in the world, one lot per level. */
-function street(player, world, ground, rising) {
-  const skills = skillsInWorldFor(world.id, player);
+function street(player, world, ground, rising, skills, showName) {
   const blockW = LOT_W * 3 + 10;
   const start = (360 - skills.length * blockW + 10) / 2;
   const blocks = skills.map((skill, b) => {
@@ -68,7 +68,7 @@ function street(player, world, ground, rising) {
     return `<g data-skill="${skill.id}">${lots}<text x="${x0 + (LOT_W * 3) / 2}" y="${ground + 15}" text-anchor="middle" font-size="10.5" font-weight="600" fill="#2c3e5c">${esc(skill.short)}</text></g>`;
   }).join("");
   return `<rect y="${ground}" width="360" height="22" fill="#9fd38a"/>
-    <text x="8" y="${ground - 86}" font-size="10" font-weight="700" fill="#3d5a80">${esc(world.name)}</text>${blocks}`;
+    ${showName ? `<text x="8" y="${ground - 86}" font-size="10" font-weight="700" fill="#3d5a80">${esc(world.name)}</text>` : ""}${blocks}`;
 }
 
 /** The player's town: a street for each world that's open, with the harbor at the bottom. */
@@ -94,9 +94,15 @@ function decorSvg(p, y, { fresh = null, drag = false, selected = null, walk = tr
 
 export function townSvg(player, { fresh = null, rising = null } = {}) {
   const worlds = WORLDS.filter((world) => worldOpenFor(world, player));
+  // A street holds three skills; a world with more wraps onto another street.
+  const streets = worlds.flatMap((world) => {
+    const skills = skillsInWorldFor(world.id, player);
+    return Array.from({ length: Math.ceil(skills.length / PER_STREET) }, (_, k) =>
+      ({ world, skills: skills.slice(k * PER_STREET, (k + 1) * PER_STREET), showName: k === 0 }));
+  });
   const placed = placedDecor(player);
   const sky = placed.some((p) => p.y < SCENE.park) ? SKY : 0;
-  const grounds = worlds.map((_, r) => sky + TOP + 96 + r * ROW);
+  const grounds = streets.map((_, r) => sky + TOP + 96 + r * ROW);
   const last = grounds[grounds.length - 1];
   const park = last + 32;
   const height = park + PARK + 38;
@@ -111,7 +117,7 @@ export function townSvg(player, { fresh = null, rising = null } = {}) {
     <rect width="360" height="${height}" fill="url(#sky)"/>
     <circle cx="318" cy="28" r="13" fill="#ffd54f"/>
     <path d="M150 30q8-10 18 0q10-6 16 4h-40q0-6 6-4z" fill="#fff"/><path d="M230 22q8-10 18 0q10-6 16 4h-40q0-6 6-4z" fill="#fff"/>
-    ${worlds.map((world, r) => street(player, world, grounds[r], rising)).join("")}
+    ${streets.map((st, r) => street(player, st.world, grounds[r], rising, st.skills, st.showName)).join("")}
     <rect y="${last + 22}" width="360" height="10" fill="#c9c3b5"/>
     <rect y="${park}" width="360" height="${PARK}" fill="#a5d6a7"/>
     <path d="M0 ${park + 46}h360" stroke="#c8e6c9" stroke-width="10"/>
