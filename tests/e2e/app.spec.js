@@ -1,6 +1,9 @@
 import { readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
-import { answer, currentItem, miss, openApp, player, startLevel } from "./helpers.js";
+import { answer, currentItem, diagramIt, markUp, miss, openApp, player, startLevel } from "./helpers.js";
+import { parseFlow } from "../../src/lib/parse.js";
+import { markupTasks } from "../../src/lib/markup.js";
+import { buildDiagram } from "../../src/lib/diagram.js";
 
 test("first visit: make a player and land in the town", async ({ page }) => {
   await openApp(page);
@@ -218,7 +221,7 @@ test("Sentence Studio: every level of all three skills, with Sentence check and 
       await page.locator("#result-town").click();
     }
   }
-  await expect(page.locator(".town")).toHaveAttribute("aria-label", /9 of 48 buildings/);
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /9 of 51 buildings/);
 });
 
 test("Sentence check and Join it: a miss gives a hint, two show the answer", async ({ page }) => {
@@ -265,7 +268,7 @@ test("Flow Factory: all three levels, 3 Q&A Flows then 2 Build from labels", asy
     await expect(page.locator("#result-score")).toContainText("5 of 5 points");
     await page.locator("#result-town").click();
   }
-  await expect(page.locator(".town")).toHaveAttribute("aria-label", /3 of 48 buildings/);
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /3 of 51 buildings/);
 });
 
 test("Q&A Flow: a miss gives a step hint; a second miss shows that step and moves on", async ({ page }) => {
@@ -294,7 +297,7 @@ test("Editing Desk: closed below grade 6, open for a 7th grader with grades 6-7 
   await expect(page.locator(".town")).toHaveAttribute("aria-label", /of 30 buildings/);
   await page.locator("#who-btn").click();
   await page.locator('[data-player="p2"]').click();
-  await expect(page.locator(".town")).toHaveAttribute("aria-label", /of 48 buildings/);
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /of 51 buildings/);
   await page.locator('[data-world="desk"]').click();
   await expect(page.locator('.level-btn[data-skill="case"][data-level="2"]')).toBeEnabled();
   await expect(page.locator('.level-btn[data-skill="case"][data-level="3"]')).toBeDisabled();
@@ -579,4 +582,100 @@ test("Labels reminder shows the level's labels and patterns, and works on Build 
   await page.locator("#item [data-labels-help]").click();
   await expect(page.locator("#labels-overlay")).toBeVisible();
   await expect(page.locator("#labels-list")).toContainText("direct object");
+});
+
+test("Mark it up: wrong marks give a hint, then the answer; right marks finish the flow", async ({ page }) => {
+  const { items } = JSON.parse(readFileSync("data/content.json", "utf8"));
+  const seen = Object.fromEntries(items.filter((i) => i.skill === "flow" && i.level === 2 && i.id !== "flow-2-01").map((i) => [i.id, { seen: 1, misses: 0, last: 1 }]));
+  await openApp(page, { players: [player({ grade: 5, items: seen })], current: "p1" });
+  await startLevel(page, "flow", 2, "flow");
+  const item = await currentItem(page);
+  const parsed = parseFlow(item);
+  for (const step of parsed.steps) {
+    const w = page.locator(`#item [data-fw="${step.index}"]`);
+    if (await w.isEnabled()) await w.click();
+    await page.locator(`#item [data-label="${step.label}"]`).click();
+  }
+  await page.locator(`#item [data-kind-pick="${parsed.kind}"]`).click();
+  await expect(page.locator("#item .flow-count")).toHaveText("Mark it up · 1 of 5");
+  await expect(page.locator("#item .flow-q")).toHaveText("Noun check: circle every noun.");
+  // Circle only one of the two nouns: a hint, then a second miss shows the answer and moves on.
+  await page.locator('#item [data-fw="3"]').click();
+  await page.locator("#item [data-markup-done]").click();
+  await expect(page.locator("#feedback")).toContainText("Nouns are the words labeled");
+  await page.locator("#item [data-markup-done]").click();
+  await expect(page.locator('#item [data-fw="8"]')).toHaveClass(/mk-circle/);
+  await expect(page.locator("#item .flow-count")).toHaveText("Mark it up · 2 of 5");
+  const tasks = markupTasks(parsed.words.map((w) => w.label), parsed.kind);
+  for (const task of tasks.slice(1)) await markUp(page, task);
+  await expect(page.locator('#item [data-fw="6"]')).toHaveClass(/mk-po/);
+  await expect(page.locator('#item [data-fw="4"]')).toHaveClass(/mk-slash/);
+  await expect(page.locator('#item [data-fw="4"]')).toHaveClass(/mk-u2/);
+  await expect(page.locator("#next-btn")).toBeVisible();
+});
+
+test("Sentence Diagramming: opens in grade 5, mark up then diagram, wrong words go back", async ({ page }) => {
+  await openApp(page, { players: [player({ grade: 4 }), player({ id: "p2", name: "Max", avatar: "🐯", grade: 5 })], current: "p1" });
+  await page.locator('[data-world="flow"]').click();
+  await expect(page.locator('.level-btn[data-skill="diagram"]')).toHaveCount(0);
+  await page.goBack();
+  await page.locator("#who-btn").click();
+  await page.locator('[data-player="p2"]').click();
+  await startLevel(page, "diagram", 1, "flow");
+  // First item: guided, one line at a time with the reason; a wrong pick is refused.
+  const first = await currentItem(page);
+  await diagramIt(page, first, { markupOnly: true });
+  await expect(page.locator("#item .dg-guide")).toContainText("Step 1 of");
+  await expect(page.locator("#item .dg-guide")).toContainText("is the simple subject, so it goes on the baseline");
+  await expect(page.locator("#item .dg-slot.dg-target")).toHaveCount(1);
+  const firstSlots = buildDiagram(first).slots;
+  const verbSlot = firstSlots.find((s) => s.role === "verb");
+  await page.locator("#item .dg-bank [data-chip]").filter({ hasText: new RegExp(`^${verbSlot.text}$`) }).first().click();
+  await page.locator(`#item [data-slot="${verbSlot.id}"]`).click();
+  await expect(page.locator("#feedback")).toContainText("Not that one yet");
+  await diagramIt(page, first);
+  await expect(page.locator("#item .dg-why")).toBeVisible();
+  await expect(page.locator("#item .dg-why li").first()).toContainText("simple subject");
+  await expect(page.locator("#feedback.good")).toBeVisible();
+  await page.locator("#next-btn").click();
+  // Second item: swap two words to see the miss, then do it right.
+  const item = await currentItem(page);
+  await diagramIt(page, item, { markupOnly: true });
+  const { slots } = buildDiagram(item);
+  const order = [...slots];
+  [order[0], order[1]] = [order[1], order[0]]; // subject and verb swapped
+  for (let k = 0; k < slots.length; k++) {
+    await page.locator("#item .dg-bank [data-chip]").filter({ hasText: new RegExp(`^${order[k].text}$`) }).first().click();
+    await page.locator(`#item [data-slot="${slots[k].id}"]`).click();
+  }
+  await page.locator("#item [data-dg-check]").click();
+  await expect(page.locator("#feedback")).toContainText("2 words are in the wrong place");
+  await expect(page.locator("#item .dg-bank [data-chip]")).toHaveCount(2);
+  for (const slot of slots.slice(0, 2)) {
+    await page.locator("#item .dg-bank [data-chip]").filter({ hasText: new RegExp(`^${slot.text}$`) }).first().click();
+    await page.locator(`#item [data-slot="${slot.id}"]`).click();
+  }
+  await page.locator("#item [data-dg-check]").click();
+  await expect(page.locator("#next-btn")).toBeVisible();
+  await expect(page.locator("#item .dg-why")).toHaveAttribute("open", "");
+  await page.locator("#next-btn").click();
+  for (let n = 2; n < 5; n++) {
+    await answer(page);
+    await expect(page.locator("#feedback.good")).toBeVisible();
+    await page.locator("#next-btn").click();
+  }
+  await expect(page.locator("#result-title")).toBeVisible();
+});
+
+test("Studio look: automatic for grade 6+, and either look can be picked in Settings", async ({ page }) => {
+  await openApp(page, { players: [player({ grade: 4 }), player({ id: "p2", name: "Max", avatar: "🐯", grade: 7 })], current: "p1" });
+  await expect(page.locator("body")).not.toHaveClass(/theme-studio/);
+  await page.locator("#who-btn").click();
+  await page.locator('[data-player="p2"]').click();
+  await expect(page.locator("body")).toHaveClass(/theme-studio/);
+  await page.locator("#settings-btn").click();
+  await page.locator("#set-theme").selectOption("bright");
+  await expect(page.locator("body")).not.toHaveClass(/theme-studio/);
+  await page.locator("#set-theme").selectOption("auto");
+  await expect(page.locator("body")).toHaveClass(/theme-studio/);
 });

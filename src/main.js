@@ -1,6 +1,6 @@
 // Startup and screens: players, the town, worlds, levels, results, badges and settings.
 import {
-  AVATARS, HABIT_BADGES, ITEMS_PER_LEVEL, MAX_GRADE, MAX_PLAYERS, MIN_GRADE, PIP, SKILLS, TIER_NAMES, WORLDS, WORLD_BADGES,
+  AVATARS, HABIT_BADGES, ITEMS_PER_LEVEL, MAX_GRADE, MAX_PLAYERS, MIN_GRADE, PIP, SKILLS, STUDIO_FROM_GRADE, TIER_NAMES, WORLDS, WORLD_BADGES,
   GOLD_DAYS, LABELS, LABEL_LISTS, PATTERNS, FLOW_LABELS, FLOW_PATTERNS, WORD_LISTS, skillById, skillOpenFor, skillsInWorld, skillsInWorldFor, worldOpenFor,
 } from "./config.js";
 import { answerText, spokenText } from "./lib/parse.js";
@@ -34,11 +34,25 @@ function savePlayer(player) {
   state.player = player;
   state.players = state.players.map((p) => (p.id === player.id ? player : p));
   savePlayers(state.players);
+  applyTheme();
+}
+
+/** Grades 6+ get the calmer Studio look automatically; anyone can pick either look in Settings. */
+function themeFor(player) {
+  const choice = player?.settings?.theme || "auto";
+  if (choice === "studio" || choice === "bright") return choice;
+  return player && player.grade >= STUDIO_FROM_GRADE ? "studio" : "bright";
+}
+function applyTheme() {
+  const studio = themeFor(state.player) === "studio";
+  document.body.classList.toggle("theme-studio", studio);
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", studio ? "#27324a" : "#1f5fbf");
 }
 
 /* ==================== Players ==================== */
 
 function renderPlayers() {
+  applyTheme();
   const cards = state.players.map((p) => `<button type="button" class="player-card" data-player="${esc(p.id)}">
       <span class="avatar" aria-hidden="true">${p.avatar}</span><span class="player-name">${esc(p.name)}</span>
       <span class="player-grade">${gradeLabel(p.grade)}</span></button>`).join("");
@@ -86,6 +100,7 @@ function nextUp(player) {
 
 function renderHome() {
   const player = state.player;
+  applyTheme();
   $("who-btn").innerHTML = `<span class="avatar" aria-hidden="true">${player.avatar}</span> ${esc(player.name)}`;
   const next = nextUp(player);
   const greeting = next
@@ -194,6 +209,7 @@ function showItem() {
     complete: (result) => completeItem(result),
     onChange: updateCheck,
     onTap: () => sound("tap", settings().sound),
+    guided: item.type === "diagram" && play.index === 0, // the first diagram of a level is walked through
   });
   $("prompt").textContent = play.ctrl.prompt;
   $("check-btn").hidden = !play.ctrl.usesCheck;
@@ -563,6 +579,7 @@ function openSettings() {
   $("set-pip").checked = s.pip;
   $("set-sound").checked = s.sound;
   $("set-grade").value = String(state.player.grade);
+  $("set-theme").value = s.theme || "auto";
   $("delete-player").textContent = "Delete this player";
   $("delete-player").dataset.armed = "";
   $("set-autoread").closest("label").hidden = !canSay();
@@ -573,7 +590,8 @@ function changeSetting() {
   const player = {
     ...state.player,
     grade: Number($("set-grade").value),
-    settings: { ...state.player.settings, autoRead: $("set-autoread").checked, pip: $("set-pip").checked, sound: $("set-sound").checked },
+    settings: { ...state.player.settings, autoRead: $("set-autoread").checked, pip: $("set-pip").checked, sound: $("set-sound").checked,
+      theme: $("set-theme").value },
   };
   savePlayer(player);
 }
@@ -725,7 +743,7 @@ function wire() {
     closeOverlay("result-overlay");
     renderHome();
   });
-  for (const id of ["set-autoread", "set-pip", "set-sound", "set-grade"]) $(id).addEventListener("change", changeSetting);
+  for (const id of ["set-autoread", "set-pip", "set-sound", "set-grade", "set-theme"]) $(id).addEventListener("change", changeSetting);
   $("switch-player").addEventListener("click", () => {
     closeOverlay("settings-overlay");
     renderPlayers();

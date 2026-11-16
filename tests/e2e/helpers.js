@@ -1,5 +1,7 @@
 import { expect } from "@playwright/test";
 import { readFileSync } from "node:fs";
+import { markupTasks } from "../../src/lib/markup.js";
+import { buildDiagram, guideOrder } from "../../src/lib/diagram.js";
 import {
   CHECK_KINDS, paletteFor, parseBuild, parseCheck, parseFix, parseFlow, parseJoin, parseLabels, parseMark, parseMarkText,
   parseProofread, parseSort, parseWhich,
@@ -10,6 +12,8 @@ async function flowStage(page) {
   const count = (await page.locator("#item .flow-count").textContent()) || "";
   const m = count.match(/Question (\d+)/);
   if (m) return Number(m[1]) - 1;
+  const mk = count.match(/Mark it up · (\d+)/);
+  if (mk) return `markup-${Number(mk[1]) - 1}`;
   if (await page.locator("#item [data-kind-pick]").count()) return "kind";
   if (await page.locator("#item [data-pattern]").count()) return "pattern";
   return null;
@@ -203,6 +207,8 @@ export async function answer(page) {
         await page.locator(`#item [data-kind-pick="${parsed.kind}"]`).click();
       } else if (at === "pattern") {
         await page.locator(`#item [data-pattern="${parsed.pattern}"]`).click();
+      } else if (typeof at === "string" && at.startsWith("markup-")) {
+        await markUp(page, markupTasks(parsed.words.map((w) => w.label), parsed.kind)[Number(at.slice(7))]);
       } else {
         const step = parsed.steps[at];
         const word = page.locator(`#item [data-fw="${step.index}"]`);
@@ -210,6 +216,8 @@ export async function answer(page) {
         await page.locator(`#item [data-label="${step.label}"]`).click();
       }
     }
+  } else if (item.type === "diagram") {
+    await diagramIt(page, item);
   } else if (item.type === "proofread") {
     const parsed = parseProofread(item);
     for (const e of parsed.errors) {
@@ -260,4 +268,29 @@ export async function answer(page) {
     }
     await page.locator("#check-btn").click();
   }
+}
+
+/** Does one Mark it up task: taps exactly the right words (clearing any picked before). */
+export async function markUp(page, task) {
+  for (const btn of await page.locator("#item .flow-word.picked").all()) await btn.click();
+  for (const i of task.answer) await page.locator(`#item [data-fw="${i}"]`).click();
+  if (task.mode === "multi") await page.locator("#item [data-markup-done]").click();
+}
+
+/** Mark up a diagram item's sentence, then put every word on its line and check. */
+export async function diagramIt(page, item, { markupOnly = false } = {}) {
+  const labels = item.tags.trim().split(/ +/).map((t) => t.split("|")[1]);
+  // Skip the mark-up if it's already done (the diagram is showing).
+  if (!(await page.locator("#item .dg-stage").isVisible())) {
+    for (const task of markupTasks(labels, item.kind)) await markUp(page, task);
+  }
+  if (markupOnly) return;
+  const diagram = buildDiagram(item);
+  const guided = await page.locator("#item .dg-guide").isVisible();
+  const done = guided ? Number(((await page.locator("#item .dg-guide .flow-count").textContent()) || "").match(/Step (\d+)/)[1]) - 1 : 0;
+  for (const slot of guided ? guideOrder(diagram).slice(done) : diagram.slots) {
+    await page.locator("#item .dg-bank [data-chip]").filter({ hasText: exact(slot.text) }).first().click();
+    await page.locator(`#item [data-slot="${slot.id}"]`).click();
+  }
+  if (!guided) await page.locator("#item [data-dg-check]").click();
 }

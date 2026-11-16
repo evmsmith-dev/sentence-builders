@@ -1,6 +1,7 @@
 // Turns an item from data/content.json into what the screen shows and what counts as right.
 // Pure functions, unit-tested. The formats are described in data/README.md.
 import { FLOW_LABELS, FLOW_PATTERNS, MARK_ORDER, PALETTES, PATTERNS, SENTENCE_KINDS } from "../config.js";
+import { buildDiagram } from "./diagram.js";
 
 const flowLabels = (item) => (FLOW_LABELS[item.skill] || FLOW_LABELS.flow)[item.level - 1];
 const flowPatterns = (item) => (FLOW_PATTERNS[item.skill] || FLOW_PATTERNS.flow)[item.level - 1];
@@ -174,7 +175,7 @@ export function parseJoin(item) {
   };
 }
 
-const parseTags = (tags) => tags.trim().split(/ +/).map((pair) => {
+export const parseTags = (tags) => tags.trim().split(/ +/).map((pair) => {
   const at = pair.lastIndexOf("|");
   return { word: pair.slice(0, at), label: pair.slice(at + 1) };
 });
@@ -238,7 +239,7 @@ export function spokenText(item) {
   if (item.type === "sort") return parseSort(item).tiles.map((tile) => tile.text).join(", ");
   if (item.type === "check") return item.text;
   if (item.type === "join") return `${item.first} ${item.second}`;
-  if (item.type === "flow") return parseFlow(item).words.map((w) => w.word).join(" ");
+  if (item.type === "flow" || item.type === "diagram") return parseFlow({ ...item, steps: [] }).words.map((w) => w.word).join(" ");
   if (item.type === "labels") return parseLabels(item).line.join(", ");
   if (item.type === "proofread") return parseProofread(item).words.join(" ");
   return "";
@@ -257,12 +258,30 @@ export function answerText(item) {
   if (item.type === "check") return parseCheck(item).answerText;
   if (item.type === "join") return parseJoin(item).answerText;
   if (item.type === "flow") return parseFlow(item).answerText;
+  if (item.type === "diagram") return diagramText(item);
   if (item.type === "labels") return parseLabels(item).answerText;
   if (item.type === "proofread") return parseProofread(item).answerText;
   throw new Error(`Unknown item type: ${item.type}`);
 }
 
-export const ITEM_TYPES = ["mark", "fix", "which", "build", "sort", "check", "join", "flow", "labels", "proofread"];
+export const ITEM_TYPES = ["mark", "fix", "which", "build", "sort", "check", "join", "flow", "labels", "proofread", "diagram"];
+
+/** A diagram in words, for the results review: the baseline, then what hangs under each word. */
+export function diagramText(item) {
+  const { tree, slots } = buildDiagram(item);
+  const t = (n) => slots[n.slot].text;
+  let base = `${t(tree.subject)} | ${t(tree.verb)}`;
+  if (tree.complement) base += tree.complement.kind === "DO" ? ` | ${t(tree.complement.node)}` : ` \\ ${t(tree.complement.node)}`;
+  if (tree.objectComplement) base += ` \\ ${t(tree.objectComplement.node)}`;
+  const hangs = [];
+  const walk = (n) => n.mods.forEach((m) => {
+    if (m.kind === "slant") hangs.push(`${t(m.node)} under ${t(n)}`);
+    else hangs.push(`${m.pSlot === null ? "" : `${slots[m.pSlot].text} `}${t(m.node)} under ${t(n)}`);
+    walk(m.node);
+  });
+  [tree.subject, tree.verb, tree.complement?.node, tree.objectComplement?.node].filter(Boolean).forEach(walk);
+  return `${base}${hangs.length ? `; ${hangs.join("; ")}` : ""}`;
+}
 
 /** Throws if an item can't be shown or can't be answered. Used by the validator. */
 export function validateItem(item) {
@@ -328,6 +347,13 @@ export function validateItem(item) {
     if (choices.length > 1 && !choices.includes(item.pattern)) throw new Error(`${item.id}: needs a pattern from ${choices.join(", ")}`);
     if (choices.length === 1 && item.pattern) throw new Error(`${item.id}: patterns aren't asked at this level`);
     if (!/[.!?]$/.test(parsed.words.at(-1).word)) throw new Error(`${item.id}: the last word needs its end mark`);
+  }
+  if (item.type === "diagram") {
+    if (!buildDiagram(item)) throw new Error(`${item.id}: this sentence can't be diagrammed yet`);
+    if (!SENTENCE_KINDS[item.kind]) throw new Error(`${item.id}: unknown sentence kind ${item.kind}`);
+    const labels = parseTags(item.tags).map((w) => w.label);
+    const bad = labels.find((l) => !flowLabels(item).includes(l));
+    if (bad) throw new Error(`${item.id}: ${bad} isn't taught by level ${item.level}`);
   }
   if (item.type === "proofread") {
     const parsed = parseProofread(item);

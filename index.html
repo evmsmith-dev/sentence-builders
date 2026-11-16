@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Sentence Builders</title>
-  <meta name="description" content="Fix sentences, build a town. A grammar and punctuation game for grades 3–5 that works offline.">
+  <meta name="description" content="Fix sentences, build a town. A grammar and punctuation game for grades 3–8 that works offline.">
   <meta name="theme-color" content="#1f4e8c">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -44,7 +44,7 @@
       </fieldset>
       <label for="player-grade">Grade</label>
       <select id="player-grade" name="grade"></select>
-      <p class="note">Levels for your grade and below start unlocked. Grades 6–8 can review everything.</p>
+      <p class="note">Levels for your grade and below start unlocked. Diagramming opens in grade 5, and the Editing Desk and Advanced Q&A Flow in grade 6.</p>
       <button type="submit" class="primary big">Start building</button>
     </form>
   </main>
@@ -211,6 +211,12 @@
       <label class="toggle"><input type="checkbox" id="set-sound"> Sounds</label>
       <label for="set-grade">Grade</label>
       <select id="set-grade"></select>
+      <label for="set-theme">Look</label>
+      <select id="set-theme">
+        <option value="auto">Automatic (Studio for grades 6+)</option>
+        <option value="bright">Bright</option>
+        <option value="studio">Studio</option>
+      </select>
       <div class="sheet-actions stack">
         <button type="button" id="switch-player" class="secondary">Switch player</button>
         <button type="button" class="secondary" data-grownup>Grown-up view</button>

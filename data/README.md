@@ -21,4 +21,4 @@ In every format, **the first choice is the right one**; the game shuffles choice
 
 Tense: keep a sentence's verbs in one time frame (all past, all present, or all future). Shifts are fine only where the grammar calls for them: a present-tense if/when part with a future result ("If it rains, we will stay inside"), and quoted words, which keep the speaker's own tense. Avoid verbs that look the same in past and present (read, lead), because read-aloud may say the wrong one.
 
-Style: sentences under 15 words, about things kids care about (pets, sports, games, science, weather), a mix of names, no trick questions. Hints name the rule in one sentence.
+Style: sentences under 15 words, about things students care about (pets, sports, games, science, weather; for grades 6–8, topics like school events, history, jobs and travel work well), a mix of names, no trick questions. Hints name the rule in one sentence.

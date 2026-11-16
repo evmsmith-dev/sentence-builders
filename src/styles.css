@@ -476,3 +476,72 @@ details.rule-skill .rule-card:first-of-type { border-top: 1px solid var(--border
 
 .mark-btn { position: relative; }
 .mark-name { font-family: "Fredoka", system-ui, sans-serif; position: absolute; left: 0; right: 0; bottom: 4px; font-size: 0.7rem; font-weight: 700; line-height: 1; color: var(--muted); }
+
+/* Mark it up: drawn on the word text like pencil marks on paper. */
+.flow-word.picked { border-color: var(--accent); }
+.flow-word .fw-text { position: relative; padding: 0 3px; border: 2px solid transparent; border-radius: 999px; }
+.flow-word.mk-circle .fw-text { border-color: #c62828; }
+.flow-word.mk-u1 .fw-text { text-decoration: underline 2px; text-underline-offset: 5px; }
+.flow-word.mk-u2 .fw-text { text-decoration: underline double 2px; text-underline-offset: 5px; }
+.flow-word.mk-po .fw-text::before { content: "("; color: #6a1b9a; font-weight: 700; margin-right: 1px; }
+.flow-word.mk-pc .fw-text::after { content: ")"; color: #6a1b9a; font-weight: 700; margin-left: 1px; }
+.flow-word.mk-slash { position: relative; }
+.flow-word.mk-slash::before {
+  content: "/"; position: absolute; left: -9px; bottom: 6px; font-size: 1.6rem; font-weight: 700; color: #c62828; line-height: 1;
+}
+.markup-done { margin-top: 6px; min-width: 140px; }
+
+/* Sentence diagrams */
+.dg-stage { margin-top: 10px; padding-top: 10px; border-top: 2px solid var(--primary-soft); }
+.dg-wrap { display: flex; justify-content: center; margin: 4px 0 8px; }
+.dg-svg { width: 100%; height: auto; overflow: visible; }
+.dg-lines line { stroke: var(--text); stroke-width: 2.4; stroke-linecap: round; }
+.dg-slot { cursor: pointer; }
+.dg-slot rect { fill: var(--primary-soft); stroke: var(--primary); stroke-width: 1.5; stroke-dasharray: 4 3; }
+.dg-slot.filled rect { fill: transparent; stroke: transparent; }
+.dg-slot text { font: 600 16px "Fredoka", system-ui, sans-serif; fill: var(--text); }
+.dg-slot:focus-visible rect { stroke: var(--accent); stroke-width: 3; stroke-dasharray: none; }
+.dg-bank { justify-content: center; }
+.dg-check { display: block; margin: 12px auto 0; min-width: 160px; }
+.diagram-item .flow-word { pointer-events: auto; }
+
+/* ==================== Studio look (grades 6+ by default) ====================
+   Same layout and tap targets; a cleaner typeface, calmer colors, flatter cards, no cartoon helper. */
+body.theme-studio {
+  --bg: #eef1f6;
+  --card: #ffffff;
+  --text: #1b2333;
+  --muted: #5a6475;
+  --primary: #3949ab;
+  --primary-dark: #27324a;
+  --primary-soft: #e8eaf6;
+  --accent: #f2b33d;
+  --border: #d5dae3;
+  --shown: #6a3d9a;
+  --shadow: 0 1px 3px rgba(27, 35, 51, 0.12);
+  --radius: 10px;
+  font-family: "DashFix", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  letter-spacing: 0.005em;
+}
+body.theme-studio h1, body.theme-studio h2, body.theme-studio h3, body.theme-studio .brand,
+body.theme-studio .screen-title, body.theme-studio .section-title { letter-spacing: -0.01em; }
+body.theme-studio button, body.theme-studio .btn, body.theme-studio .tile, body.theme-studio .choice,
+body.theme-studio .flow-word, body.theme-studio .mark-btn, body.theme-studio .label-chip, body.theme-studio .level-btn,
+body.theme-studio .rules-tab, body.theme-studio .who, body.theme-studio .sheet { border-radius: 8px; }
+body.theme-studio .pip-row svg, body.theme-studio .pip-row .pip { display: none; }
+body.theme-studio .pip-row { gap: 0; }
+body.theme-studio .dg-slot text, body.theme-studio .mark-name { font-family: inherit; }
+body.theme-studio .town { filter: saturate(0.75); }
+body.theme-studio .bubble { border-radius: 8px; border-left: 4px solid var(--primary); box-shadow: none; }
+body.theme-studio .bubble::before, body.theme-studio .bubble::after { display: none; }
+
+.dg-slot.dg-target rect { fill: #fff4d6; stroke: var(--accent); stroke-width: 3; stroke-dasharray: none; }
+.tile.dg-glow { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent); }
+.dg-guide { margin: 6px 0 10px; padding: 10px 12px; border-radius: 12px; background: var(--hint-soft); }
+.dg-guide p { margin: 2px 0; }
+.dg-actions { display: flex; flex-direction: column; align-items: center; gap: 4px; margin-top: 12px; }
+.dg-actions .dg-check { margin: 0; }
+.dg-why { margin-top: 12px; }
+.dg-why summary { cursor: pointer; font-weight: 700; min-height: 44px; display: flex; align-items: center; color: var(--primary); }
+.dg-why ol { margin: 4px 0 0; padding-left: 1.3em; }
+.dg-why li { margin: 6px 0; }

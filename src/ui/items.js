@@ -7,6 +7,8 @@
 //   reveal()        show the right answer after a second miss
 //   lock()          no more changes
 // Types that answer on a tap call answer(correct) themselves.
+import { markupTasks, checkMarkup } from "../lib/markup.js";
+import { buildDiagram, explainSlot, guideOrder, layoutDiagram, wrongSlots } from "../lib/diagram.js";
 import {
   CHECK_KINDS, spaceAfter, checkBuild, checkLabels, checkMark, checkSort, joinTiles, paletteFor, parseBuild, parseCheck, parseFix, parseFlow,
   parseJoin, parseLabels, parseMark, parseProofread, parseSort, parseWhich,
@@ -437,16 +439,23 @@ const PATTERN_HINT = "Look at the labels after the verb: nothing more is P1, a D
  * A miss gives a hint for that step; a second miss on the same step shows it and moves on.
  */
 function renderFlow(root, item, { hint, complete, onChange, onTap, showLabels }) {
-  const parsed = parseFlow(item);
-  const stages = [...parsed.steps.map((step) => ({ ...step, kind: "step" })), { kind: "kind" }];
-  if (parsed.pattern) stages.push({ kind: "pattern" });
+  const parsed = parseFlow(item.markupOnly ? { ...item, steps: [] } : item);
+  const stages = item.markupOnly ? [] : [...parsed.steps.map((step) => ({ ...step, kind: "step" })), { kind: "kind" }];
+  if (parsed.pattern && !item.markupOnly) stages.push({ kind: "pattern" });
   const shown = {}; // word index → label shown above it
+  if (item.markupOnly) parsed.words.forEach((w, i) => { shown[i] = w.label; });
   let at = 0;
   let phase = "word"; // "word" (tap a word) or "label" (pick a label) for steps
   let stepMisses = 0;
   let misses = 0;
   let revealed = false;
   let done = false;
+  // Mark it up (Shurley Skill Check) runs after the last question.
+  const tasks = item.noMarkup ? [] : markupTasks(parsed.words.map((w) => w.label), parsed.kind);
+  let markAt = -1;
+  let picked = new Set();
+  const marks = {}; // word index → Set of marks drawn
+  let taskMisses = 0;
 
   root.innerHTML = `<div class="flow" data-type="flow">
     <div class="flow-sentence">${parsed.words.map((w, i) =>
@@ -457,7 +466,77 @@ function renderFlow(root, item, { hint, complete, onChange, onTap, showLabels })
   const labelChips = () => parsed.labels.map((label) =>
     `<button type="button" class="label-chip" data-label="${esc(label)}"><strong>${esc(label)}</strong><small>${esc(LABELS[label].name)}</small></button>`).join("");
 
+  const marking = () => markAt >= 0 && markAt < tasks.length;
+
+  function paintMarks() {
+    const task = marking() ? tasks[markAt] : null;
+    const has = (i, mark) => marks[i]?.has(mark) || (task?.mark === mark && picked.has(i));
+    root.querySelectorAll(".flow-word").forEach((btn) => {
+      const i = Number(btn.dataset.fw);
+      btn.classList.toggle("mk-circle", has(i, "circle"));
+      btn.classList.toggle("mk-u1", has(i, "u1"));
+      btn.classList.toggle("mk-u2", has(i, "u2"));
+      btn.classList.toggle("mk-slash", has(i, "slash"));
+      btn.classList.toggle("mk-po", has(i, "paren") && !has(i - 1, "paren"));
+      btn.classList.toggle("mk-pc", has(i, "paren") && !has(i + 1, "paren"));
+    });
+  }
+
+  function drawMarkup() {
+    const task = tasks[markAt];
+    root.querySelectorAll(".flow-word").forEach((btn) => {
+      btn.disabled = false;
+      btn.classList.remove("current");
+      btn.classList.toggle("picked", picked.has(Number(btn.dataset.fw)));
+    });
+    paintMarks();
+    root.querySelector(".flow-count").textContent = `Mark it up · ${markAt + 1} of ${tasks.length}`;
+    root.querySelector(".flow-q").textContent = task.prompt;
+    root.querySelector(".flow-choices").innerHTML = task.mode === "multi"
+      ? `<p class="palette-label">Tap the words, then tap Done. Tap a word again to undo.</p><button type="button" class="btn primary markup-done" data-markup-done>Done</button>`
+      : '<p class="palette-label">Tap the word in the sentence.</p>';
+  }
+
+  function finishTask(showAnswer) {
+    const task = tasks[markAt];
+    for (const i of task.answer) (marks[i] ||= new Set()).add(task.mark);
+    picked = new Set();
+    taskMisses = 0;
+    markAt += 1;
+    if (!showAnswer) hint(null);
+    if (markAt >= tasks.length) {
+      done = true;
+      root.querySelectorAll(".flow-word").forEach((btn) => btn.classList.remove("picked"));
+      draw();
+      onChange();
+      complete({ tries: misses ? 2 : 1, correct: !revealed });
+      return;
+    }
+    drawMarkup();
+    onChange();
+  }
+
+  function tryTask() {
+    const task = tasks[markAt];
+    if (checkMarkup(task, [...picked])) {
+      finishTask(false);
+      return;
+    }
+    misses += 1;
+    taskMisses += 1;
+    if (taskMisses === 1) {
+      hint(`Not quite. ${task.hint}`);
+      if (task.mode === "first") picked = new Set();
+      drawMarkup();
+      return;
+    }
+    revealed = true;
+    hint(`Here's that one: ${task.answer.map((i) => parsed.words[i].word.replace(/[.!?]$/, "")).join(", ")}.`);
+    finishTask(true);
+  }
+
   function draw() {
+    if (marking()) { drawMarkup(); return; }
     const st = stage();
     root.querySelectorAll(".flow-word").forEach((btn) => {
       const i = Number(btn.dataset.fw);
@@ -499,6 +578,12 @@ function renderFlow(root, item, { hint, complete, onChange, onTap, showLabels })
     phase = "word";
     if (stage()?.kind === "step" && stage().question === null) phase = "label";
     if (at >= stages.length) {
+      if (tasks.length) {
+        markAt = 0;
+        drawMarkup();
+        onChange();
+        return;
+      }
       done = true;
       draw();
       complete({ tries: misses ? 2 : 1, correct: !revealed });
@@ -527,6 +612,26 @@ function renderFlow(root, item, { hint, complete, onChange, onTap, showLabels })
       return;
     }
     if (done) return;
+    if (marking()) {
+      const task = tasks[markAt];
+      const tapped = event.target.closest("[data-fw]");
+      if (tapped) {
+        onTap();
+        const i = Number(tapped.dataset.fw);
+        if (task.mode === "first") {
+          picked = new Set([i]);
+          tryTask();
+          return;
+        }
+        if (picked.has(i)) picked.delete(i); else picked.add(i);
+        drawMarkup();
+        onChange();
+      } else if (event.target.closest("[data-markup-done]")) {
+        onTap();
+        tryTask();
+      }
+      return;
+    }
     const st = stage();
     const word = event.target.closest("[data-fw]");
     const chip = event.target.closest("[data-label]");
@@ -575,12 +680,14 @@ function renderFlow(root, item, { hint, complete, onChange, onTap, showLabels })
       }
     }
   });
-  if (stage().question === null) phase = "label";
+  if (stage()?.question === null) phase = "label";
+  if (item.markupOnly) markAt = 0;
   draw();
   return {
     get prompt() {
       const st = stage();
-      if (done || !st) return "Labelled!";
+      if (marking()) return tasks[markAt].prompt;
+      if (done || !st) return tasks.length ? "Labeled and marked up!" : "Labeled!";
       if (st.kind === "kind") return "What kind of sentence is it?";
       if (st.kind === "pattern") return "Which pattern is it?";
       return st.question && phase === "word" ? st.question : "Pick its label.";
@@ -751,10 +858,207 @@ function renderProofread(root, item, { hint, complete, onChange, onTap }) {
   };
 }
 
+/** Sentence diagram: mark up the labeled sentence (Shurley Skill Check), then put each word on the diagram. */
+function renderDiagram(root, item, hooks) {
+  const { hint, complete, onChange, onTap } = hooks;
+  const diagram = buildDiagram(item);
+  const layout = layoutDiagram(diagram);
+  const filled = {}; // slot id → chip id
+  let chips = shuffle(diagram.slots.map((slot) => ({ id: slot.id, text: slot.text })));
+  let selected = null;
+  let stage = "markup";
+  let markupMissed = false;
+  let markupRevealed = false;
+  let misses = 0;
+  let revealed = false;
+  // Guided: the game shows one line at a time and says why that word goes there.
+  const order = guideOrder(diagram);
+  let guided = false;
+  let guideAt = 0;
+  let usedWalkthrough = false;
+  const why = (slot) => `<strong>${esc(slot.text)}</strong>${esc(explainSlot(diagram, slot).slice(slot.text.length))}`;
+
+  root.innerHTML = `<div class="diagram-item" data-type="diagram">
+    <div class="dg-markup"></div>
+    <div class="dg-stage" hidden>
+      <p class="flow-count">Diagram it</p>
+      <div class="dg-wrap"><svg class="dg-svg" viewBox="0 0 ${layout.width} ${layout.height}" style="max-width:${Math.round(layout.width * 1.25)}px" role="group" aria-label="Sentence diagram"></svg></div>
+      <div class="dg-guide" aria-live="polite" hidden></div>
+      <p class="palette-label dg-help">Tap a word, then tap its line on the diagram.</p>
+      <div class="build-bank dg-bank"></div>
+      <div class="dg-actions">
+        <button type="button" class="btn primary dg-check" data-dg-check disabled>Check</button>
+        <button type="button" class="link dg-walk" data-dg-walk>Walk me through it</button>
+      </div>
+      <details class="dg-why" hidden><summary>Why each word goes there</summary><ol></ol></details>
+    </div>
+  </div>`;
+  const markupRoot = root.querySelector(".dg-markup");
+  const flow = renderFlow(markupRoot, { ...item, markupOnly: true }, {
+    ...hooks,
+    complete: ({ tries, correct }) => {
+      markupMissed = tries > 1;
+      markupRevealed = !correct;
+      stage = "diagram";
+      markupRoot.querySelector(".flow-ask").hidden = true;
+      root.querySelector(".dg-stage").hidden = false;
+      hint(null);
+      if (hooks.guided) startGuide(false);
+      draw();
+      onChange();
+    },
+  });
+
+  const chipText = (id) => chips.find((c) => c.id === id)?.text ?? diagram.slots[id].text;
+  function draw() {
+    const svg = root.querySelector(".dg-svg");
+    const lines = layout.lines.map(([x1, y1, x2, y2]) =>
+      `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" />`).join("");
+    const slots = layout.boxes.map((box) => {
+      const has = filled[box.id] !== undefined;
+      const text = has ? chipText(filled[box.id]) : "";
+      const flat = box.angle === 0;
+      const rx = flat ? -box.w / 2 : 12;
+      const rw = flat ? box.w : box.w - 14;
+      const label = has ? `${text}, placed` : "empty line";
+      const target = guided && order[guideAt]?.id === box.id;
+      return `<g class="dg-slot${has ? " filled" : ""}${target ? " dg-target" : ""}" data-slot="${box.id}" role="button" tabindex="0" aria-label="${esc(label)}"
+        transform="translate(${box.x.toFixed(1)} ${box.y.toFixed(1)}) rotate(${box.angle})">
+        <rect x="${rx.toFixed(1)}" y="-24" width="${rw.toFixed(1)}" height="22" rx="6" />
+        <text x="${flat ? 0 : 15}" y="-7" text-anchor="${flat ? "middle" : "start"}">${esc(text)}</text></g>`;
+    }).join("");
+    svg.innerHTML = `<g class="dg-lines">${lines}</g>${slots}`;
+    const placed = new Set(Object.values(filled));
+    const want = guided ? order[guideAt] : null;
+    root.querySelector(".dg-bank").innerHTML = chips.filter((c) => !placed.has(c.id)).map((c) =>
+      `<button type="button" class="tile${selected === c.id ? " selected" : ""}${want && c.text === want.text ? " dg-glow" : ""}" data-chip="${c.id}">${esc(c.text)}</button>`).join("");
+    root.querySelector(".dg-check").disabled = stage !== "diagram" || Object.keys(filled).length < diagram.slots.length;
+    root.querySelector(".dg-check").hidden = guided || stage === "done";
+    root.querySelector(".dg-walk").hidden = guided || stage !== "diagram";
+    const guide = root.querySelector(".dg-guide");
+    guide.hidden = !guided || !want;
+    if (want) {
+      guide.innerHTML = `<p class="flow-count">Step ${guideAt + 1} of ${order.length}</p><p>${why(want)}</p>`
+        + `<p class="palette-label">Tap <strong>${esc(want.text)}</strong>, then tap the highlighted line.</p>`;
+    }
+    root.querySelector(".dg-help").hidden = guided;
+  }
+
+  function startGuide(asked) {
+    guided = true;
+    guideAt = 0;
+    usedWalkthrough = asked;
+    Object.keys(filled).forEach((k) => delete filled[k]);
+    selected = null;
+    hint(null);
+  }
+
+  function finish() {
+    stage = "done";
+    guided = false;
+    draw();
+    root.querySelector(".dg-help").hidden = true;
+    const list = root.querySelector(".dg-why");
+    list.querySelector("ol").innerHTML = order.map((slot) => `<li>${why(slot)}</li>`).join("");
+    list.hidden = false;
+    list.open = misses > 0 || revealed || usedWalkthrough;
+    onChange();
+    complete({ tries: markupMissed || misses || usedWalkthrough ? 2 : 1, correct: !markupRevealed && !revealed });
+  }
+
+  function check() {
+    const placedText = Object.fromEntries(Object.entries(filled).map(([slot, chip]) => [slot, chipText(chip)]));
+    const wrong = wrongSlots(diagram, placedText);
+    if (!wrong.length) { hint(null); finish(); return; }
+    misses += 1;
+    if (misses === 1) {
+      wrong.forEach((id) => { delete filled[id]; });
+      hint(`${wrong.length === 1 ? "One word is" : `${wrong.length} words are`} in the wrong place, so ${wrong.length === 1 ? "it's" : "they're"} back in the word bank. ${DIAGRAM_HINT}`);
+      draw();
+      onChange();
+      return;
+    }
+    revealed = true;
+    // Show the answer: each slot gets a chip with its own words.
+    diagram.slots.forEach((slot) => { filled[slot.id] = slot.id; }); // chip ids match the slot they belong in
+    hint("Here's the diagram.");
+    finish();
+  }
+
+  root.addEventListener("click", (event) => {
+    if (stage !== "diagram") return;
+    const chip = event.target.closest("[data-chip]");
+    const slot = event.target.closest("[data-slot]");
+    if (chip) {
+      onTap();
+      const id = Number(chip.dataset.chip);
+      selected = selected === id ? null : id;
+      draw();
+    } else if (slot && guided) {
+      onTap();
+      const want = order[guideAt];
+      const id = Number(slot.dataset.slot);
+      if (selected === null) return;
+      if (id !== want.id || chipText(selected) !== want.text) {
+        hint(`Not that one yet. Put ${want.text} on the highlighted line.`);
+        selected = null;
+        draw();
+        return;
+      }
+      hint(null);
+      filled[id] = selected;
+      selected = null;
+      guideAt += 1;
+      if (guideAt >= order.length) finish();
+      else { draw(); onChange(); }
+    } else if (event.target.closest("[data-dg-walk]")) {
+      onTap();
+      startGuide(true);
+      draw();
+      onChange();
+    } else if (slot) {
+      onTap();
+      const id = Number(slot.dataset.slot);
+      if (selected !== null) {
+        filled[id] = selected; // a word already there goes back to the bank
+        selected = null;
+      } else if (filled[id] !== undefined) {
+        delete filled[id];
+      }
+      draw();
+      onChange();
+    } else if (event.target.closest("[data-dg-check]")) {
+      onTap();
+      check();
+    }
+  });
+  root.addEventListener("keydown", (event) => {
+    if ((event.key === "Enter" || event.key === " ") && event.target.closest("[data-slot]")) {
+      event.preventDefault();
+      event.target.closest("[data-slot]").dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    }
+  });
+  draw();
+  return {
+    get prompt() {
+      if (stage === "markup") return flow.prompt;
+      if (stage === "done") return "Diagrammed!";
+      return guided ? "Let's diagram it together, one word at a time." : "Put each word on its line in the diagram.";
+    },
+    usesCheck: false,
+    selfScoring: true,
+    retry: () => {},
+    reveal: () => {},
+    lock: () => { stage = "done"; flow.lock(); draw(); },
+  };
+}
+
+const DIAGRAM_HINT = "The subject and verb go on the long line. Words that describe go on slanted lines under the word they describe.";
+
 export function renderItem(root, item, hooks) {
   const render = {
     mark: renderMark, fix: renderFix, which: renderWhich, build: renderBuild, sort: renderSort, check: renderCheck, join: renderJoin,
-    flow: renderFlow, labels: renderLabels, proofread: renderProofread,
+    flow: renderFlow, labels: renderLabels, proofread: renderProofread, diagram: renderDiagram,
   }[item.type];
   if (!render) throw new Error(`Unknown item type: ${item.type}`);
   root.innerHTML = "";

@@ -288,3 +288,22 @@ test("hyphens and dashes join words without spaces; parentheses and ellipses spa
   const parsed = parseMark({ id: "t", text: "a well[-]known author" });
   assert.equal(checkMark(parsed, ["", "", "-", "", ""]), true);
 });
+
+test("Mark it up: Shurley Skill Check tasks come from the labels", async () => {
+  const { markupTasks, checkMarkup, predicateStart } = await import("../../src/lib/markup.js");
+  const labels = ["The", "Adj", "SN", "V", "Adv", "P", "A", "OP"].map((l) => (l === "The" ? "A" : l));
+  const tasks = markupTasks(labels, "D");
+  assert.deepEqual(tasks.map((t) => t.id), ["circle", "parens", "slash", "subject", "verb"]);
+  assert.deepEqual(tasks[0].answer, [2, 7]);
+  assert.deepEqual(tasks[1].answer, [5, 6, 7]);
+  assert.deepEqual(tasks[2].answer, [3]);
+  assert.equal(checkMarkup(tasks[0], [7, 2]), true);
+  assert.equal(checkMarkup(tasks[0], [2]), false);
+  // Questions: no slash. Helping verbs are underlined with the verb. (You) is not a noun.
+  const q = markupTasks(["HV", "A", "SN", "V-t", "PPA", "DO"], "Int");
+  assert.deepEqual(q.map((t) => t.id), ["circle", "subject", "verb"]);
+  assert.deepEqual(q[2].answer, [0, 3]);
+  const cmd = markupTasks(["SP", "V-t", "A", "DO"], "Imp");
+  assert.deepEqual(cmd[0].answer, [3]);
+  assert.equal(predicateStart(["SP", "V-t", "A", "DO"], "Imp"), 1);
+});

@@ -1,6 +1,6 @@
 # Sentence Builders
 
-A grammar and punctuation game for grades 3–5 that installs as an app on phones, tablets and computers (PWA) and works offline. Players fix and build sentences; each level they pass puts up a building in their town, and badges reward mastery and steady practice. Skills follow the 2020 Minnesota K–12 ELA standards.
+A grammar and punctuation game for grades 3–8 that installs as an app on phones, tablets and computers (PWA) and works offline. Players fix and build sentences; each level they pass puts up a building in their town, and badges reward mastery and steady practice. Skills follow the 2020 Minnesota K–12 ELA standards.
 
 Five worlds are playable: **Punctuation Port**, **Word Works**, **Sentence Studio**, **Flow Factory** (Shurley-style Q&A Flow) and, for grades 6–8, the **Editing Desk**.
 
@@ -27,7 +27,7 @@ Five worlds are playable: **Punctuation Port**, **Word Works**, **Sentence Studi
 | Q&A Flow | SN, SP, V, A, Adj, Adv; sentence kinds | adds P, OP, PPA, PNA, HV | adds V-t, DO, IO, LV, PrN, PA; patterns 1–5 |
 | Advanced Q&A Flow (grade 6+) | Questions and commands with the understood (You), patterns 1–5 (gr 6) | Patterns 6 and 7: OCN, OCA (gr 7) | All seven patterns mixed (gr 8) |
 
-Flow Factory levels are 5 items: 3 Q&A Flows, then 2 Build-from-labels sentences, which must be right for Gold. In a flow, kids answer one question at a time (tap the word, then pick its label), and a **📘 Labels** button opens a reminder of every label at that level (name, meaning, how to find it) at no cost; a miss gives a hint for that step, and a second miss shows that step and moves on. Labels and question order follow Shurley English Levels 3–8 as commonly taught; the sentences are original. Advanced Q&A Flow only appears for players in grade 6 or higher.
+Flow Factory levels are 5 items: 3 Q&A Flows, then 2 Build-from-labels sentences, which must be right for Gold. In a flow, players answer one question at a time (tap the word, then pick its label), and a **📘 Labels** button opens a reminder of every label at that level (name, meaning, how to find it) at no cost; a miss gives a hint for that step, and a second miss shows that step and moves on. Labels and question order follow Shurley English Levels 3–8 as commonly taught; the sentences are original. Advanced Q&A Flow only appears for players in grade 6 or higher.
 
 ### Editing Desk (grades 6–8)
 
@@ -90,3 +90,13 @@ The Fredoka font (SIL Open Font License) and canvas-confetti (ISC) are stored in
 Pronoun case, Proofreading, Dashes, hyphens and extra information (hyphens and dashes, commas around extra information, dashes/parentheses/ellipses), Sentence types (simple/compound/complex, compound-complex, combining for variety) and Modifiers and voice (commas between adjectives, misplaced and dangling modifiers, active/passive voice and moods). Mark it supports `-`, `—`, `…`, `(` and `)`; hyphens and dashes join words with no spaces (write `twenty[-]one`).
 
 Content: about 20 sentences per level, 12 Q&A Flows per Flow Factory level, 10 paragraphs per Proofreading level (840 items).
+
+## Mark it up and Sentence Diagramming
+
+After every Q&A Flow, **Mark it up** walks through the Shurley Skill Check on the same sentence: circle the nouns, put parentheses around each prepositional phrase, draw the slash before the complete predicate (not in questions), underline the simple subject once and the verb (with any helping verb) twice. The marks come from the word labels (`src/lib/markup.js`), so no extra content is needed.
+
+**Sentence Diagramming** (Flow Factory, grade 5+, levels for grades 5/6/7, 5 sentences a level) starts with the same mark-up, then the player places each word on a Reed-Kellogg diagram drawn from the labels (`src/lib/diagram.js`): subject | verb on the baseline, direct objects behind a short line, predicate words and object complements behind a leaning line, describing words on slanted lines, prepositional phrases and indirect objects hanging below. The first diagram of each level is guided (one line at a time, with why the word goes there); **Walk me through it** replays that on any diagram (half credit), and every finished diagram lists why each word goes where it does. Adverbs that describe another describing word ("very loudly") and compound parts aren't diagrammed yet.
+
+## Looks
+
+Grades 6+ get the calmer **Studio** look by default (system font, slate and indigo, flatter cards, no cartoon helper); Settings → Look switches between Automatic, Bright and Studio for any player.

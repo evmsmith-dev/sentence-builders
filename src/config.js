@@ -13,13 +13,15 @@ export const GOLD_DAYS = 2;
 
 export const MIN_GRADE = 3;
 export const MAX_GRADE = 8;
+/** From this grade on, the calmer Studio look is the default. */
+export const STUDIO_FROM_GRADE = 6;
 export const MAX_PLAYERS = 4;
 
 export const WORLDS = [
   { id: "port", tab: "Punctuation", name: "Punctuation Port", emoji: "⚓", ready: true, blurb: "Commas, colons, quotation marks and apostrophes" },
   { id: "works", tab: "Word Works", name: "Word Works", emoji: "⚙️", ready: true, blurb: "Verb tenses, agreement and pronouns" },
   { id: "studio", tab: "Sentences", name: "Sentence Studio", emoji: "🎨", ready: true, blurb: "Fragments, run-ons, compound and complex sentences" },
-  { id: "flow", tab: "Q&A Flow", name: "Flow Factory", emoji: "🏭", ready: true, blurb: "Label every word with the Q&A Flow" },
+  { id: "flow", tab: "Q&A Flow", name: "Flow Factory", emoji: "🏭", ready: true, blurb: "Label every word with the Q&A Flow, then mark it up (and diagram it, from grade 5)" },
   {
     id: "desk", tab: "Editing", name: "Editing Desk", emoji: "📝", ready: true, minGrade: 6,
     blurb: "Grades 6–8: pronouns, punctuation, sentence types, modifiers and proofreading",
@@ -87,6 +89,12 @@ export const SKILLS = [
     badge: { id: "pattern-pro", name: "Pattern Pro", emoji: "🧠" },
     levelPlan: [{ type: "flow", count: 3 }, { type: "labels", count: 2 }],
     goldNeedsAllRight: "labels",
+  },
+  {
+    id: "diagram", world: "flow", name: "Sentence Diagramming", short: "Diagrams", color: "#00695c", minGrade: 5,
+    grades: [5, 6, 7], benchmarks: "Shurley English Skill Check and sentence diagramming, grades 5–7",
+    badge: { id: "diagram-pro", name: "Diagram Pro", emoji: "📐" },
+    levelPlan: [{ type: "diagram", count: 5 }],
   },
   {
     id: "case", world: "desk", name: "Pronoun case and clarity", short: "Pronoun case", color: "#00695c",
@@ -182,10 +190,13 @@ export const LEVEL_LABELS = [
 const ALL_GRADE5 = LEVEL_LABELS[2];
 const WITH_COMPLEMENTS = [...ALL_GRADE5, "OCN", "OCA"];
 // Labels and pattern choices per Q&A Flow skill and level.
-export const FLOW_LABELS = { flow: LEVEL_LABELS, flow2: [ALL_GRADE5, WITH_COMPLEMENTS, WITH_COMPLEMENTS] };
+export const FLOW_LABELS = {
+  flow: LEVEL_LABELS, flow2: [ALL_GRADE5, WITH_COMPLEMENTS, WITH_COMPLEMENTS], diagram: [LEVEL_LABELS[1], ALL_GRADE5, WITH_COMPLEMENTS],
+};
 export const FLOW_PATTERNS = {
   flow: [[1], [1], [1, 2, 3, 4, 5]],
   flow2: [[1, 2, 3, 4, 5], [1, 2, 3, 4, 5, 6, 7], [1, 2, 3, 4, 5, 6, 7]],
+  diagram: [[1], [1, 2, 4, 5], [1, 2, 3, 4, 5, 6, 7]],
 };
 
 export const SENTENCE_KINDS = {

@@ -2,7 +2,7 @@
   "name": "sentence-builders",
   "private": true,
   "version": "0.1.0",
-  "description": "Grammar and punctuation game for grades 3-5 that works offline",
+  "description": "Grammar and punctuation game for grades 3-8 that works offline",
   "type": "module",
   "scripts": {
     "start": "node scripts/serve.mjs . 8080",
