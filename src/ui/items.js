@@ -11,7 +11,9 @@ import {
   CHECK_KINDS, checkBuild, checkLabels, checkMark, checkSort, joinTiles, paletteFor, parseBuild, parseCheck, parseFix, parseFlow,
   parseJoin, parseLabels, parseMark, parseProofread, parseSort, parseWhich,
 } from "../lib/parse.js";
-import { LABELS, PATTERNS, SENTENCE_KINDS } from "../config.js";
+import { FLOW_LABELS, LABELS, PATTERNS, SENTENCE_KINDS } from "../config.js";
+
+const LABELS_BUTTON = '<button type="button" class="labels-help" data-labels-help>📘 Labels</button>';
 import { shuffle } from "../lib/select.js";
 import { esc } from "./dom.js";
 
@@ -431,7 +433,7 @@ const PATTERN_HINT = "Look at the labels after the verb: nothing more is P1, a D
  * for a word already pointed out, just pick its label. Then the kind of sentence (and, in level 3, the pattern).
  * A miss gives a hint for that step; a second miss on the same step shows it and moves on.
  */
-function renderFlow(root, item, { hint, complete, onChange, onTap }) {
+function renderFlow(root, item, { hint, complete, onChange, onTap, showLabels }) {
   const parsed = parseFlow(item);
   const stages = [...parsed.steps.map((step) => ({ ...step, kind: "step" })), { kind: "kind" }];
   if (parsed.pattern) stages.push({ kind: "pattern" });
@@ -446,7 +448,7 @@ function renderFlow(root, item, { hint, complete, onChange, onTap }) {
   root.innerHTML = `<div class="flow" data-type="flow">
     <div class="flow-sentence">${parsed.words.map((w, i) =>
       `<button type="button" class="flow-word" data-fw="${i}"><span class="fw-label" aria-hidden="true"></span><span class="fw-text">${esc(w.word)}</span></button>`).join("")}</div>
-    <div class="flow-ask"><p class="flow-count"></p><p class="flow-q"></p><div class="flow-choices"></div></div>
+    <div class="flow-ask"><div class="flow-ask-head"><p class="flow-count"></p>${LABELS_BUTTON}</div><p class="flow-q"></p><div class="flow-choices"></div></div>
   </div>`;
   const stage = () => stages[at];
   const labelChips = () => parsed.labels.map((label) =>
@@ -517,6 +519,10 @@ function renderFlow(root, item, { hint, complete, onChange, onTap }) {
   }
 
   root.addEventListener("click", (event) => {
+    if (event.target.closest("[data-labels-help]")) {
+      showLabels(parsed.labels, parsed.patternChoices);
+      return;
+    }
     if (done) return;
     const st = stage();
     const word = event.target.closest("[data-fw]");
@@ -585,7 +591,7 @@ function renderFlow(root, item, { hint, complete, onChange, onTap }) {
 }
 
 /** Build from labels: put the word tiles in the spaces so each word matches the label over its space. */
-function renderLabels(root, item, { onChange, onTap }) {
+function renderLabels(root, item, { onChange, onTap, showLabels }) {
   const parsed = parseLabels(item);
   let bank = parsed.tiles.map((t, id) => ({ ...t, id }));
   for (let tries = 0; tries < 10; tries++) {
@@ -594,7 +600,8 @@ function renderLabels(root, item, { onChange, onTap }) {
   }
   const slots = parsed.line.map(() => null);
   let locked = false;
-  root.innerHTML = `<div class="label-slots" data-type="labels"></div><div class="build-bank"></div>`;
+  root.innerHTML = `<div class="labels-head">${LABELS_BUTTON}</div><div class="label-slots" data-type="labels"></div><div class="build-bank"></div>`;
+  root.querySelector("[data-labels-help]").addEventListener("click", () => showLabels((FLOW_LABELS[item.skill] || FLOW_LABELS.flow)[item.level - 1], []));
   const tile = (t, where) => `<button type="button" class="tile" data-ltile="${t.id}" data-where="${where}" ${locked ? "disabled" : ""}>${esc(t.word)}</button>`;
   function draw() {
     root.querySelector(".label-slots").innerHTML = parsed.line.map((label, i) =>

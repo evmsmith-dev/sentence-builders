@@ -496,3 +496,43 @@ test("Back on a rule card opened from the results returns to the results", async
   await expect(page.locator("#tip-overlay")).toBeHidden();
   await expect(page.locator("#result-overlay")).toBeVisible();
 });
+
+test("Flow Factory: the 📘 Labels reminder opens mid-question, costs nothing, and closes back to the sentence", async ({ page }) => {
+  await openApp(page, { players: [player({ grade: 5 })], current: "p1" });
+  await startLevel(page, "flow", 1, "flow");
+  const before = await page.locator("#item .flow-q").textContent();
+  await page.locator("#item [data-labels-help]").click();
+  await expect(page.locator("#labels-overlay")).toBeVisible();
+  await expect(page.locator("#labels-list .label-entry")).toHaveCount(6); // level 1: SN, SP, V, A, Adj, Adv
+  await expect(page.locator("#labels-list")).toContainText("subject noun");
+  await expect(page.locator("#labels-list")).toContainText("Ask how, when or where");
+  await expect(page.locator("#labels-list")).not.toContainText("indirect object");
+  await page.locator("#labels-overlay [data-close]").click();
+  await expect(page.locator("#labels-overlay")).toBeHidden();
+  await expect(page.locator("#item .flow-q")).toHaveText(before);
+
+  // Phone Back closes it too, and the round carries on with full marks.
+  await page.locator("#item [data-labels-help]").click();
+  await page.goBack({ waitUntil: "commit" }).catch(() => {});
+  await expect(page.locator("#labels-overlay")).toBeHidden();
+  await expect(page.locator("#play")).toBeVisible();
+  await answer(page);
+  await expect(page.locator("#feedback.good")).not.toContainText("A hint helped");
+});
+
+test("Labels reminder shows the level's labels and patterns, and works on Build from labels", async ({ page }) => {
+  await openApp(page, { players: [player({ grade: 8 })], current: "p1" });
+  await startLevel(page, "flow2", 2, "flow");
+  await page.locator("#item [data-labels-help]").click();
+  await expect(page.locator("#labels-list")).toContainText("object complement noun");
+  await expect(page.locator("#labels-patterns li")).toHaveCount(7);
+  await page.keyboard.press("Escape");
+  for (let n = 0; n < 3; n++) {
+    await answer(page);
+    await page.locator("#next-btn").click();
+  }
+  expect((await currentItem(page)).type).toBe("labels");
+  await page.locator("#item [data-labels-help]").click();
+  await expect(page.locator("#labels-overlay")).toBeVisible();
+  await expect(page.locator("#labels-list")).toContainText("direct object");
+});

@@ -190,6 +190,7 @@ function showItem() {
   play.ctrl = renderItem($("item"), item, {
     answer: (right) => handleAnswer(right),
     hint: (text) => showStepHint(text),
+    showLabels: (labels, patterns) => openLabelHelp(labels, patterns),
     complete: (result) => completeItem(result),
     onChange: updateCheck,
     onTap: () => sound("tap", settings().sound),
@@ -247,6 +248,16 @@ function handleAnswer(right) {
     $("feedback").className = "feedback shown";
     $("feedback").innerHTML = `<p><strong>${esc(PIP.shown)}</strong></p><p class="answer-line">${esc(answerText(item))}</p><p class="hint-line">${esc(item.hint)}</p>`;
   }
+}
+
+/** Mid-round reminder: the level's labels with what each means and how to find it. Costs nothing. */
+function openLabelHelp(labels, patterns = []) {
+  $("labels-list").innerHTML = labels.map((l) => `<div class="label-entry"><dt>${esc(l)}</dt>
+    <dd><strong>${esc(LABELS[l].name)}</strong><span>${esc(LABELS[l].hint)}</span><span class="label-find">${esc(LABELS[l].find)}</span></dd></div>`).join("");
+  $("labels-patterns").innerHTML = patterns.length > 1
+    ? `<h3 class="review-title">Patterns</h3><ul class="pattern-list">${patterns.map((n) => `<li>${esc(PATTERNS[n])}</li>`).join("")}</ul>` : "";
+  openOverlay("labels-overlay");
+  $("labels-overlay").querySelector(".sheet").scrollTop = 0;
 }
 
 /** A hint for one step of a many-step item (Q&A Flow); null clears it. */

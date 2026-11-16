@@ -411,3 +411,20 @@ span.proof-word.shown { background: var(--shown-soft); color: var(--shown); font
 }
 .link-row { display: flex; justify-content: center; gap: 24px; flex-wrap: wrap; }
 .sheet-actions.pinned .secondary { min-height: 48px; }
+
+/* Labels reminder (Flow Factory) */
+.flow-ask-head, .labels-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.labels-head { justify-content: flex-end; margin-bottom: 8px; }
+.labels-help {
+  min-height: 44px; padding: 4px 14px; border-radius: 999px; border: 2px solid var(--shown); background: #fff;
+  color: var(--shown); font-weight: 700; font-size: 0.95rem; white-space: nowrap;
+}
+.labels-sheet { padding-bottom: 0; }
+.labels-list { margin: 4px 0 0; display: flex; flex-direction: column; gap: 6px; }
+.label-entry { display: grid; grid-template-columns: 56px 1fr; gap: 10px; padding: 8px 0; border-top: 1px solid var(--border); }
+.label-entry dt { font-weight: 700; color: var(--shown); font-size: 1.1rem; }
+.label-entry dd { margin: 0; display: flex; flex-direction: column; gap: 2px; font-size: 0.98rem; }
+.label-find { color: var(--muted); font-size: 0.92rem; }
+.sheet-actions.pinned { box-shadow: 0 20px 0 var(--card); }
+.labels-sheet .sheet-actions.pinned { justify-content: stretch; }
+.labels-sheet .sheet-actions.pinned .primary { flex: 1; }

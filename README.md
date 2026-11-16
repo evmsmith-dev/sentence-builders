@@ -27,7 +27,7 @@ Five worlds are playable: **Punctuation Port**, **Word Works**, **Sentence Studi
 | Q&A Flow | SN, SP, V, A, Adj, Adv; sentence kinds | adds P, OP, PPA, PNA, HV | adds V-t, DO, IO, LV, PrN, PA; patterns 1–5 |
 | Advanced Q&A Flow (grade 6+) | Questions and commands with the understood (You), patterns 1–5 (gr 6) | Patterns 6 and 7: OCN, OCA (gr 7) | All seven patterns mixed (gr 8) |
 
-Flow Factory levels are 5 items: 3 Q&A Flows, then 2 Build-from-labels sentences, which must be right for Gold. In a flow, kids answer one question at a time (tap the word, then pick its label); a miss gives a hint for that step, and a second miss shows that step and moves on. Labels and question order follow Shurley English Levels 3–8 as commonly taught; the sentences are original. Advanced Q&A Flow only appears for players in grade 6 or higher.
+Flow Factory levels are 5 items: 3 Q&A Flows, then 2 Build-from-labels sentences, which must be right for Gold. In a flow, kids answer one question at a time (tap the word, then pick its label), and a **📘 Labels** button opens a reminder of every label at that level (name, meaning, how to find it) at no cost; a miss gives a hint for that step, and a second miss shows that step and moves on. Labels and question order follow Shurley English Levels 3–8 as commonly taught; the sentences are original. Advanced Q&A Flow only appears for players in grade 6 or higher.
 
 ### Editing Desk (grades 6–8)
 
