@@ -1,7 +1,7 @@
 // Checks data/content.json before tests and deploys: every item can be shown and answered,
 // ids are unique, every skill and level has enough items and a Tip Card.
 import { readFile } from "node:fs/promises";
-import { HOMEWORK_PER_ROUND, ITEMS_PER_LEVEL, SKILLS } from "../src/config.js";
+import { HOMEWORK_PER_ROUND, ITEMS_PER_LEVEL, PRACTICE_PER_ROUND, SKILLS, SPELLING_RULES } from "../src/config.js";
 import { validateItem } from "../src/lib/parse.js";
 
 const content = JSON.parse(await readFile(new URL("../data/content.json", import.meta.url), "utf8"));
@@ -17,6 +17,23 @@ for (const item of content.items) {
   ids.add(item.id);
   if (!SKILLS.some((skill) => skill.id === item.skill)) problems.push(`${item.id}: unknown skill ${item.skill}`);
   if (![1, 2, 3].includes(item.level)) problems.push(`${item.id}: level must be 1, 2 or 3`);
+}
+// Spelling Lake: "which spelling is right" questions for grades 3–5 (level 1) and 6–8 (level 2), each tied to a Rule Book rule.
+for (const item of content.spelling || []) {
+  try {
+    validateItem(item);
+  } catch (error) {
+    problems.push(error.message);
+  }
+  if (item.type !== "which" || item.skill !== "spelling") problems.push(`${item.id}: spelling questions are "which" items with skill "spelling"`);
+  if (![1, 2].includes(item.level)) problems.push(`${item.id}: spelling level must be 1 (grades 3-5) or 2 (grades 6-8)`);
+  if (!SPELLING_RULES.some((r) => r.id === item.rule)) problems.push(`${item.id}: unknown spelling rule ${item.rule}`);
+  if (ids.has(item.id)) problems.push(`${item.id}: id used twice`);
+  ids.add(item.id);
+}
+for (const level of [1, 2]) {
+  const n = (content.spelling || []).filter((s) => s.level === level).length;
+  if (n < PRACTICE_PER_ROUND * 3) problems.push(`Spelling level ${level}: only ${n} questions (needs ${PRACTICE_PER_ROUND * 3}+)`);
 }
 // Pip's homework: proofreading paragraphs for grades 3–5 and 6–8.
 for (const band of ["3-5", "6-8"]) {
@@ -52,4 +69,4 @@ if (problems.length) {
   console.error(`${problems.length} problem(s) in data/content.json:\n- ${problems.join("\n- ")}`);
   process.exit(1);
 }
-console.log(`data/content.json OK: ${content.items.length} items, ${(content.homework || []).length} homework paragraphs, ${Object.keys(content.tips).length} Tip Cards`);
+console.log(`data/content.json OK: ${content.items.length} items, ${(content.homework || []).length} homework paragraphs, ${(content.spelling || []).length} spelling questions, ${Object.keys(content.tips).length} Tip Cards`);

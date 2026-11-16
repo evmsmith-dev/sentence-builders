@@ -49,3 +49,42 @@ export function pickLevelItems({ items, skill, level, stats = {}, passedKeys = [
   [2, 5].slice(0, review.length).forEach((at, i) => chosen.splice(Math.min(at, chosen.length), 0, { ...review[i], review: true }));
   return chosen.slice(0, ITEMS_PER_LEVEL);
 }
+
+/** Most useful first: questions missed before (most misses first), then ones never seen, then the longest ago. */
+function practiceOrder(stats, random) {
+  return (item) => {
+    const s = stats[item.id];
+    const tier = s?.misses ? 0 : !s ? 1 : 2;
+    return [tier, tier === 0 ? -s.misses : 0, s?.last ?? 0, random()];
+  };
+}
+const byKey = (key) => (a, b) => {
+  const [x, y] = [key(a), key(b)];
+  for (let i = 0; i < x.length; i++) if (x[i] !== y[i]) return x[i] - y[i];
+  return 0;
+};
+
+/**
+ * Summit Review: questions from levels the player has passed, mixed across skills (one skill at a time,
+ * in turn) so each question asks "which rule is this?". Long Q&A Flow, labels and diagram items stay in
+ * their own levels.
+ */
+export function pickSummitItems({ items, passedKeys, stats = {}, count = 8, random = Math.random }) {
+  const order = practiceOrder(stats, random);
+  const pool = items.filter((i) => passedKeys.includes(`${i.skill}-${i.level}`) && !["flow", "labels", "diagram"].includes(i.type));
+  const groups = new Map();
+  for (const item of pool) groups.set(item.skill, [...(groups.get(item.skill) || []), item]);
+  const queues = [...groups.values()].map((g) => [...g].sort(byKey(order))).sort((a, b) => byKey(order)(a[0], b[0]));
+  const out = [];
+  while (out.length < count && queues.some((q) => q.length)) {
+    for (const q of queues) if (q.length && out.length < count) out.push(q.shift());
+  }
+  return out;
+}
+
+/** Spelling Lake: questions for the player's grade band, the most useful first, in a mixed order. */
+export function pickSpellingItems({ items, grade, stats = {}, count = 8, random = Math.random }) {
+  const level = grade >= 6 ? 2 : 1;
+  const picked = items.filter((i) => i.level === level).sort(byKey(practiceOrder(stats, random))).slice(0, count);
+  return picked.map((item) => ({ item, r: random() })).sort((a, b) => a.r - b.r).map(({ item }) => item);
+}

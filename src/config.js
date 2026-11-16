@@ -286,6 +286,9 @@ export const NOUN_KINDS = [
 /* ---------- Bricks and town decorations ---------- */
 /** Paragraphs in one round of Pip's homework. */
 export const HOMEWORK_PER_ROUND = 3;
+/** Questions in a Summit Review or a Spelling Lake round, and how many right on the first try plant a flag (or float a boat). */
+export const PRACTICE_PER_ROUND = 8;
+export const PRACTICE_GOAL = 6;
 export const BRICKS = { first: 2, second: 1, star: 3, firstPass: 10, homeworkFix: 3 };
 
 /**
@@ -386,6 +389,9 @@ export const SPELLING_RULES = [
       ["Ends in a consonant + y", "Change y to i, add -ed", "carry → carried, cry → cried"],
       ["Ends in a vowel + y", "Just add -ed", "play → played, stay → stayed"],
       ["Short word ending consonant-vowel-consonant", "Double the last letter, add -ed", "stop → stopped, hug → hugged"],
+      ["Longer word, last syllable stressed and ending consonant-vowel-consonant", "Double the last letter, add -ed", "occur → occurred, prefer → preferred"],
+      ["Longer word, last syllable not stressed", "Just add -ed", "visit → visited, open → opened"],
+      ["Ends in -ic", "Add k, then -ed", "panic → panicked, picnic → picnicked"],
     ],
   },
   {
@@ -407,7 +413,7 @@ export const SPELLING_RULES = [
       ["Ends in s, x, z, ch or sh", "Add -es", "bus → buses, box → boxes, lunch → lunches, dish → dishes"],
       ["Ends in a consonant + y", "Change y to i, add -es", "puppy → puppies, city → cities"],
       ["Ends in a vowel + y", "Just add -s", "boy → boys, day → days"],
-      ["Ends in f or fe (many words)", "Change to v, add -es", "leaf → leaves, knife → knives (but roof → roofs)"],
+      ["Ends in f or fe (many words)", "Change to v, add -es", "leaf → leaves, knife → knives (but roof → roofs, chief → chiefs)"],
       ["Ends in o", "Add -s or -es (check a dictionary)", "piano → pianos, potato → potatoes"],
       ["Changes completely", "Learn these", "child → children, mouse → mice, foot → feet, tooth → teeth, goose → geese, person → people"],
       ["Stays the same", "No change", "sheep, deer, fish, moose"],
@@ -432,6 +438,8 @@ export const SPELLING_RULES = [
       ["-ing: ends in silent e", "Drop the e, add -ing", "make → making, ride → riding"],
       ["-ing: short word ending consonant-vowel-consonant", "Double the last letter, add -ing", "run → running, swim → swimming"],
       ["-ing: ends in ie", "Change ie to y, add -ing", "lie → lying, tie → tying"],
+      ["-ing: longer word, last syllable stressed", "Double the last letter, add -ing", "begin → beginning, forget → forgetting"],
+      ["-ing: ends in -ic", "Add k, then -ing", "panic → panicking"],
     ],
   },
 ];

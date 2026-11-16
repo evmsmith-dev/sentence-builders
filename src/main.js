@@ -1,11 +1,11 @@
 // Startup and screens: players, the town, worlds, levels, results, badges and settings.
 import {
-  AVATARS, AVATAR_GROUPS, HABIT_BADGES, ITEMS_PER_LEVEL, MAX_GRADE, MAX_PLAYERS, MIN_GRADE, PIP, DECOR, decorFor, HOMEWORK_PER_ROUND, clampSpot, SKILLS, SPELLING_RULES, STUDIO_FROM_GRADE, NOUN_TABLE_FROM_GRADE, NOUN_KINDS, NOUN_REMINDERS_UNTIL, TIER_NAMES, WORLDS, WORLD_BADGES,
+  AVATARS, AVATAR_GROUPS, HABIT_BADGES, ITEMS_PER_LEVEL, MAX_GRADE, MAX_PLAYERS, MIN_GRADE, PIP, DECOR, decorFor, HOMEWORK_PER_ROUND, PRACTICE_PER_ROUND, PRACTICE_GOAL, clampSpot, SKILLS, SPELLING_RULES, STUDIO_FROM_GRADE, NOUN_TABLE_FROM_GRADE, NOUN_KINDS, NOUN_REMINDERS_UNTIL, TIER_NAMES, WORLDS, WORLD_BADGES,
   GOLD_DAYS, LABELS, LABEL_LISTS, PATTERNS, FLOW_LABELS, FLOW_PATTERNS, WORD_LISTS, skillById, skillOpenFor, skillsInWorld, skillsInWorldFor, worldOpenFor,
 } from "./config.js";
 import { answerText, spokenText } from "./lib/parse.js";
-import { pickLevelItems } from "./lib/select.js";
-import { recordHomework, buyDecor, moveDecor, removeDecor,
+import { pickLevelItems, pickSpellingItems, pickSummitItems } from "./lib/select.js";
+import { recordHomework, recordPractice, buyDecor, moveDecor, removeDecor,
   currentBadges, habitValue, isPassed, isUnlocked, levelStars, localDate, mostMissed, newPlayer, normalizePlayer,
   passedKeys, recordLevel, skillTier, weekSummary,
 } from "./lib/progress.js";
@@ -223,6 +223,63 @@ function startHomework() {
   showItem();
 }
 
+/* ==================== Grammar Peaks: Summit Review and Spelling Lake ==================== */
+
+/** Questions for a Summit Review: from every level this player has passed, mixed across skills. */
+function summitItems(player) {
+  const shown = new Set(visibleSkills(player).map((s) => s.id));
+  return pickSummitItems({
+    items: state.content.items, passedKeys: passedKeys(player).filter((k) => shown.has(k.replace(/-\d$/, ""))),
+    stats: player.items, count: PRACTICE_PER_ROUND,
+  });
+}
+
+/** kind: "summit" (mixed review of passed skills) or "lake" (spelling). Neither counts toward levels or badges. */
+function startPractice(kind) {
+  const player = state.player;
+  const items = kind === "summit" ? summitItems(player)
+    : pickSpellingItems({ items: state.content.spelling || [], grade: player.grade, stats: player.items, count: PRACTICE_PER_ROUND })
+      .map((item) => ({ ...item, prompt: "Which spelling is right?" }));
+  if (!items.length) return;
+  closeOverlay("result-overlay");
+  state.play = { mode: kind, skillId: items[0].skill, level: 1, items, index: 0, tries: 0, results: [], ctrl: null, done: false, startedAt: Date.now() };
+  if (!state.sessionStart) state.sessionStart = Date.now();
+  showScreen("play");
+  showItem();
+}
+
+function finishPractice() {
+  const play = state.play;
+  const now = Date.now();
+  const summit = play.mode === "summit";
+  const out = recordPractice(state.player, { kind: play.mode, results: play.results, now, durationMs: now - play.startedAt });
+  savePlayer(out.player);
+  $("progress-fill").style.width = "100%";
+  $("result-stars").innerHTML = "";
+  $("result-title").textContent = summit ? (out.reached ? "You reached the summit!" : "Almost to the top") : (out.reached ? "A new boat on the lake!" : "Nice paddling");
+  $("result-score").textContent = `${out.right} of ${play.results.length} right on the first try`;
+  $("result-bricks").hidden = !out.bricks;
+  $("result-bricks").innerHTML = `+${out.bricks} 🧱 bricks <span class="note">· ${out.player.bricks} to build with</span>`;
+  const goal = `Get ${PRACTICE_GOAL} right on the first try to ${summit ? "plant a flag at the top" : "float a boat on the lake"}.`;
+  const line = out.reached
+    ? (summit ? `Flag number ${out.player.summits} is flying on Grammar Peaks. You remembered your rules!` : `Boat number ${out.player.lakeWins} is out on the lake. Great spelling!`)
+    : `${goal} Look at the ones below, then try again.`;
+  $("result-pip").innerHTML = pipSays(line, true);
+  $("result-badges").innerHTML = "";
+  $("result-review").innerHTML = reviewHtml(play);
+  state.resultNext = { practice: play.mode };
+  $("result-next").textContent = summit ? "Climb again" : "Another round";
+  $("result-again").hidden = true;
+  $("result-rule").hidden = true;
+  state.mapArea = "peaks"; // back on the island, the map shows the new flag or boat
+  openOverlay("result-overlay");
+  if (out.reached) {
+    sound("done", settings().sound);
+    celebrate(out.right === play.results.length ? 3 : 2);
+  }
+  state.play = null;
+}
+
 function finishHomework() {
   const play = state.play;
   const now = Date.now();
@@ -272,6 +329,8 @@ function showItem() {
   $("progress-fill").style.width = `${(play.index / play.items.length) * 100}%`;
   $("progress-text").textContent = `${play.index + 1} of ${play.items.length}`;
   $("play-skill").textContent = play.mode === "homework" ? `📝 Pip's homework: ${item.title}`
+    : play.mode === "summit" ? `⛰️ Summit Review · ${skill.name}`
+    : play.mode === "lake" ? "💧 Spelling Lake"
     : item.review ? `Review: ${skill.name}` : `${skill.name} · Level ${item.level}`;
   $("play-skill").classList.toggle("review", Boolean(item.review));
   $("feedback").innerHTML = "";
@@ -406,7 +465,8 @@ function finishItem() {
   state.play.done = true;
   $("check-btn").hidden = true;
   $("next-btn").hidden = false;
-  $("next-btn").textContent = state.play.index + 1 < state.play.items.length ? "Next" : "See my building";
+  const last = state.play.index + 1 >= state.play.items.length;
+  $("next-btn").textContent = !last ? "Next" : state.play.mode ? "See how I did" : "See my building";
   $("next-btn").focus({ preventScroll: true });
 }
 
@@ -424,6 +484,7 @@ function nextItem() {
 function finishLevel() {
   const play = state.play;
   if (play.mode === "homework") return finishHomework();
+  if (play.mode === "summit" || play.mode === "lake") return finishPractice();
   $("result-rule").hidden = false;
   const starsBefore = state.player.levels[`${play.skillId}-${play.level}`]?.stars ?? 0;
   const now = Date.now();
@@ -577,8 +638,22 @@ function drawMapPanel() {
   const districts = mapDistricts(player);
   const here = districts.find((d) => d.id === state.mapArea);
   if (state.mapArea === "peaks") {
+    const canClimb = summitItems(player).length > 0;
+    const flags = player.summits || 0;
+    const boats = player.lakeWins || 0;
     $("map-panel").innerHTML = `<h3 class="map-title"><span aria-hidden="true">⛰️</span> Grammar Peaks</h3>
-      <p class="map-hint">The tallest spot on Grammar Island, with a lake below. Nothing gets built up here: the buildings go up in the places around it.</p>
+      <div class="peak-activities">
+        <button type="button" class="peak-card" data-practice="summit" ${canClimb ? "" : "disabled"}>
+          <span class="peak-emoji" aria-hidden="true">🚩</span>
+          <span><strong>Summit Review</strong><span>${canClimb
+            ? `${PRACTICE_PER_ROUND} questions mixing the skills you've passed. ${PRACTICE_GOAL}+ right plants a flag at the top.`
+            : "Pass a level anywhere on the island, then climb up here to review it."}</span>
+          ${flags ? `<small>${flags} flag${flags === 1 ? "" : "s"} planted</small>` : ""}</span></button>
+        <button type="button" class="peak-card" data-practice="lake">
+          <span class="peak-emoji" aria-hidden="true">💧</span>
+          <span><strong>Spelling Lake</strong><span>${PRACTICE_PER_ROUND} spelling questions: -ed, -ing, plurals and more. ${PRACTICE_GOAL}+ right floats a boat.</span>
+          ${boats ? `<small>${boats} boat${boats === 1 ? "" : "s"} on the lake</small>` : ""}</span></button>
+      </div>
       <div class="map-actions"><button type="button" class="link" data-map-fit>See the whole island</button></div>`;
     return;
   }
@@ -645,7 +720,7 @@ function renderBuild(fresh = null) {
   const area = (state.buildArea = buildAreaFor(player, state.buildArea));
   if (!player.decor.some((p) => p.uid === state.buildSelected && p.area === area)) state.buildSelected = null;
   $("build-areas").innerHTML = mapDistricts(player).filter((d) => !d.locked).map((d) => `<button type="button" role="tab" class="build-area"
-    aria-selected="${d.id === area}" data-build-area="${d.id}"><span aria-hidden="true">${d.emoji}</span> ${esc(d.name)}</button>`).join("");
+    aria-selected="${d.id === area}" data-build-area="${d.id}"><span class="build-area-emoji" aria-hidden="true">${d.emoji}</span><span>${esc(d.name)}</span></button>`).join("");
   $("build-bricks").innerHTML = `You have <strong>🧱 ${bricks}</strong> brick${bricks === 1 ? "" : "s"}.`;
   drawBuildScene(fresh);
   // This district's own decorations first, then the everyday ones that go anywhere.
@@ -1008,6 +1083,8 @@ function wire() {
     const buy = target.closest("[data-buy]");
     if (buy) return buyDecoration(buy.dataset.buy);
     if (target.closest("#homework-btn")) return startHomework();
+    const practice = target.closest("[data-practice]");
+    if (practice) return startPractice(practice.dataset.practice);
     const nextUpBtn = target.closest("[data-next-up]");
     if (nextUpBtn) {
       const [skillId, level] = nextUpBtn.dataset.nextUp.split(/-(?=\d$)/);
@@ -1156,15 +1233,16 @@ function wire() {
     closeOverlay("quit-overlay");
     stopSaying();
     const skill = skillById(state.play.skillId);
-    const homework = state.play.mode === "homework";
+    const mode = state.play.mode;
     state.play = null;
-    if (homework) renderHome();
+    if (mode) renderHome(); // homework and Grammar Peaks rounds start from the island
     else renderWorld(skill.world);
   });
   $("result-next").addEventListener("click", () => {
     closeOverlay("result-overlay");
     const next = state.resultNext;
     if (next.homework) startHomework();
+    else if (next.practice) startPractice(next.practice);
     else if (next.world) renderWorld(next.world);
     else openTip(next.skillId, next.level);
   });

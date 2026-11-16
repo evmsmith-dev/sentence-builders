@@ -17,7 +17,7 @@ export function pipSvg(size = 56) {
 /** Pip with a speech bubble. Empty when the player turned Pip off. */
 export function pipSays(text, on = true, action = "") {
   if (!on || !text) return "";
-  return `${pipSvg()}<p class="bubble">${esc(text)}${action ? ` ${action}` : ""}</p>`;
+  return action ? `${pipSvg()}<div class="bubble"><p>${esc(text)}</p>${action}</div>` : `${pipSvg()}<p class="bubble">${esc(text)}</p>`;
 }
 
 const D = 7; // depth of side walls: drawn back and up to the right, so everything looks solid
@@ -417,8 +417,13 @@ function coastPath() {
   return smoothPath(pts);
 }
 
-/** Grammar Peaks: mountains with a lit side and a shaded side, and a lake below them. */
-function peaksSvg() {
+// Where flags go up (the top of the tallest peak first) and where boats float on the lake.
+const FLAG_SPOTS = [[650, 132], [740, 142], [560, 172], [688, 186], [612, 196], [770, 196], [536, 222], [652, 228], [716, 236], [588, 252], [790, 250], [512, 280]];
+const BOAT_SPOTS = [[600, 470], [700, 476], [652, 458], [566, 480], [740, 462], [628, 486], [680, 492], [720, 488]];
+const FLAG_COLORS = ["#e85d4a", "#f2a900", "#3c6bc9", "#2e9d5b", "#8e5bd8", "#e86fa4"];
+
+/** Grammar Peaks: mountains with a lit side and a shaded side, a lake below, and the flags and boats earned there. */
+function peaksSvg(summits = 0, boats = 0) {
   const mountain = (x, base, w, h, snow) => `<path d="M${x - w / 2} ${base}L${x} ${base - h}L${x + w / 2} ${base}z" fill="#7d8f7a"/>
     <path d="M${x} ${base - h}L${x + w / 2} ${base}H${x + w * 0.08}z" fill="#5d6e5b"/>
     ${snow ? `<path d="M${x - w * 0.17} ${base - h * 0.66}L${x} ${base - h}L${x + w * 0.17} ${base - h * 0.66}l-${w * 0.06} 8l-${w * 0.06}-6l-${w * 0.05} 7z" fill="#fff"/>` : ""}`;
@@ -429,7 +434,10 @@ function peaksSvg() {
     ${mountain(560, 340, 190, 170, true)}${mountain(740, 330, 200, 190, true)}${mountain(650, 370, 230, 240, true)}
     ${mountain(520, 410, 130, 90, false)}${mountain(790, 410, 140, 100, false)}
     <ellipse cx="${lx}" cy="${ly}" rx="118" ry="38" fill="#3f86c4"/><ellipse cx="${lx}" cy="${ly - 6}" rx="112" ry="32" fill="#6fb6e8"/>
-    ${wave(ly - 10, lx - 62, lx + 48)}<text x="${lx + 60}" y="${ly + 2}" font-size="22">⛵</text>${trees}</g>`;
+    ${wave(ly - 10, lx - 62, lx + 48)}${trees}
+    ${BOAT_SPOTS.slice(0, boats).map(([x, y], k) => `<text class="boat" x="${x}" y="${y}" text-anchor="middle" font-size="22">${["⛵", "🛶", "🚣"][k % 3]}</text>`).join("")}
+    ${FLAG_SPOTS.slice(0, summits).map(([x, y], k) => `<g class="summit-flag"><path d="M${x} ${y}v-30" stroke="#5a3a22" stroke-width="2.5"/>
+      <path d="M${x} ${y - 30}l18 6-18 6z" fill="${FLAG_COLORS[k % FLAG_COLORS.length]}"/></g>`).join("")}</g>`;
 }
 
 // Scenery scattered over each region's open ground.
@@ -558,7 +566,7 @@ export function townSvg(player, { fresh = null, rising = null } = {}) {
     <path d="${coast}" fill="#a57a52" transform="translate(0 12)"/>
     <g clip-path="url(#island)">${regions}
       <g fill="none" stroke="#ffffff" stroke-opacity=".75" stroke-width="5" stroke-dasharray="14 10" stroke-linecap="round" pointer-events="none">${borders}</g>
-      ${peaksSvg()}${roadsSvg(curves)}
+      ${peaksSvg(player.summits || 0, player.lakeWins || 0)}${roadsSvg(curves)}
       <g class="scenery" pointer-events="none" aria-hidden="true">${layout.districts.map((d) => scenerySvg(d.id, REGIONS[d.id].poly, boxes, roadPts)).join("")}</g></g>
     <path d="${coast}" fill="none" stroke="#f3e2ae" stroke-width="16"/>
     <path d="${coast}" fill="none" stroke="#ffffff" stroke-opacity=".6" stroke-width="3" transform="translate(0 -1)"/>

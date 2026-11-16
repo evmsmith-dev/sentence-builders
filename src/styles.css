@@ -697,9 +697,13 @@ details.spell-card > .rule-card { margin-top: 8px; }
 .map-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-top: 10px; }
 .map-actions button { min-height: 44px; }
 .skill-sheet .skill-card { margin: 0 0 8px; box-shadow: none; }
-.build-areas { display: flex; gap: 6px; overflow-x: auto; padding: 2px 2px 8px; scrollbar-width: thin; }
-.build-area { flex: none; min-height: 44px; padding: 6px 12px; border-radius: 999px; border: 2px solid #d9cbbd; background: var(--card, #fff);
-  color: inherit; font: inherit; font-weight: 600; cursor: pointer; }
+/* Every place shows at once (no sideways scrolling): three across on a phone, six on a wide screen. */
+.build-areas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 2px 0 10px; }
+@media (min-width: 720px) { .build-areas { grid-template-columns: repeat(6, 1fr); } }
+.build-area { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 64px; padding: 6px 4px;
+  border-radius: 14px; border: 2px solid #d9cbbd; background: var(--card, #fff); color: inherit; font: inherit; font-size: 0.85rem;
+  font-weight: 700; line-height: 1.15; text-align: center; cursor: pointer; }
+.build-area-emoji { font-size: 1.35rem; }
 .build-area[aria-selected="true"] { background: #c0612b; border-color: #c0612b; color: #fff; }
 @media (prefers-reduced-motion: no-preference) {
   .town-map .pip-map { animation: pip-bob 1.6s ease-in-out infinite alternate; }
@@ -711,5 +715,15 @@ details.spell-card > .rule-card { margin-top: 8px; }
 .brand { display: flex; align-items: center; gap: 8px; }
 .brand.small { justify-content: center; }
 .brand-logo { border-radius: 22%; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18); flex: none; }
-.next-play { display: inline-flex; margin-left: 4px; min-height: 40px; padding: 4px 14px; border-radius: 999px; font-size: 0.95rem; vertical-align: middle; }
+.bubble .next-play { display: flex; margin: 8px auto 0; }
+.next-play { min-height: 38px; padding: 4px 20px; border-radius: 999px; font-size: 0.95rem; box-shadow: 0 2px 0 var(--primary-dark); }
+.bubble > p { margin: 0; }
 .next-line { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-weight: 600; }
+.peak-activities { display: grid; gap: 8px; margin: 6px 0 4px; }
+.peak-card { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 14px; text-align: left; border-radius: 14px;
+  border: 2px solid var(--border); background: var(--card); color: inherit; font: inherit; cursor: pointer; min-height: 64px; }
+.peak-card > span:last-child { display: flex; flex-direction: column; gap: 2px; }
+.peak-card strong { font-size: 1.05rem; }
+.peak-card small { color: var(--muted); font-weight: 600; }
+.peak-card:disabled { opacity: 0.65; cursor: default; }
+.peak-emoji { font-size: 1.8rem; flex: none; }

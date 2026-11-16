@@ -952,3 +952,52 @@ test("town map: tap a region to zoom in, tap a lot for its levels, and decorate 
   await page.locator("[data-map-fit]").click();
   await expect(page.locator("#map-panel")).toContainText("Tap a place on the island");
 });
+
+test("Grammar Peaks: a Summit Review mixes passed skills and plants a flag; Spelling Lake floats a boat", async ({ page }) => {
+  const levels = { "commas-1": { best: 8, stars: 3, plays: 1 }, "verbs-1": { best: 8, stars: 3, plays: 1 }, "fragments-1": { best: 8, stars: 3, plays: 1 } };
+  await openApp(page, { players: [player({ levels })], current: "p1" });
+  await page.locator("#town").scrollIntoViewIfNeeded();
+  const peaks = await page.locator('.region[data-area="peaks"]').boundingBox();
+  await page.mouse.click(peaks.x + peaks.width / 2, peaks.y + peaks.height * 0.4);
+  await expect(page.locator("#map-panel")).toContainText("Summit Review");
+  await page.locator('[data-practice="summit"]').click();
+  const seen = [];
+  for (let n = 0; n < 8; n++) {
+    await expect(page.locator("#play-skill")).toContainText("Summit Review");
+    seen.push((await currentItem(page)).skill);
+    await answer(page);
+    await page.locator("#next-btn").click();
+  }
+  expect(new Set(seen)).toEqual(new Set(["commas", "verbs", "fragments"])); // all three passed skills, mixed
+  for (let n = 1; n < seen.length; n++) expect(seen[n]).not.toBe(seen[n - 1]); // never the same skill twice in a row
+  await expect(page.locator("#result-title")).toHaveText("You reached the summit!");
+  await page.locator("#result-town").click();
+  await expect(page.locator(".summit-flag")).toHaveCount(1);
+  await expect(page.locator("#map-panel")).toContainText("1 flag planted");
+  // Spelling Lake: grade 4 gets the grades 3-5 questions.
+  await page.locator('[data-practice="lake"]').click();
+  for (let n = 0; n < 8; n++) {
+    await expect(page.locator("#play-skill")).toHaveText("💧 Spelling Lake");
+    await expect(page.locator("#prompt")).toHaveText("Which spelling is right?");
+    expect((await currentItem(page)).level).toBe(1);
+    await answer(page);
+    await page.locator("#next-btn").click();
+  }
+  await expect(page.locator("#result-title")).toHaveText("A new boat on the lake!");
+  await page.locator("#result-town").click();
+  await expect(page.locator(".boat")).toHaveCount(1);
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("sentenceBuilders_players"))[0]);
+  expect(saved.summits).toBe(1);
+  expect(saved.lakeWins).toBe(1);
+  expect(saved.levels).toEqual(levels); // practice never changes levels
+});
+
+test("Grammar Peaks: no Summit Review until a level is passed", async ({ page }) => {
+  await openApp(page, { players: [player()], current: "p1" });
+  await page.locator("#town").scrollIntoViewIfNeeded();
+  const peaks = await page.locator('.region[data-area="peaks"]').boundingBox();
+  await page.mouse.click(peaks.x + peaks.width / 2, peaks.y + peaks.height * 0.4);
+  await expect(page.locator('[data-practice="summit"]')).toBeDisabled();
+  await expect(page.locator('[data-practice="summit"]')).toContainText("Pass a level anywhere on the island");
+  await expect(page.locator('[data-practice="lake"]')).toBeEnabled();
+});

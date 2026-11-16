@@ -409,3 +409,27 @@ test("town districts: themed decorations stay in their district; old saves move 
   assert.equal(old.decor[0].area, "square");
   assert.equal(old.decor[0].x, 30); // exactly where it was
 });
+
+test("practice: Summit Review mixes passed skills, missed questions first; spelling by grade band", async () => {
+  const { pickSummitItems, pickSpellingItems } = await import("../../src/lib/select.js");
+  const { recordPractice } = await import("../../src/lib/progress.js");
+  const content = JSON.parse(readFileSync(new URL("../../data/content.json", import.meta.url), "utf8"));
+  const missed = content.items.find((i) => i.skill === "verbs" && i.level === 1 && i.type !== "flow");
+  const picked = pickSummitItems({ items: content.items, passedKeys: ["commas-1", "verbs-1"], stats: { [missed.id]: { seen: 1, misses: 2, last: 5 } }, count: 8 });
+  assert.equal(picked.length, 8);
+  assert.ok(picked.every((i) => ["commas-1", "verbs-1"].includes(`${i.skill}-${i.level}`)));
+  assert.equal(picked[0].id, missed.id); // the missed one leads
+  for (let n = 1; n < picked.length; n++) assert.notEqual(picked[n].skill, picked[n - 1].skill);
+  assert.deepEqual(pickSummitItems({ items: content.items, passedKeys: [], count: 8 }), []);
+  assert.ok(pickSpellingItems({ items: content.spelling, grade: 4, count: 8 }).every((i) => i.level === 1));
+  assert.ok(pickSpellingItems({ items: content.spelling, grade: 7, count: 8 }).every((i) => i.level === 2));
+  const p = newPlayer({ id: "p", name: "A", avatar: "🦊", grade: 4, now: 0 });
+  const results = Array.from({ length: 8 }, (_, k) => ({ id: `x${k}`, correct: k < 7, tries: k < 6 ? 1 : 2 }));
+  const out = recordPractice(p, { kind: "summit", results, now: 1000 });
+  assert.equal(out.right, 6);
+  assert.ok(out.reached);
+  assert.equal(out.player.summits, 1);
+  assert.equal(out.bricks, 6 * 2 + 1); // 2 each on the first try, 1 on the second
+  assert.equal(out.player.items.x6.misses, 1);
+  assert.equal(recordPractice(p, { kind: "lake", results: results.map((r) => ({ ...r, tries: 2 })), now: 1 }).player.lakeWins, 0);
+});

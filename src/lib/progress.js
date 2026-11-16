@@ -1,7 +1,7 @@
 // A player's progress: what's unlocked, recording a finished level, stars, mastery and badges.
 // Pure functions on plain data, so they're easy to test and save.
 import {
-  BRICKS, DECOR, GOLD_DAYS, GOLD_POINTS, clampSpot, defaultSpot, HABIT_BADGES, POINTS, SKILLS, STAR_THRESHOLDS, WORLD_BADGES, skillById, skillsInWorld,
+  BRICKS, DECOR, GOLD_DAYS, GOLD_POINTS, PRACTICE_GOAL, clampSpot, defaultSpot, HABIT_BADGES, POINTS, SKILLS, STAR_THRESHOLDS, WORLD_BADGES, skillById, skillsInWorld,
 } from "../config.js";
 
 export const levelKey = (skill, level) => `${skill}-${level}`;
@@ -23,6 +23,8 @@ export function newPlayer({ id, name, avatar, grade, now }) {
     time: {}, // date: milliseconds spent in levels that day
     badges: {}, // badge id: highest tier earned (kept even if data is later trimmed)
     bricks: 0, // spent on town decorations
+    summits: 0, // Summit Reviews with PRACTICE_GOAL+ right on the first try: flags on Grammar Peaks
+    lakeWins: 0, // Spelling Lake rounds with PRACTICE_GOAL+ right: boats on the lake
     decor: [], // decorations placed in the town: { uid, id, area, x, y } in SCENE units (area: a district id)
   };
 }
@@ -217,6 +219,31 @@ export function homeworkGrade(results) {
  * played, and bricks (BRICKS.homeworkFix × 2 for a paragraph right on the first try, × 1 on the second). It doesn't
  * touch levels or badges.
  */
+/**
+ * A Summit Review or Spelling Lake round: keeps each question's history (so the next round can bring back
+ * the missed ones), the day and time, and bricks. PRACTICE_GOAL or more right on the first try plants a flag
+ * on the summit (summit) or floats a boat on the lake (lake). Doesn't touch levels or badges.
+ */
+export function recordPractice(player, { kind, results, now, durationMs = 0 }) {
+  const next = normalizePlayer(JSON.parse(JSON.stringify(player)));
+  const date = localDate(now);
+  for (const result of results) {
+    const s = next.items[result.id] || { seen: 0, misses: 0, last: 0 };
+    next.items[result.id] = { seen: s.seen + 1, misses: s.misses + (result.tries > 1 || !result.correct ? 1 : 0), last: now };
+  }
+  if (!next.days.includes(date)) next.days.push(date);
+  next.time[date] = (next.time[date] || 0) + Math.min(Math.max(durationMs, 0), MAX_LEVEL_MS);
+  const bricks = results.reduce((sum, r) => sum + (!r.correct ? 0 : r.tries === 1 ? BRICKS.first : BRICKS.second), 0);
+  next.bricks += bricks;
+  const right = results.filter((r) => r.correct && r.tries === 1).length;
+  const reached = right >= PRACTICE_GOAL;
+  if (reached) {
+    if (kind === "summit") next.summits += 1;
+    else next.lakeWins += 1;
+  }
+  return { player: next, bricks, right, reached };
+}
+
 export function recordHomework(player, { results, now, durationMs = 0 }) {
   const next = normalizePlayer(JSON.parse(JSON.stringify(player)));
   const date = localDate(now);
