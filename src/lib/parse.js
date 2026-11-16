@@ -195,22 +195,59 @@ export function parseFlow(item) {
   };
 }
 
-/** Build from labels: tiles in the right order, each with its label. */
+/**
+ * Build from labels: tiles in the right order, each with its label. The end mark is kept apart (`end`) and
+ * shown after the last space, so any word can be last: "milk and bread" or "bread and milk".
+ */
 export function parseLabels(item) {
   const tiles = parseTags(item.tiles);
-  return { tiles, line: tiles.map((t) => t.label), answerText: tiles.map((t) => t.word).join(" ") };
+  const end = tiles.at(-1).word.match(/[.?!]+$/)?.[0] || "";
+  return {
+    tiles: tiles.map((t, i) => (i === tiles.length - 1 && end ? { ...t, word: t.word.slice(0, -end.length) } : t)),
+    end, line: tiles.map((t) => t.label), answerText: tiles.map((t) => t.word).join(" "),
+  };
 }
 
+/** A word that keeps its capital letter anywhere in a sentence: a name (Sam, Mom), not "The" or "I". */
+const alwaysCapital = (word) => /^[A-Z]/.test(word) && word !== "I" && nounInfo(word, 0).kind === "Proper";
+
 /**
- * placed: the tile words in slot order. Right when every word's label matches its slot, the capitalized word
- * is first and the word with the end mark is last (so two adjectives may swap places).
+ * placed: the tile words in slot order (the end mark stays after the last space). Right when every word's label
+ * matches its slot and the first word can start the sentence: the capitalized first word, or (when that first
+ * word is a name) another name with the same label, so "Jada and Sam" is as right as "Sam and Jada". Words
+ * with the same label may swap places anywhere else (two adjectives, the parts of a compound).
  */
 export function checkLabels(parsed, placed) {
   if (placed.length !== parsed.tiles.length) return false;
-  const labelOf = (word) => parsed.tiles.find((t) => t.word === word)?.label;
-  return placed.every((word, i) => labelOf(word) === parsed.line[i])
-    && placed[0] === parsed.tiles[0].word
-    && placed.at(-1) === parsed.tiles.at(-1).word;
+  const words = parsed.tiles.map((t) => t.word);
+  const pairs = compoundPairs(parsed.tiles.map((t) => t.label), words);
+  const swappable = (a, b) => pairs.some(([x, y]) => (words[x] === a && words[y] === b) || (words[x] === b && words[y] === a));
+  return placed.every((word, i) => word === words[i]
+    || (swappable(word, words[i]) && (i > 0 || (alwaysCapital(word) && alwaysCapital(words[0])))));
+}
+
+// Labels that are two parts of one compound even when they differ (Leo and I: CSN and CSP).
+const COMPOUND_GROUP = { CSN: "subject", CSP: "subject", CPrN: "prn", CPrP: "prn" };
+
+/**
+ * The two parts of each compound, as [index, index]: the compound-labeled words on each side of a conjunction
+ * (C) with the same job. Either order is right ("Jada and Sam", "bread and milk"), except a part that's "I",
+ * which goes last by courtesy ("Leo and I").
+ */
+export function compoundPairs(labels, words = []) {
+  const group = (l) => COMPOUND_GROUP[l] || l;
+  const pairs = [];
+  labels.forEach((l, c) => {
+    if (l !== "C") return;
+    let a = c - 1;
+    while (a >= 0 && !/^C./.test(labels[a])) a -= 1;
+    let b = c + 1;
+    while (b < labels.length && !/^C./.test(labels[b])) b += 1;
+    if (a < 0 || b >= labels.length || group(labels[a]) !== group(labels[b])) return;
+    if ([a, b].some((i) => (words[i] || "").replace(/[.?!,]+$/, "") === "I")) return;
+    pairs.push([a, b]);
+  });
+  return pairs;
 }
 
 /** Proofread: a paragraph where each mistake is written [shown|right|other wrong choices]. */

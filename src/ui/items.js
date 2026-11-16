@@ -476,6 +476,17 @@ function renderFlow(root, item, { hint, complete, onChange, onTap, showLabels, n
     <div class="flow-ask"><div class="flow-ask-head"><p class="flow-count"></p>${LABELS_BUTTON}</div><p class="flow-q"></p><div class="flow-choices"></div></div>
   </div>`;
   const stage = () => stages[at];
+  // Two words answering the same question as parts of one compound (Mia and Leo; he and I; apples and grapes).
+  const COMPOUND_GROUP = { CSN: "subject", CSP: "subject", CPrN: "prn", CPrP: "prn" };
+  const groupOf = (label) => COMPOUND_GROUP[label] || label;
+  const compoundPartner = (a, b) => {
+    const [la, lb] = [parsed.words[a].label, parsed.words[b].label];
+    if (!/^C./.test(la) || groupOf(la) !== groupOf(lb)) return false;
+    const between = [a, b].sort((x, y) => x - y);
+    // Joined by a conjunction between them, and the other word still waits for its own step.
+    return parsed.words.some((w, i) => w.label === "C" && i > between[0] && i < between[1])
+      && stages.some((s, k) => k > at && s.kind === "step" && s.index === a);
+  };
 
   function drawTable() {
     const wrap = root.querySelector(".noun-table-wrap");
@@ -730,7 +741,14 @@ function renderFlow(root, item, { hint, complete, onChange, onTap, showLabels, n
     const stepText = () => `${parsed.words[st.index].word.replace(/[.!?]$/, "")} is ${st.label}, the ${LABELS[st.label].name}.`;
     if (word && st.kind === "step" && phase === "word") {
       onTap();
-      if (Number(word.dataset.fw) === st.index) {
+      const tappedAt = Number(word.dataset.fw);
+      const partner = tappedAt !== st.index && compoundPartner(tappedAt, st.index);
+      if (partner) {
+        // The other part of the same compound answers the question too: that word's steps come first now.
+        const later = stages.findIndex((s, k) => k > at && s.kind === "step" && s.index === tappedAt);
+        [st.index, st.label, stages[later].index, stages[later].label] = [tappedAt, stages[later].label, st.index, st.label];
+      }
+      if (tappedAt === st.index) {
         phase = "label";
         hint(null);
         draw();
@@ -805,7 +823,8 @@ function renderLabels(root, item, { onChange, onTap, showLabels }) {
   const tile = (t, where) => `<button type="button" class="tile" data-ltile="${t.id}" data-where="${where}" ${locked ? "disabled" : ""}>${esc(t.word)}</button>`;
   function draw() {
     root.querySelector(".label-slots").innerHTML = parsed.line.map((label, i) =>
-      `<div class="label-slot"><span class="slot-label" title="${esc(LABELS[label].name)}">${esc(label)}</span>${slots[i] ? tile(slots[i], "slot") : '<span class="slot-empty" aria-label="empty"></span>'}</div>`).join("");
+      `<div class="label-slot"><span class="slot-label" title="${esc(LABELS[label].name)}">${esc(label)}</span>${slots[i] ? tile(slots[i], "slot") : '<span class="slot-empty" aria-label="empty"></span>'}</div>`).join("")
+      + (parsed.end ? `<span class="label-end" aria-label="end mark ${esc(parsed.end)}">${esc(parsed.end)}</span>` : "");
     root.querySelector(".build-bank").innerHTML = bank.map((t) => tile(t, "bank")).join("");
   }
   root.addEventListener("click", (event) => {

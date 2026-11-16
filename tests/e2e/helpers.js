@@ -4,7 +4,7 @@ import { markupTasks } from "../../src/lib/markup.js";
 import { nounTableQuestions } from "../../src/lib/nountable.js";
 import { buildDiagram, guideOrder } from "../../src/lib/diagram.js";
 import {
-  CHECK_KINDS, paletteFor, parseBuild, parseCheck, parseFix, parseFlow, parseJoin, parseLabels, parseMark, parseMarkText,
+  CHECK_KINDS, compoundPairs, paletteFor, parseBuild, parseCheck, parseFix, parseFlow, parseJoin, parseLabels, parseMark, parseMarkText,
   parseProofread, parseSort, parseWhich,
 } from "../../src/lib/parse.js";
 
@@ -174,8 +174,11 @@ export async function miss(page) {
   return true;
 }
 
-/** Answers the item on screen rightly. */
-export async function answer(page) {
+/**
+ * Answers the item on screen rightly. swapCompounds: answer each compound the other way round (tap Leo for
+ * "Who sang?" in "Mia and Leo sang", build "bread and milk"), as a child might.
+ */
+export async function answer(page, { swapCompounds = false } = {}) {
   const item = await currentItem(page);
   if (item.type === "mark") {
     const parsed = parseMark(item);
@@ -206,6 +209,8 @@ export async function answer(page) {
     await page.locator("#item [data-choice]").filter({ hasText: exact(parsed.correct) }).first().click();
   } else if (item.type === "flow") {
     const parsed = parseFlow(item);
+    const steps = parsed.steps.map((s) => ({ ...s }));
+    const pairs = compoundPairs(parsed.words.map((w) => w.label));
     for (let guard = 0; guard < 40 && !(await page.locator("#next-btn").isVisible()); guard++) {
       const at = await flowStage(page);
       if (at === "kind") {
@@ -218,7 +223,11 @@ export async function answer(page) {
       } else if (typeof at === "string" && at.startsWith("markup-")) {
         await markUp(page, markupTasks(parsed.words.map((w) => w.label), parsed.words.map((w) => w.word))[Number(at.slice(7))]);
       } else {
-        const step = parsed.steps[at];
+        const step = steps[at];
+        const pair = swapCompounds && step.question && pairs.find((p) => p.includes(step.index));
+        const other = pair && pair.find((i) => i !== step.index);
+        const later = pair ? steps.findIndex((s, k) => k > at && s.index === other) : -1;
+        if (later >= 0) [step.index, step.label, steps[later].index, steps[later].label] = [other, steps[later].label, step.index, step.label];
         const word = page.locator(`#item [data-fw="${step.index}"]`);
         if (await word.isEnabled()) await word.click();
         await page.locator(`#item [data-label="${step.label}"]`).click();
@@ -237,7 +246,14 @@ export async function answer(page) {
   } else if (item.type === "labels") {
     const parsed = parseLabels(item);
     while (await page.locator("#item .label-slots .tile").count()) await page.locator("#item .label-slots .tile").first().click();
-    for (const tile of parsed.tiles) {
+    const tiles = [...parsed.tiles];
+    if (swapCompounds) {
+      for (const [a, b] of compoundPairs(parsed.line, tiles.map((t) => t.word))) {
+        if (a === 0 && !/^[A-Z]/.test(tiles[b].word)) continue; // "the" can't start the sentence
+        [tiles[a], tiles[b]] = [tiles[b], tiles[a]];
+      }
+    }
+    for (const tile of tiles) {
       await page.locator("#item .build-bank .tile").filter({ hasText: exact(tile.word) }).first().click();
     }
     await page.locator("#check-btn").click();

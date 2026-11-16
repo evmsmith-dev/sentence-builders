@@ -267,6 +267,7 @@ button:disabled { cursor: default; }
 /* Build from labels */
 .label-slots { display: flex; flex-wrap: wrap; gap: 8px; }
 .label-slot { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 64px; }
+.label-end { align-self: flex-end; font-size: 1.6rem; font-weight: 700; line-height: 1; padding-bottom: 10px; }
 .slot-label { font-weight: 700; color: var(--shown); font-size: 1rem; }
 .slot-empty { display: block; width: 64px; height: 52px; border-radius: 12px; border: 2px dashed var(--border); background: #f7faff; }
 .label-line { margin: 0 0 6px; font-weight: 700; color: var(--shown); }

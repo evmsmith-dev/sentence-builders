@@ -1032,3 +1032,18 @@ test("Compound Q&A Flow: grades 3-5 label compound parts and interjections, all 
   }
   await expect(page.locator('.town g[data-skill="cflow"]')).toHaveCount(1);
 });
+
+test("compounds: either part first is right, in a Q&A Flow and in Build from labels", async ({ page }) => {
+  test.slow(); // plays several whole levels: extra time for slower CI machines
+  await openApp(page, { players: [player({ grade: 5 })], current: "p1" });
+  for (const level of [1, 2, 3]) {
+    await startLevel(page, "cflow", level, "flow");
+    for (let n = 0; n < 5; n++) {
+      await answer(page, { swapCompounds: true });
+      await expect(page.locator("#feedback.good")).toContainText("✓");
+      await page.locator("#next-btn").click();
+    }
+    await expect(page.locator("#result-title")).toHaveText("Perfect build!");
+    await page.locator("#result-town").click();
+  }
+});

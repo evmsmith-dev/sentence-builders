@@ -210,15 +210,59 @@ test("join: the word comes first, the comma follows the result", async () => {
   assert.equal(checkMark(parsed, extra), false);
 });
 
-test("Build from labels: words match their labels; capital first, end mark last", async () => {
+test("Build from labels: words match their labels; the capitalized word first; only compound parts swap", async () => {
   const { parseLabels, checkLabels } = await import("../../src/lib/parse.js");
   const horses = parseLabels(content.items.find((i) => i.tiles === "Five|Adj brown|Adj horses|SN galloped|V swiftly.|Adv"));
-  assert.equal(checkLabels(horses, ["Five", "brown", "horses", "galloped", "swiftly."]), true);
-  assert.equal(checkLabels(horses, ["brown", "Five", "horses", "galloped", "swiftly."]), false, "capitalized word goes first");
+  assert.equal(checkLabels(horses, ["Five", "brown", "horses", "galloped", "swiftly"]), true);
+  assert.equal(checkLabels(horses, ["brown", "Five", "horses", "galloped", "swiftly"]), false, "capitalized word goes first");
   const whale = parseLabels(content.items.find((i) => i.tiles === "The|A whale|SN is|LV a|A mammal.|PrN"));
-  assert.equal(checkLabels(whale, ["a", "whale", "is", "The", "mammal."]), false);
+  assert.equal(checkLabels(whale, ["a", "whale", "is", "The", "mammal"]), false);
   const loud = parseLabels(content.items.find((i) => i.tiles === "We|SP laughed|V very|Adv loudly.|Adv"));
-  assert.equal(checkLabels(loud, ["We", "laughed", "loudly.", "very"]), false, "end mark goes last");
+  assert.equal(checkLabels(loud, ["We", "laughed", "loudly", "very"]), false, "very stays before loudly");
+  assert.equal(loud.end, ".");
+});
+
+test("compounds: either part may come first, in every compound sentence in the content", async () => {
+  const { parseLabels, checkLabels, compoundPairs, parseFlow, parseTags } = await import("../../src/lib/parse.js");
+  const { buildDiagram, wrongSlots } = await import("../../src/lib/diagram.js");
+  let swaps = 0;
+  for (const item of content.items) {
+    if (item.type === "labels") {
+      const parsed = parseLabels(item);
+      const words = parsed.tiles.map((t) => t.word);
+      for (const [a, b] of compoundPairs(parsed.line, words)) {
+        const swapped = [...words];
+        [swapped[a], swapped[b]] = [swapped[b], swapped[a]];
+        const capitalOk = a > 0 || /^[A-Z]/.test(words[b]);
+        if (!capitalOk) continue;
+        assert.equal(checkLabels(parsed, swapped), true, `${item.id}: ${swapped.join(" ")}`);
+        swaps += 1;
+      }
+    }
+    if (item.type === "flow") {
+      // Every compound part has its own step, so tapping either part first can be accepted.
+      const parsed = parseFlow(item);
+      const labels = parsed.words.map((w) => w.label);
+      for (const [a, b] of compoundPairs(labels)) {
+        assert.ok(parsed.steps.some((s) => s.index === a) && parsed.steps.some((s) => s.index === b), `${item.id}: both parts need a step`);
+        swaps += 1;
+      }
+    }
+    if (item.type === "diagram") {
+      const d = buildDiagram(item);
+      for (const conj of d.slots.filter((s) => s.joins)) {
+        const [a, b] = conj.joins.map((id) => d.slots[id]);
+        const filled = Object.fromEntries(d.slots.map((s) => [s.id, s.text]));
+        [filled[a.id], filled[b.id]] = [b.text, a.text];
+        assert.deepEqual(wrongSlots(d, filled), [], `${item.id}: ${b.text} and ${a.text} on swapped branches`);
+        swaps += 1;
+      }
+    }
+  }
+  assert.ok(swaps >= 60, `checked ${swaps} compounds`);
+  const leo = parseLabels({ tiles: "Leo|CSN and|C I|CSP built|V-t a|A fort.|DO" });
+  assert.equal(checkLabels(leo, ["I", "and", "Leo", "built", "a", "fort"]), false, "I goes last by courtesy");
+  void parseTags;
 });
 
 test("Flow Factory: 5-item levels, and Gold needs the label sentences right", async () => {

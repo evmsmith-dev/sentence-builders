@@ -376,7 +376,13 @@ export function layoutDiagram(diagram) {
 
 /** Is every slot filled with the right words? `filled` maps slot id → text placed. Returns the wrong slot ids. */
 export function wrongSlots(diagram, filled) {
-  return diagram.slots.filter((s) => filled[s.id] !== s.text).map((s) => s.id);
+  const wrong = new Set(diagram.slots.filter((s) => filled[s.id] !== s.text).map((s) => s.id));
+  // The two parts of a compound may go on either branch of their fork (Leo and Mia, or Mia and Leo).
+  for (const conj of diagram.slots.filter((s) => s.joins)) {
+    const [a, b] = conj.joins.map((id) => diagram.slots[id]);
+    if (filled[a.id] === b.text && filled[b.id] === a.text) { wrong.delete(a.id); wrong.delete(b.id); }
+  }
+  return [...wrong];
 }
 
 // ---------- Teaching: where each word goes, and why ----------
