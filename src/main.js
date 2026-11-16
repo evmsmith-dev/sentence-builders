@@ -1,7 +1,7 @@
 // Startup and screens: players, the town, worlds, levels, results, badges and settings.
 import {
   AVATARS, HABIT_BADGES, ITEMS_PER_LEVEL, MAX_GRADE, MAX_PLAYERS, MIN_GRADE, PIP, SKILLS, TIER_NAMES, WORLDS, WORLD_BADGES,
-  GOLD_DAYS, LABELS, PATTERNS, FLOW_LABELS, FLOW_PATTERNS, skillById, skillOpenFor, skillsInWorld, skillsInWorldFor, worldOpenFor,
+  GOLD_DAYS, LABELS, LABEL_LISTS, PATTERNS, FLOW_LABELS, FLOW_PATTERNS, WORD_LISTS, skillById, skillOpenFor, skillsInWorld, skillsInWorldFor, worldOpenFor,
 } from "./config.js";
 import { answerText, spokenText } from "./lib/parse.js";
 import { numberWords } from "./lib/words.js";
@@ -250,10 +250,18 @@ function handleAnswer(right) {
   }
 }
 
+function labelListHtml(label) {
+  const list = WORD_LISTS.find((w) => w.id === LABEL_LISTS[label]);
+  if (!list) return "";
+  return list.words.length > 12
+    ? `<details class="label-words"><summary>See all ${list.words.length} ${esc(list.title.replace(/^Common |\s*\(.*\)$/g, "").toLowerCase())}</summary>${wordChips(list.words)}</details>`
+    : wordChips(list.words);
+}
+
 /** Mid-round reminder: the level's labels with what each means and how to find it. Costs nothing. */
 function openLabelHelp(labels, patterns = []) {
   $("labels-list").innerHTML = labels.map((l) => `<div class="label-entry"><dt>${esc(l)}</dt>
-    <dd><strong>${esc(LABELS[l].name)}</strong><span>${esc(LABELS[l].hint)}</span><span class="label-find">${esc(LABELS[l].find)}</span></dd></div>`).join("");
+    <dd><strong>${esc(LABELS[l].name)}</strong><span>${esc(LABELS[l].hint)}</span><span class="label-find">${esc(LABELS[l].find)}</span>${labelListHtml(l)}</dd></div>`).join("");
   $("labels-patterns").innerHTML = patterns.length > 1
     ? `<h3 class="review-title">Patterns</h3><ul class="pattern-list">${patterns.map((n) => `<li>${esc(PATTERNS[n])}</li>`).join("")}</ul>` : "";
   openOverlay("labels-overlay");
@@ -376,31 +384,54 @@ function labelGlossary(skill, level) {
     ${patterns.length > 1 ? `<ul class="pattern-list">${patterns.map((n) => `<li>${esc(PATTERNS[n])}</li>`).join("")}</ul>` : ""}</details>`;
 }
 
-/** Every Tip Card the player has unlocked, by world and skill. Locked ones show only their title. */
+const wordChips = (words) => `<ul class="word-chips">${words.map((w) => `<li>${esc(w)}</li>`).join("")}</ul>`;
+
+function wordListsHtml() {
+  return `<p class="note rules-intro">Words to know when you look for each word's job. Tap a list to open it.</p>
+    <div class="rules-grid">${WORD_LISTS.map((list) => `<details class="rule-skill word-list" id="list-${list.id}">
+      <summary><span class="skill-name">${esc(list.title)}</span><span class="skill-count">${list.words.length} words</span></summary>
+      <p class="note">${esc(list.note)}</p>${wordChips(list.words)}</details>`).join("")}</div>`;
+}
+
+/**
+ * The Rule Book: one tab per open world plus Word lists, pinned at the top and wrapping (no sideways
+ * scrolling). A tab shows one world; each skill folds to a one-line header until it's tapped.
+ * Unlocked rules show their rule, example and read-aloud; locked ones show only their title.
+ */
 function renderRules(focusWorld, back) {
   const player = state.player;
-  state.rulesBack = back;
+  if (back) state.rulesBack = back;
   const worlds = WORLDS.filter((w) => worldOpenFor(w, player));
-  $("rules-jump").innerHTML = worlds.map((w) => `<button type="button" class="chip" data-jump="${w.id}">${w.emoji} ${esc(w.name)}</button>`).join("");
-  $("rules-list").innerHTML = worlds.map((world) => {
-    const skills = skillsInWorldFor(world.id, player).map((skill) => {
-      const cards = [1, 2, 3].map((level) => {
-        const key = `${skill.id}-${level}`;
-        const tip = state.content.tips[key];
-        const grade = `Level ${level} · Grade ${skill.grades[level - 1]}`;
-        if (!isUnlocked(player, skill.id, level)) {
-          return `<div class="rule-card locked"><p class="eyebrow">${grade}</p><h4>🔒 ${esc(tip.title)}</h4><p class="note">Unlocks when you pass level ${level - 1}.</p></div>`;
-        }
-        return `<div class="rule-card"><div class="rule-head"><div><p class="eyebrow">${grade}</p><h4>${esc(tip.title)}</h4></div>
-            ${canSay() ? `<button type="button" class="say-btn small" data-say-rule="${key}" aria-label="Read ${esc(tip.title)} aloud">🔊</button>` : ""}</div>
-          <p class="tip-rule">${esc(tip.rule)}</p><p class="tip-example">${esc(tip.example)}</p>${labelGlossary(skill, level)}</div>`;
-      }).join("");
-      return `<section class="rule-skill" style="--skill:${skill.color}"><h3>${esc(skill.name)}</h3>${cards}</section>`;
-    }).join("");
-    return `<section class="rule-world" id="rules-${world.id}"><h2 class="section-title">${world.emoji} ${esc(world.name)}</h2>${skills}</section>`;
-  }).join("");
+  const tabs = [...worlds.map((w) => ({ id: w.id, label: w.tab || w.name, emoji: w.emoji })), { id: "lists", label: "Word lists", emoji: "🔤" }];
+  const tab = tabs.some((t) => t.id === focusWorld) ? focusWorld : tabs.some((t) => t.id === state.rulesTab) ? state.rulesTab : tabs[0].id;
+  state.rulesTab = tab;
+  $("rules-tabs").innerHTML = tabs.map((t) => `<button type="button" class="rules-tab${t.id === tab ? " active" : ""}" role="tab"
+    aria-selected="${t.id === tab}" data-rules-tab="${t.id}"><span class="tab-emoji" aria-hidden="true">${t.emoji}</span><span>${esc(t.label)}</span></button>`).join("");
+  if (tab === "lists") {
+    $("rules-list").innerHTML = wordListsHtml();
+  } else {
+    const world = worlds.find((w) => w.id === tab);
+    const skills = skillsInWorldFor(world.id, player);
+    $("rules-list").innerHTML = `<section class="rule-world" id="rules-${world.id}">
+      <p class="note rules-intro">Tap a skill to see its rules. Tap 🔊 to hear one.</p>
+      <div class="rules-grid">${skills.map((skill) => {
+        const open = [1, 2, 3].filter((level) => isUnlocked(player, skill.id, level)).length;
+        const cards = [1, 2, 3].map((level) => {
+          const key = `${skill.id}-${level}`;
+          const tip = state.content.tips[key];
+          const grade = `Level ${level} · Grade ${skill.grades[level - 1]}`;
+          if (!isUnlocked(player, skill.id, level)) {
+            return `<div class="rule-card locked"><p class="eyebrow">${grade}</p><h4>🔒 ${esc(tip.title)}</h4><p class="note">Unlocks when you pass level ${level - 1}.</p></div>`;
+          }
+          return `<div class="rule-card"><div class="rule-head"><div><p class="eyebrow">${grade}</p><h4>${esc(tip.title)}</h4></div>
+              ${canSay() ? `<button type="button" class="say-btn small" data-say-rule="${key}" aria-label="Read ${esc(tip.title)} aloud">🔊</button>` : ""}</div>
+            <p class="tip-rule">${esc(tip.rule)}</p><p class="tip-example">${esc(tip.example)}</p>${labelGlossary(skill, level)}</div>`;
+        }).join("");
+        return `<details class="rule-skill" style="--skill:${skill.color}" data-rule-skill="${skill.id}">
+          <summary><span class="skill-name">${esc(skill.name)}</span><span class="skill-count">${open} of 3 open</span></summary>${cards}</details>`;
+      }).join("")}</div></section>`;
+  }
   showScreen("rules");
-  if (focusWorld) document.getElementById(`rules-${focusWorld}`)?.scrollIntoView({ block: "start" });
 }
 
 /* ==================== Badges ==================== */
@@ -659,9 +690,12 @@ function wire() {
     const tip = state.content.tips[btn.dataset.sayRule];
     say(`${tip.title}. ${tip.rule} For example: ${tip.example}`);
   });
-  $("rules-jump").addEventListener("click", (event) => {
-    const btn = event.target.closest("[data-jump]");
-    if (btn) document.getElementById(`rules-${btn.dataset.jump}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  $("rules-tabs").addEventListener("click", (event) => {
+    const btn = event.target.closest("[data-rules-tab]");
+    if (btn) {
+      renderRules(btn.dataset.rulesTab);
+      window.scrollTo(0, 0);
+    }
   });
   $("say-btn").addEventListener("click", readItem);
   $("check-btn").addEventListener("click", () => {

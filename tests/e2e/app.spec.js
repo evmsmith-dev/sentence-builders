@@ -411,28 +411,61 @@ test("a perfect round says there were no mistakes", async ({ page }) => {
   await expect(page.locator("#result-review")).toContainText("No mistakes this round");
 });
 
-test("Rule Book: unlocked rules with examples, locked ones by title, Flow Factory label glossary", async ({ page }) => {
+test("Rule Book: tabs for each world, folding skills, locked rules by title, label glossary", async ({ page }) => {
   await openApp(page, { players: [player({ grade: 4 })], current: "p1" });
   await page.locator("#rules-btn").click();
   await expect(page.locator("#rules")).toBeVisible();
-  await expect(page.locator("#rules-list")).toContainText("Commas in a list");
-  await expect(page.locator("#rules-list")).toContainText("We saw ducks, geese, and swans.");
-  const locked = page.locator(".rule-card.locked").filter({ hasText: "Commas and colons" });
-  await expect(page.locator(".rule-card.locked h4").first()).toContainText("🔒");
+  await expect(page.locator('[data-rules-tab="port"]')).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator('[data-rules-tab="desk"]')).toHaveCount(0); // no Editing Desk for a 4th grader
+  // Skills start folded; tapping one shows its rules.
+  await expect(page.locator('[data-rule-skill="commas"] .tip-example').first()).toBeHidden();
+  await page.locator('[data-rule-skill="commas"] > summary').click();
+  await expect(page.locator('[data-rule-skill="commas"] .tip-example').first()).toHaveText("We saw ducks, geese, and swans.");
+  await expect(page.locator('[data-rule-skill="commas"] .rule-card.locked h4')).toContainText("🔒");
   await expect(page.locator("#rules-list")).not.toContainText("Use a colon before a list"); // grade 5 rule stays hidden
-  await expect(page.locator("#rules-desk")).toHaveCount(0); // no Editing Desk for a 4th grader
-  await page.locator('#rules-flow .glossary summary').first().click();
-  await expect(page.locator("#rules-flow .glossary dl").first()).toContainText("subject noun");
+
+  // Tabs wrap and stay pinned: no sideways scrolling, still visible after scrolling down.
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+  const tabsBox = page.locator("#rules-tabs");
+  expect(await tabsBox.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
+  await page.mouse.wheel(0, 2000);
+  await expect(tabsBox).toBeInViewport();
+
+  await page.locator('[data-rules-tab="flow"]').click();
+  await page.locator('[data-rule-skill="flow"] > summary').click();
+  await page.locator('[data-rule-skill="flow"] .glossary summary').first().click();
+  await expect(page.locator('[data-rule-skill="flow"] .glossary dl').first()).toContainText("subject noun");
   await page.locator("#rules-back").click();
   await expect(page.locator("#home")).toBeVisible();
 
-  // From a world: opens at that world, back returns to the world.
+  // From a world: opens on that world's tab; back returns to the world.
   await page.locator('[data-world="studio"]').click();
   await page.locator("#world-rules").click();
-  await expect(page.locator("#rules-studio")).toBeInViewport();
+  await expect(page.locator('[data-rules-tab="studio"]')).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator("#rules-studio")).toBeVisible();
   await page.locator("#rules-back").click();
   await expect(page.locator("#world")).toBeVisible();
   await expect(page.locator("#world-title")).toContainText("Sentence Studio");
+});
+
+test("Word lists: prepositions and articles in the Rule Book and in the Labels reminder", async ({ page }) => {
+  await openApp(page, { players: [player({ grade: 5 })], current: "p1" });
+  await page.locator("#rules-btn").click();
+  await page.locator('[data-rules-tab="lists"]').click();
+  await page.locator("#list-prepositions summary").click();
+  await expect(page.locator("#list-prepositions .word-chips li")).toHaveCount(48);
+  await expect(page.locator("#list-prepositions")).toContainText("underneath");
+  await page.locator("#list-articles summary").click();
+  await expect(page.locator("#list-articles")).toContainText("an before a vowel sound");
+  await page.locator("#rules-back").click();
+
+  await startLevel(page, "flow", 2, "flow");
+  await page.locator("#item [data-labels-help]").click();
+  const p = page.locator("#labels-list .label-entry").filter({ has: page.locator("dt", { hasText: /^P$/ }) });
+  await p.locator(".label-words summary").click();
+  await expect(p.locator(".word-chips")).toContainText("between");
+  const a = page.locator("#labels-list .label-entry").filter({ has: page.locator("dt", { hasText: /^A$/ }) });
+  await expect(a.locator(".word-chips li")).toHaveText(["a", "an", "the"]);
 });
 
 test("the phone's Back button closes popups and steps back screens instead of leaving", async ({ page }) => {

@@ -16,12 +16,12 @@ export const MAX_GRADE = 8;
 export const MAX_PLAYERS = 4;
 
 export const WORLDS = [
-  { id: "port", name: "Punctuation Port", emoji: "⚓", ready: true, blurb: "Commas, colons, quotation marks and apostrophes" },
-  { id: "works", name: "Word Works", emoji: "⚙️", ready: true, blurb: "Verb tenses, agreement and pronouns" },
-  { id: "studio", name: "Sentence Studio", emoji: "🎨", ready: true, blurb: "Fragments, run-ons, compound and complex sentences" },
-  { id: "flow", name: "Flow Factory", emoji: "🏭", ready: true, blurb: "Label every word with the Q&A Flow" },
+  { id: "port", tab: "Punctuation", name: "Punctuation Port", emoji: "⚓", ready: true, blurb: "Commas, colons, quotation marks and apostrophes" },
+  { id: "works", tab: "Word Works", name: "Word Works", emoji: "⚙️", ready: true, blurb: "Verb tenses, agreement and pronouns" },
+  { id: "studio", tab: "Sentences", name: "Sentence Studio", emoji: "🎨", ready: true, blurb: "Fragments, run-ons, compound and complex sentences" },
+  { id: "flow", tab: "Q&A Flow", name: "Flow Factory", emoji: "🏭", ready: true, blurb: "Label every word with the Q&A Flow" },
   {
-    id: "desk", name: "Editing Desk", emoji: "📝", ready: true, minGrade: 6, blurb: "Grades 6–8: pronoun case and proofreading",
+    id: "desk", tab: "Editing", name: "Editing Desk", emoji: "📝", ready: true, minGrade: 6, blurb: "Grades 6–8: pronoun case and proofreading",
     comingSoon: "Coming next to the Editing Desk: dashes, hyphens and commas around extra information; compound-complex sentences; misplaced modifiers, active and passive voice.",
   },
 ];
@@ -114,6 +114,26 @@ export const PALETTES = {
   compound: [[","], [","], [",", ";"]],
   complex: [[","], [","], [","]],
 };
+// Quick-reference word lists for the Rule Book and the Labels reminder.
+export const WORD_LISTS = [
+  { id: "articles", title: "Articles (A)", note: "Use a before a consonant sound (a dog, a unicorn) and an before a vowel sound (an apple, an hour). The points to a certain one.", words: ["a", "an", "the"] },
+  {
+    id: "prepositions", title: "Common prepositions (P)", note: "A preposition starts a phrase that ends with a noun or pronoun: to the door, under the bed, with Sam.",
+    words: ["about", "above", "across", "after", "against", "along", "among", "around", "at", "before", "behind", "below", "beneath", "beside", "between", "beyond", "by", "down", "during", "except", "for", "from", "in", "inside", "into", "like", "near", "of", "off", "on", "onto", "out", "outside", "over", "past", "since", "through", "throughout", "to", "toward", "under", "underneath", "until", "up", "upon", "with", "within", "without"],
+  },
+  { id: "helping", title: "Helping verbs (HV)", note: "They come before the main verb: is running, can swim, has eaten.", words: ["am", "is", "are", "was", "were", "be", "being", "been", "has", "have", "had", "do", "does", "did", "can", "could", "may", "might", "must", "shall", "should", "will", "would"] },
+  { id: "linking", title: "Linking verbs (LV)", note: "They link the subject to a word that renames or describes it: The soup is hot. The others link only when they mean is: The soup smells good.", words: ["am", "is", "are", "was", "were", "be", "being", "been", "become", "seem", "appear", "look", "feel", "taste", "smell", "sound", "grow"] },
+  { id: "subject-pronouns", title: "Subject pronouns (SP)", note: "They do the action: She laughed.", words: ["I", "you", "he", "she", "it", "we", "they"] },
+  { id: "object-pronouns", title: "Object pronouns", note: "They get the action or come after a preposition: Mom called me. Sit with us.", words: ["me", "you", "him", "her", "it", "us", "them"] },
+  { id: "possessive", title: "Possessive pronouns (PPA)", note: "They show who owns something, with no apostrophe: my bike, its tail.", words: ["my", "your", "his", "her", "its", "our", "their"] },
+  { id: "reflexive", title: "Reflexive pronouns", note: "For when the one doing the action also gets it: I made it myself.", words: ["myself", "yourself", "himself", "herself", "itself", "ourselves", "yourselves", "themselves"] },
+  { id: "joining", title: "Joining words for compound sentences", note: "With a comma, they join two complete sentences.", words: ["for", "and", "nor", "but", "or", "yet", "so"] },
+  { id: "starting", title: "Joining words for complex sentences", note: "They start a part that can't stand alone: because it rained.", words: ["after", "although", "as", "because", "before", "even though", "if", "since", "though", "unless", "until", "when", "whenever", "where", "while"] },
+  { id: "relative", title: "Relative pronouns", note: "They start a part that tells more about a noun: the girl who won.", words: ["who", "whom", "whose", "which", "that"] },
+];
+// Which word list goes with which label in the Labels reminder.
+export const LABEL_LISTS = { A: "articles", P: "prepositions", HV: "helping", LV: "linking", SP: "subject-pronouns", PPA: "possessive" };
+
 // Shurley-style labels for the Q&A Flow. Each level adds labels; earlier ones stay.
 export const LABELS = {
   SN: { name: "subject noun", hint: "The subject noun tells who or what the sentence is about." , find: 'Ask who or what: "What ran?" → dogs' },

@@ -116,9 +116,10 @@
       <button type="button" id="rules-back" class="back" aria-label="Back">←</button>
       <h1 class="screen-title">📘 Rule Book</h1>
     </header>
-    <p class="note">Every rule you've unlocked, with an example. Tap 🔊 to hear it.</p>
-    <nav id="rules-jump" class="chip-row jump" aria-label="Jump to a world"></nav>
-    <div id="rules-list"></div>
+    <div class="rules-sticky">
+      <nav id="rules-tabs" class="rules-tabs" role="tablist" aria-label="Rule Book sections"></nav>
+    </div>
+    <div id="rules-list" role="tabpanel"></div>
   </main>
 
   <!-- ==================== Grown-up view ==================== -->
