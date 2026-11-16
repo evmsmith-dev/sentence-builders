@@ -200,6 +200,7 @@ test("Progress: open to everyone from the home screen; break reminder and backup
 });
 
 test("Sentence Studio: every level of all three skills, with Sentence check and Join it", async ({ page }) => {
+  test.slow(); // plays several whole levels: extra time for slower CI machines
   await openApp(page, { players: [player({ grade: 7 })], current: "p1" });
   for (const skill of ["fragments", "compound", "complex"]) {
     for (const level of [1, 2, 3]) {
@@ -244,6 +245,7 @@ test("Sentence check and Join it: a miss gives a hint, two show the answer", asy
 });
 
 test("Flow Factory: all three levels, 3 Q&A Flows then 2 Build from labels", async ({ page }) => {
+  test.slow(); // plays several whole levels: extra time for slower CI machines
   await openApp(page, { players: [player({ grade: 7 })], current: "p1" });
   for (const level of [1, 2, 3]) {
     await startLevel(page, "flow", level, "flow");
@@ -301,6 +303,7 @@ test("Revision Ridge: closed below grade 6, open for a 7th grader with grades 6-
 });
 
 test("Revision Ridge: play every skill, including hyphens, dashes, parentheses and ellipses", async ({ page }) => {
+  test.slow(); // plays several whole levels: extra time for slower CI machines
   test.setTimeout(120000);
   await openApp(page, { players: [player({ grade: 8 })], current: "p1" });
   const levels = [["case", 1, 8], ["case", 3, 8], ["proofread", 1, 5], ["proofread", 3, 5],
@@ -336,6 +339,7 @@ test("Proofread: tapping a fine word hints, a wrong fix twice shows it", async (
 });
 
 test("Advanced Q&A Flow: hidden below grade 6; questions, commands and patterns 6-7 for older players", async ({ page }) => {
+  test.slow(); // plays several whole levels: extra time for slower CI machines
   await openApp(page, { players: [player({ grade: 4 }), player({ id: "p2", name: "Max", avatar: "🐯", grade: 8 })], current: "p1" });
   await page.locator('[data-world="flow"]').click();
   await expect(page.locator('.level-btn[data-skill="flow2"]')).toHaveCount(0);
