@@ -142,7 +142,7 @@ function renderHome() {
   $("build-btn").innerHTML = buildCardHtml(player);
   // A player who hasn't met Pip yet gets his welcome once (unless Pip is turned off).
   if (!player.introSeen && settings().pip && !topOverlay()) setTimeout(() => !$("home").hidden && !topOverlay() && openPipIntro(), 250);
-  $("world-list").innerHTML = WORLDS.map((world) => {
+  const worldCards = WORLDS.map((world) => {
     const skills = skillsInWorldFor(world.id, player);
     const built = skills.reduce((n, s) => n + [1, 2, 3].filter((l) => isPassed(player, s.id, l)).length, 0);
     const open = worldOpenFor(world, player);
@@ -151,7 +151,16 @@ function renderHome() {
       <span class="world-emoji" aria-hidden="true">${world.emoji}</span>
       <span class="world-text"><span class="world-name">${esc(world.name)}</span><span class="world-blurb">${esc(world.blurb)}</span></span>
       <span class="world-meta">${meta}</span></button>`;
-  }).join("");
+  });
+  // Grammar Peaks isn't a world of skills, but it's a place on the island too: Summit Review and Spelling Lake.
+  // It comes after the open places and before any that open in a later grade.
+  const peaksCard = `<button type="button" class="world-card" data-peaks>
+      <span class="world-emoji" aria-hidden="true">⛰️</span>
+      <span class="world-text"><span class="world-name">Grammar Peaks</span><span class="world-blurb">Summit Review of the skills you've passed, and Spelling Lake</span></span>
+      <span class="world-meta">🚩 ${player.summits || 0} · ⛵ ${player.lakeWins || 0}</span></button>`;
+  const firstLocked = WORLDS.findIndex((w) => !worldOpenFor(w, player));
+  worldCards.splice(firstLocked < 0 ? worldCards.length : firstLocked, 0, peaksCard);
+  $("world-list").innerHTML = worldCards.join("");
   showScreen("home");
 }
 
@@ -1220,6 +1229,13 @@ function wire() {
       if (!state.player) return;
       renderHome();
       return openPipIntro();
+    }
+    if (target.closest("[data-peaks]")) {
+      // Show Grammar Peaks on the map, with its two rounds just below it.
+      state.map.focus("peaks");
+      const card = $("town").closest(".town-card");
+      card.scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+      return;
     }
     const practice = target.closest("[data-practice]");
     if (practice) return startPractice(practice.dataset.practice);

@@ -1088,3 +1088,13 @@ test("Word Parts, Word Choice and Figurative Language: play a level of each, and
   await page.locator("#rules-search").fill("telescope");
   await expect(page.locator(".search-hit").first()).toContainText("Greek");
 });
+
+test("Grammar Peaks has a card in the Worlds list that opens it on the map", async ({ page }) => {
+  await openApp(page, { players: [{ ...player(), summits: 2, lakeWins: 1 }], current: "p1" });
+  const card = page.locator("#world-list [data-peaks]");
+  await expect(card).toContainText("Grammar Peaks");
+  await expect(card).toContainText("🚩 2 · ⛵ 1");
+  await card.click();
+  await expect(page.locator(".town-map")).toHaveClass(/zoomed/);
+  await expect(page.locator('[data-practice="lake"]')).toBeVisible();
+});
