@@ -53,9 +53,12 @@ function applyTheme() {
 
 function renderPlayers() {
   applyTheme();
-  const cards = state.players.map((p) => `<button type="button" class="player-card" data-player="${esc(p.id)}">
+  const cards = state.players.map((p) => `<div class="player-tile">
+      <button type="button" class="player-card" data-player="${esc(p.id)}">
       <span class="avatar" aria-hidden="true">${p.avatar}</span><span class="player-name">${esc(p.name)}</span>
-      <span class="player-grade">${gradeLabel(p.grade)}</span></button>`).join("");
+      <span class="player-grade">${gradeLabel(p.grade)}</span></button>
+      <button type="button" class="player-edit" data-edit-player="${esc(p.id)}" aria-label="Edit ${esc(p.name)}" title="Edit">✏️</button>
+    </div>`).join("");
   const add = state.players.length < MAX_PLAYERS
     ? '<button type="button" class="player-card add" data-add-player><span class="avatar" aria-hidden="true">＋</span><span class="player-name">Add a player</span></button>' : "";
   $("player-list").innerHTML = cards + add;
@@ -580,29 +583,86 @@ async function restoreBackup(file) {
 
 /* ==================== Settings ==================== */
 
-function drawSettingsAvatars() {
-  $("set-avatar-grid").innerHTML = avatarGridHtml(state.player.avatar, "data-set-avatar", state.player.grade >= STUDIO_FROM_GRADE);
+/* ==================== Edit player (✏️ on a player card) ==================== */
+// Changes stay in the sheet until Save; Cancel, Escape or the phone's Back close it without saving.
+
+function drawEditAvatars() {
+  $("edit-avatar-grid").innerHTML = avatarGridHtml(state.edit.avatar, "data-edit-avatar", Number($("edit-grade").value) >= STUDIO_FROM_GRADE);
+}
+
+function openEditPlayer(id) {
+  const p = state.players.find((x) => x.id === id);
+  if (!p) return;
+  state.edit = { id, avatar: p.avatar };
+  $("edit-name").value = p.name;
+  $("edit-grade").value = String(p.grade);
+  $("edit-error").textContent = "";
+  $("edit-delete").textContent = "Delete player";
+  $("edit-delete").dataset.armed = "";
+  drawEditAvatars();
+  openOverlay("edit-overlay");
+  $("edit-title").focus();
+  document.querySelector("#edit-overlay .sheet").scrollTop = 0;
+}
+
+function afterPlayersChanged() {
+  if (!$("home").hidden && state.player) renderHome();
+  else if (!$("players").hidden) renderPlayers();
+}
+
+function saveEditPlayer(event) {
+  event.preventDefault();
+  const name = $("edit-name").value.trim();
+  if (!name) {
+    $("edit-error").textContent = "Type a name or nickname.";
+    $("edit-name").focus();
+    return;
+  }
+  const p = state.players.find((x) => x.id === state.edit.id);
+  const updated = { ...p, name, grade: Number($("edit-grade").value), avatar: state.edit.avatar };
+  state.players = state.players.map((x) => (x.id === updated.id ? updated : x));
+  savePlayers(state.players);
+  if (state.player?.id === updated.id) state.player = updated;
+  applyTheme();
+  state.edit = null;
+  closeOverlay("edit-overlay");
+  afterPlayersChanged();
+}
+
+function deleteEditPlayer() {
+  const btn = $("edit-delete");
+  const p = state.players.find((x) => x.id === state.edit.id);
+  if (!btn.dataset.armed) {
+    btn.dataset.armed = "1";
+    btn.textContent = `Tap again to delete ${p.name} and all their progress`;
+    return;
+  }
+  state.players = state.players.filter((x) => x.id !== p.id);
+  savePlayers(state.players);
+  if (state.player?.id === p.id) {
+    state.player = null;
+    saveCurrentId(null);
+  }
+  state.edit = null;
+  closeOverlay("edit-overlay");
+  if (!state.players.length) openAddPlayer();
+  else if (state.player && !$("home").hidden) renderHome();
+  else renderPlayers();
 }
 
 function openSettings() {
   const s = settings();
-  drawSettingsAvatars();
   $("set-autoread").checked = s.autoRead;
   $("set-pip").checked = s.pip;
   $("set-sound").checked = s.sound;
-  $("set-grade").value = String(state.player.grade);
   $("set-theme").value = s.theme || "auto";
-  $("delete-player").textContent = "Delete this player";
-  $("delete-player").dataset.armed = "";
   $("set-autoread").closest("label").hidden = !canSay();
   openOverlay("settings-overlay");
 }
 
 function changeSetting() {
-  queueMicrotask(drawSettingsAvatars);
   const player = {
     ...state.player,
-    grade: Number($("set-grade").value),
     settings: { ...state.player.settings, autoRead: $("set-autoread").checked, pip: $("set-pip").checked, sound: $("set-sound").checked,
       theme: $("set-theme").value },
   };
@@ -619,7 +679,14 @@ function gradeOptions() {
 function wire() {
   $("player-grade").innerHTML = gradeOptions();
   $("player-grade").addEventListener("change", drawAvatars);
-  $("set-grade").innerHTML = gradeOptions();
+  $("edit-grade").innerHTML = gradeOptions();
+  $("edit-grade").addEventListener("change", drawEditAvatars);
+  $("edit-form").addEventListener("submit", saveEditPlayer);
+  $("edit-delete").addEventListener("click", deleteEditPlayer);
+  $("edit-current").addEventListener("click", () => {
+    closeOverlay("settings-overlay");
+    openEditPlayer(state.player.id);
+  });
 
   document.addEventListener("click", (event) => {
     const target = event.target;
@@ -641,11 +708,12 @@ function wire() {
     if (target.closest("[data-grownup]")) return openAdultCheck();
     const playerBtn = target.closest("[data-player]");
     if (playerBtn) return choosePlayer(playerBtn.dataset.player);
-    const setAvatar = target.closest("[data-set-avatar]");
-    if (setAvatar && state.player) {
-      savePlayer({ ...state.player, avatar: setAvatar.dataset.setAvatar });
-      drawSettingsAvatars();
-      renderHome();
+    const editBtn = target.closest("[data-edit-player]");
+    if (editBtn) return openEditPlayer(editBtn.dataset.editPlayer);
+    const editAvatar = target.closest("[data-edit-avatar]");
+    if (editAvatar && state.edit) {
+      state.edit.avatar = editAvatar.dataset.editAvatar;
+      drawEditAvatars();
       return;
     }
     const avatar = target.closest("[data-avatar]");
@@ -764,25 +832,10 @@ function wire() {
     closeOverlay("result-overlay");
     renderHome();
   });
-  for (const id of ["set-autoread", "set-pip", "set-sound", "set-grade", "set-theme"]) $(id).addEventListener("change", changeSetting);
+  for (const id of ["set-autoread", "set-pip", "set-sound", "set-theme"]) $(id).addEventListener("change", changeSetting);
   $("switch-player").addEventListener("click", () => {
     closeOverlay("settings-overlay");
     renderPlayers();
-  });
-  $("delete-player").addEventListener("click", () => {
-    const btn = $("delete-player");
-    if (!btn.dataset.armed) {
-      btn.dataset.armed = "1";
-      btn.textContent = `Tap again to delete ${state.player.name} and all their progress`;
-      return;
-    }
-    state.players = state.players.filter((p) => p.id !== state.player.id);
-    savePlayers(state.players);
-    state.player = null;
-    saveCurrentId(null);
-    closeOverlay("settings-overlay");
-    if (state.players.length) renderPlayers();
-    else openAddPlayer();
   });
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {

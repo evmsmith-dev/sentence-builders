@@ -680,14 +680,43 @@ test("Studio look: automatic for grade 6+, and either look can be picked in Sett
   await expect(page.locator("body")).toHaveClass(/theme-studio/);
 });
 
-test("Settings: change the avatar; older players see sports and music avatars first", async ({ page }) => {
-  await openApp(page, { players: [player({ grade: 7, name: "Max" })], current: "p1" });
+test("Edit player: ✏️ on a player card changes name, grade and avatar on Save; Cancel keeps them", async ({ page }) => {
+  await openApp(page, { players: [player({ grade: 7, name: "Max" }), player({ id: "p2", name: "Ava", avatar: "🐼", grade: 4 })], current: "p1" });
+  await page.locator("#who-btn").click();
+  await expect(page.locator("#players")).toBeVisible();
+  // Cancel throws away changes.
+  await page.locator('[data-edit-player="p1"]').click();
+  await expect(page.locator("#edit-overlay")).toBeVisible();
+  await expect(page.locator("#edit-avatar-grid .avatar-group").first()).toHaveText("Sports, music and more");
+  await page.locator('#edit-avatar-grid [data-edit-avatar="🎧"]').click();
+  await page.locator("#edit-overlay [data-close]").click();
+  await expect(page.locator('[data-player="p1"]')).toContainText("🦊");
+  // Save keeps them.
+  await page.locator('[data-edit-player="p1"]').click();
+  await page.locator("#edit-name").fill("Maxwell");
+  await page.locator("#edit-grade").selectOption("8");
+  await page.locator('#edit-avatar-grid [data-edit-avatar="🎧"]').click();
+  await expect(page.locator('#edit-avatar-grid [data-edit-avatar="🎧"]')).toHaveAttribute("aria-pressed", "true");
+  await page.locator('#edit-form button[type="submit"]').click();
+  await expect(page.locator("#edit-overlay")).toBeHidden();
+  await expect(page.locator('[data-player="p1"]')).toContainText("🎧");
+  await expect(page.locator('[data-player="p1"]')).toContainText("Maxwell");
+  await expect(page.locator('[data-player="p1"]')).toContainText("Grade 8");
+  // An empty name isn't saved.
+  await page.locator('[data-edit-player="p2"]').click();
+  await page.locator("#edit-name").fill("  ");
+  await page.locator('#edit-form button[type="submit"]').click();
+  await expect(page.locator("#edit-error")).toHaveText("Type a name or nickname.");
+  // Delete asks twice.
+  await page.locator("#edit-delete").click();
+  await expect(page.locator("#edit-delete")).toContainText("Tap again to delete Ava");
+  await page.locator("#edit-delete").click();
+  await expect(page.locator('[data-player="p2"]')).toHaveCount(0);
+  // From Settings: Edit player opens the same sheet for the current player.
+  await page.locator('[data-player="p1"]').click();
   await page.locator("#settings-btn").click();
-  await page.locator(".set-avatar summary").click();
-  await expect(page.locator("#set-avatar-grid .avatar-group").first()).toHaveText("Sports, music and more");
-  await page.locator('#set-avatar-grid [data-set-avatar="🎧"]').click();
-  await expect(page.locator('#set-avatar-grid [data-set-avatar="🎧"]')).toHaveAttribute("aria-pressed", "true");
-  await expect(page.locator("#who-btn")).toContainText("🎧");
+  await page.locator("#edit-current").click();
+  await expect(page.locator("#edit-name")).toHaveValue("Maxwell");
   await page.reload();
   await expect(page.locator("#who-btn")).toContainText("🎧");
 });

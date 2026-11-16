@@ -96,7 +96,7 @@ button:disabled { cursor: default; }
 
 .form { display: flex; flex-direction: column; gap: 8px; }
 .form label, .form legend { font-weight: 700; margin-top: 6px; }
-.form input, .form select, .sheet select {
+.form input, .form select, .sheet select, .sheet input:not([type]) {
   min-height: 52px; padding: 8px 12px; border-radius: 12px; border: 2px solid var(--border); background: #fff; font-size: 1.1rem;
 }
 .form fieldset { border: 0; padding: 0; margin: 0; }
@@ -548,6 +548,18 @@ body.theme-studio .bubble::before, body.theme-studio .bubble::after { display: n
 .dg-dashes line { stroke: var(--text); stroke-width: 2; stroke-dasharray: 6 5; }
 
 .avatar-group { margin: 10px 2px 0; font-size: 0.85rem; font-weight: 700; color: var(--muted); }
-.set-avatar { margin: 10px 0; }
-.set-avatar summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; font-weight: 600; color: var(--primary); }
-.set-avatar #set-avatar-grid { max-height: 46vh; overflow-y: auto; padding: 2px; }
+
+.player-tile { position: relative; display: grid; }
+.player-edit {
+  position: absolute; top: 6px; right: 6px; width: 44px; height: 44px; border-radius: 12px;
+  border: 2px solid var(--border); background: var(--card); font-size: 1.1rem; display: grid; place-items: center;
+}
+.field-error { min-height: 1.2em; margin: 2px 0 6px; color: var(--danger); font-weight: 600; }
+#edit-overlay .sheet { max-height: 92vh; overflow-y: auto; }
+#edit-overlay .sheet-actions { flex-wrap: wrap; }
+#edit-overlay .danger-link { margin-right: auto; }
+#edit-overlay .sheet { padding-bottom: 0; }
+#edit-overlay .sheet-actions {
+  position: sticky; bottom: 0; margin: 12px -20px 0; padding: 12px 20px calc(12px + env(safe-area-inset-bottom));
+  background: var(--card); border-top: 1px solid var(--border);
+}

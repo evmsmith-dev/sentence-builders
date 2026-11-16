@@ -99,4 +99,4 @@ After every Q&A Flow, **Mark it up** walks through the Shurley Skill Check on th
 
 ## Looks
 
-Grades 6+ get the calmer **Studio** look by default (system font, slate and indigo, flatter cards, no cartoon helper); Settings → Look switches between Automatic, Bright and Studio for any player. Settings → Change avatar picks from 50 avatars in two groups (grade 6+ see Sports, music and more first).
+Grades 6+ get the calmer **Studio** look by default (system font, slate and indigo, flatter cards, no cartoon helper); Settings → Look switches between Automatic, Bright and Studio for any player. To change a player's name, avatar or grade, tap ✏️ on their card in Who's playing? (or Settings → Edit player); changes save on Save, and Delete player is there too. 50 avatars in two groups (grade 6+ see Sports, music and more first).

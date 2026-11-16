@@ -209,12 +209,6 @@
       <label class="toggle"><input type="checkbox" id="set-autoread"> Read every sentence aloud</label>
       <label class="toggle"><input type="checkbox" id="set-pip"> Pip's comments</label>
       <label class="toggle"><input type="checkbox" id="set-sound"> Sounds</label>
-      <label for="set-grade">Grade</label>
-      <select id="set-grade"></select>
-      <details class="set-avatar">
-        <summary>Change avatar</summary>
-        <div id="set-avatar-grid"></div>
-      </details>
       <label for="set-theme">Look</label>
       <select id="set-theme">
         <option value="auto">Automatic (Studio for grades 6+)</option>
@@ -222,12 +216,32 @@
         <option value="studio">Studio</option>
       </select>
       <div class="sheet-actions stack">
+        <button type="button" id="edit-current" class="secondary">Edit player: name, avatar, grade</button>
         <button type="button" id="switch-player" class="secondary">Switch player</button>
         <button type="button" class="secondary" data-grownup>Grown-up view</button>
-        <button type="button" id="delete-player" class="danger-link">Delete this player</button>
         <button type="button" class="primary" data-close>Done</button>
       </div>
     </div>
+  </div>
+
+  <div id="edit-overlay" class="overlay" hidden>
+    <form id="edit-form" class="sheet" role="dialog" aria-modal="true" aria-labelledby="edit-title" novalidate>
+      <h2 id="edit-title" tabindex="-1">Edit player</h2>
+      <label for="edit-name">Name</label>
+      <input id="edit-name" maxlength="16" autocomplete="off" enterkeyhint="done" aria-describedby="edit-error">
+      <p id="edit-error" class="field-error" aria-live="polite"></p>
+      <label for="edit-grade">Grade</label>
+      <select id="edit-grade"></select>
+      <fieldset>
+        <legend>Pick an avatar</legend>
+        <div id="edit-avatar-grid"></div>
+      </fieldset>
+      <div class="sheet-actions">
+        <button type="button" id="edit-delete" class="danger-link">Delete player</button>
+        <button type="button" class="secondary" data-close>Cancel</button>
+        <button type="submit" class="primary">Save</button>
+      </div>
+    </form>
   </div>
 
   <div id="quit-overlay" class="overlay" hidden>

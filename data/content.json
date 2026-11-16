@@ -201,13 +201,13 @@
      "example": "My twenty-one-year-old cousin—a real chef—made dinner."
    },
    "aside-2": {
-     "title": "Commas around extra information",
-     "rule": "Put commas around information the sentence could do without, like a name or description added after a noun, or a part starting with which. Leave the commas out when the words tell which one you mean.",
-     "example": "My dog, a beagle, loves snow. The dog that barks all night isn't mine."
+     "title": "Commas around extra information (parentheticals)",
+     "rule": "Extra information can come out without changing what the sentence means. Teachers and tests call it a parenthetical or nonrestrictive element. Put commas around it: a description added after a noun, a part starting with which, or an interrupter like however, of course, in fact or I think. Leave the commas out when the words tell which one you mean.",
+     "example": "My dog, a beagle, loves snow. The test, however, was easy. The dog that barks all night isn't mine."
    },
    "aside-3": {
      "title": "Dashes, parentheses and ellipses",
-     "rule": "Dashes make an add-on stand out, and parentheses make it quieter. Both go on each side of the add-on. An ellipsis (…) shows a pause or that words were left out.",
+     "rule": "A parenthetical can also go inside dashes or parentheses. Dashes make it stand out, and parentheses make it quieter; either way, one goes on each side. An ellipsis (…) shows a pause or that words were left out.",
      "example": "The trip (all six hours of it) was worth it. Well… I think so."
    },
    "types-1": {
@@ -1176,6 +1176,16 @@
   {"id": "flow2-3-20", "skill": "flow2", "level": 3, "type": "flow", "tags": "My|PPA brother|CSN and|C I|CSP built|V-t a|A fort.|DO", "steps": [["Who built a fort?", 1, "CSN"], [null, 3], ["What is being said about brother and I?", 4, "V"], ["Brother and I built what?", 6], [null, 4], [null, 5], [null, 2], ["Whose brother?", 0]], "kind": "D", "pattern": 2, "hint": "Look after the verb: nothing, DO, IO and DO, PrN, PA, DO and OCN, or DO and OCA. Two subjects or two verbs joined by and are compound: CSN, CSP or CV, with C for the conjunction."},
   {"id": "flow2-3-21", "skill": "flow2", "level": 3, "type": "flow", "tags": "The|A puppy|SN jumped|CV and|C barked!|CV", "steps": [["What jumped and barked?", 1], ["What is being said about puppy?", 2, "CV"], [null, 4], [null, 3], [null, 0]], "kind": "E", "pattern": 1, "hint": "Look after the verb: nothing, DO, IO and DO, PrN, PA, DO and OCN, or DO and OCA. Two subjects or two verbs joined by and are compound: CSN, CSP or CV, with C for the conjunction."},
   {"id": "flow2-3-22", "skill": "flow2", "level": 3, "type": "labels", "tiles": "Sam|CSN and|C Jada|CSN raced|V home.|Adv", "hint": "Each word has to match the label above its space. The first word goes first, and the end mark goes last."},
-  {"id": "flow2-3-23", "skill": "flow2", "level": 3, "type": "labels", "tiles": "The|A baby|SN giggled|CV and|C waved.|CV", "hint": "Each word has to match the label above its space. The first word goes first, and the end mark goes last."}
+  {"id": "flow2-3-23", "skill": "flow2", "level": 3, "type": "labels", "tiles": "The|A baby|SN giggled|CV and|C waved.|CV", "hint": "Each word has to match the label above its space. The first word goes first, and the end mark goes last."},
+  {"id": "aside-2-13", "skill": "aside", "level": 2, "type": "mark", "text": "The test[,] however[,] was easier than we expected.", "hint": "An interrupter like however, of course or in fact is a parenthetical: put a comma on each side of it."},
+  {"id": "aside-2-14", "skill": "aside", "level": 2, "type": "mark", "text": "We could[,] of course[,] try again tomorrow.", "hint": "An interrupter like however, of course or in fact is a parenthetical: put a comma on each side of it."},
+  {"id": "aside-2-15", "skill": "aside", "level": 2, "type": "mark", "text": "In fact[,] our team has won five games in a row.", "hint": "An interrupter at the start of a sentence gets a comma after it."},
+  {"id": "aside-2-16", "skill": "aside", "level": 2, "type": "mark", "text": "The museum[,] I think[,] opens at ten.", "hint": "An interrupter like however, of course or in fact is a parenthetical: put a comma on each side of it."},
+  {"id": "aside-2-17", "skill": "aside", "level": 2, "type": "mark", "text": "You need a permission slip[,] by the way.", "hint": "An interrupter at the end of a sentence gets a comma before it."},
+  {"id": "aside-2-18", "skill": "aside", "level": 2, "type": "mark", "text": "Pizza[,] for example[,] is my brother's favorite food.", "hint": "An interrupter like however, of course or in fact is a parenthetical: put a comma on each side of it."},
+  {"id": "aside-2-19", "skill": "aside", "level": 2, "type": "mark", "text": "The bus[,] not the train[,] stops near our school.", "hint": "A contrasting part like not the train is a parenthetical: put a comma on each side of it."},
+  {"id": "aside-2-20", "skill": "aside", "level": 2, "type": "which", "options": ["The storm, luckily, missed our town.", "The storm luckily, missed our town.", "The storm, luckily missed our town."], "hint": "An interrupter like however, of course or in fact is a parenthetical: put a comma on each side of it."},
+  {"id": "aside-2-21", "skill": "aside", "level": 2, "type": "which", "options": ["After all, it was only a practice game.", "After all it was only a practice game.", "After, all it was only a practice game."], "hint": "An interrupter at the start of a sentence gets a comma after it."},
+  {"id": "aside-2-22", "skill": "aside", "level": 2, "type": "which", "prompt": "Which sentence has a parenthetical (extra information) set off correctly?", "options": ["My cousin, who lives in Fargo, is visiting.", "My cousin who lives in Fargo, is visiting.", "My cousin, who lives in Fargo is visiting."], "hint": "A parenthetical needs a comma on both sides."}
  ]
 }
