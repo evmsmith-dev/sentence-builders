@@ -12,7 +12,7 @@ import {
 } from "./lib/progress.js";
 import { loadCurrentId, loadPlayers, saveCurrentId, savePlayers } from "./storage.js";
 import { pipSays, townSvg } from "./ui/art.js";
-import { $, closeOverlay, esc, openOverlay, pick, showScreen } from "./ui/dom.js";
+import { $, closeOverlay, esc, initBackButton, openOverlay, pick, showScreen, topOverlay } from "./ui/dom.js";
 import { renderItem } from "./ui/items.js";
 import { buzz, canSay, celebrate, say, sound, stopSaying } from "./ui/feel.js";
 import { registerServiceWorker } from "./ui/update.js";
@@ -712,6 +712,34 @@ function wire() {
   });
 }
 
+/* ==================== The phone's Back button ==================== */
+
+function atHome() {
+  if (topOverlay()) return false;
+  const screen = document.body.dataset.screen;
+  return screen === "home" || (screen === "players" && !state.player) || (screen === "add-player" && !state.players.length);
+}
+
+/** Back closes the popup on top, or steps back one screen. Mid-round it asks before leaving. */
+function handleBack() {
+  stopSaying();
+  const open = topOverlay();
+  if (open) {
+    closeOverlay(open.id);
+    if (open.id === "result-overlay") renderHome();
+    else if (open.id === "settings-overlay" && state.player) renderHome();
+    else if (open.id === "tip-overlay" && state.tip?.review) openOverlay("result-overlay");
+    return;
+  }
+  const screen = document.body.dataset.screen;
+  if (screen === "play" && state.play) openOverlay("quit-overlay");
+  else if (screen === "world" || screen === "badges") renderHome();
+  else if (screen === "rules") $("rules-back").click();
+  else if (screen === "parent") $("parent-back").click();
+  else if (screen === "add-player" && state.players.length) renderPlayers();
+  else if (screen === "players" && state.player) renderHome();
+}
+
 async function loadContent() {
   const response = await fetch("data/content.json");
   if (!response.ok) throw new Error(`content: ${response.status}`);
@@ -720,6 +748,7 @@ async function loadContent() {
 
 async function start() {
   wire();
+  initBackButton({ handleBack, atHome });
   try {
     state.content = await loadContent();
   } catch {

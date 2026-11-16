@@ -434,3 +434,65 @@ test("Rule Book: unlocked rules with examples, locked ones by title, Flow Factor
   await expect(page.locator("#world")).toBeVisible();
   await expect(page.locator("#world-title")).toContainText("Sentence Studio");
 });
+
+test("the phone's Back button closes popups and steps back screens instead of leaving", async ({ page }) => {
+  await openApp(page, { players: [player()], current: "p1" });
+  const back = () => page.goBack({ waitUntil: "commit" }).catch(() => {});
+
+  // World → Back → home
+  await page.locator('[data-world="port"]').click();
+  await back();
+  await expect(page.locator("#home")).toBeVisible();
+
+  // Tip Card → Back → closed, still on the world screen
+  await page.locator('[data-world="port"]').click();
+  await page.locator('.level-btn[data-skill="commas"][data-level="1"]').click();
+  await expect(page.locator("#tip-overlay")).toBeVisible();
+  await back();
+  await expect(page.locator("#tip-overlay")).toBeHidden();
+  await expect(page.locator("#world")).toBeVisible();
+
+  // Mid-round → Back → asks first; Back again → keep playing
+  await page.locator('.level-btn[data-skill="commas"][data-level="1"]').click();
+  await page.locator("#tip-start").click();
+  await back();
+  await expect(page.locator("#quit-overlay")).toBeVisible();
+  await back();
+  await expect(page.locator("#quit-overlay")).toBeHidden();
+  await expect(page.locator("#play")).toBeVisible();
+
+  // Finish the round → results → Back → town
+  for (let n = 0; n < 8; n++) {
+    await answer(page);
+    await page.locator("#next-btn").click();
+  }
+  await expect(page.locator("#result-overlay")).toBeVisible();
+  await back();
+  await expect(page.locator("#result-overlay")).toBeHidden();
+  await expect(page.locator("#home")).toBeVisible();
+
+  // Settings, Rule Book and Badges close with Back too
+  await page.locator("#settings-btn").click();
+  await back();
+  await expect(page.locator("#settings-overlay")).toBeHidden();
+  await page.locator("#rules-btn").click();
+  await back();
+  await expect(page.locator("#home")).toBeVisible();
+  await page.locator("#badges-btn").click();
+  await back();
+  await expect(page.locator("#home")).toBeVisible();
+});
+
+test("Back on a rule card opened from the results returns to the results", async ({ page }) => {
+  await openApp(page, { players: [player()], current: "p1" });
+  await startLevel(page, "verbs", 1, "works");
+  for (let n = 0; n < 8; n++) {
+    await answer(page);
+    await page.locator("#next-btn").click();
+  }
+  await page.locator("#result-rule").click();
+  await expect(page.locator("#tip-overlay")).toBeVisible();
+  await page.goBack({ waitUntil: "commit" }).catch(() => {});
+  await expect(page.locator("#tip-overlay")).toBeHidden();
+  await expect(page.locator("#result-overlay")).toBeVisible();
+});
