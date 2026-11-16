@@ -1,7 +1,7 @@
 // Startup and screens: players, the town, worlds, levels, results, badges and settings.
 import {
   AVATARS, HABIT_BADGES, ITEMS_PER_LEVEL, MAX_GRADE, MAX_PLAYERS, MIN_GRADE, PIP, SKILLS, TIER_NAMES, WORLDS, WORLD_BADGES,
-  GOLD_DAYS, skillById, skillOpenFor, skillsInWorld, skillsInWorldFor, worldOpenFor,
+  GOLD_DAYS, LABELS, PATTERNS, FLOW_LABELS, FLOW_PATTERNS, skillById, skillOpenFor, skillsInWorld, skillsInWorldFor, worldOpenFor,
 } from "./config.js";
 import { answerText, spokenText } from "./lib/parse.js";
 import { numberWords } from "./lib/words.js";
@@ -113,6 +113,7 @@ function renderHome() {
 /* ==================== World ==================== */
 
 function renderWorld(worldId) {
+  state.worldId = worldId;
   const world = WORLDS.find((w) => w.id === worldId);
   const player = state.player;
   $("world-title").textContent = `${world.emoji} ${world.name}`;
@@ -142,10 +143,13 @@ function renderWorld(worldId) {
 
 /* ==================== Tip Card ==================== */
 
-function openTip(skillId, level) {
+/** The Tip Card before a level, or (review) to look at the rule again from the results. */
+function openTip(skillId, level, { review = false } = {}) {
   const skill = skillById(skillId);
   const tip = state.content.tips[`${skillId}-${level}`];
-  state.tip = { skillId, level, tip };
+  state.tip = { skillId, level, tip, review };
+  $("tip-start").textContent = review ? "Back to my results" : "Let's build";
+  $("tip-close").hidden = review;
   $("tip-level").textContent = `${skill.name} · Level ${level} · Grade ${skill.grades[level - 1]}`;
   $("tip-title").textContent = tip.title;
   $("tip-rule").textContent = tip.rule;
@@ -325,6 +329,7 @@ function finishLevel() {
     return `<p class="new-badge"><span aria-hidden="true">${badge.emoji}</span> New badge: <strong>${esc(badge.name)}</strong>${tierName}</p>`;
   }).join("");
   state.lastPlayed = { skillId: play.skillId, level: play.level };
+  $("result-review").innerHTML = reviewHtml(play);
   const nextLevel = out.passed && play.level < 3 ? play.level + 1 : null;
   state.resultNext = out.passed ? (nextLevel ? { skillId: play.skillId, level: nextLevel } : { world: skill.world }) : { skillId: play.skillId, level: play.level };
   $("result-next").textContent = !out.passed ? "Try again" : nextLevel ? `Next: level ${nextLevel}` : `Back to ${WORLDS.find((w) => w.id === skill.world).name}`;
@@ -335,6 +340,56 @@ function finishLevel() {
     celebrate();
   }
   state.play = null;
+}
+
+/* ==================== Looking back: mistakes and the Rule Book ==================== */
+
+/** The round's missed items, written correctly with their rule. */
+function reviewHtml(play) {
+  const rows = play.results.filter((r) => !r.correct || r.tries > 1).map((r) => {
+    const item = play.items.find((i) => i.id === r.id);
+    const status = r.correct ? "Fixed on the second try" : "Answer shown";
+    return `<li class="review-row ${r.correct ? "second" : "missed"}"><span class="review-status">${status}</span>
+      <span class="review-answer">${esc(answerText(item))}</span><span class="review-rule">${esc(item.hint)}</span></li>`;
+  });
+  if (!rows.length) return '<p class="review-none">No mistakes this round. ✓</p>';
+  return `<h3 class="review-title">Look again (${rows.length})</h3><ol class="review-list">${rows.join("")}</ol>`;
+}
+
+function labelGlossary(skill, level) {
+  const labels = (FLOW_LABELS[skill.id] || [])[level - 1];
+  if (!labels) return "";
+  const patterns = (FLOW_PATTERNS[skill.id] || [])[level - 1] || [];
+  return `<details class="glossary"><summary>Labels${patterns.length > 1 ? " and patterns" : ""} for this level</summary>
+    <dl>${labels.map((l) => `<dt>${esc(l)}</dt><dd><strong>${esc(LABELS[l].name)}</strong>: ${esc(LABELS[l].hint)}</dd>`).join("")}</dl>
+    ${patterns.length > 1 ? `<ul class="pattern-list">${patterns.map((n) => `<li>${esc(PATTERNS[n])}</li>`).join("")}</ul>` : ""}</details>`;
+}
+
+/** Every Tip Card the player has unlocked, by world and skill. Locked ones show only their title. */
+function renderRules(focusWorld, back) {
+  const player = state.player;
+  state.rulesBack = back;
+  const worlds = WORLDS.filter((w) => worldOpenFor(w, player));
+  $("rules-jump").innerHTML = worlds.map((w) => `<button type="button" class="chip" data-jump="${w.id}">${w.emoji} ${esc(w.name)}</button>`).join("");
+  $("rules-list").innerHTML = worlds.map((world) => {
+    const skills = skillsInWorldFor(world.id, player).map((skill) => {
+      const cards = [1, 2, 3].map((level) => {
+        const key = `${skill.id}-${level}`;
+        const tip = state.content.tips[key];
+        const grade = `Level ${level} · Grade ${skill.grades[level - 1]}`;
+        if (!isUnlocked(player, skill.id, level)) {
+          return `<div class="rule-card locked"><p class="eyebrow">${grade}</p><h4>🔒 ${esc(tip.title)}</h4><p class="note">Unlocks when you pass level ${level - 1}.</p></div>`;
+        }
+        return `<div class="rule-card"><div class="rule-head"><div><p class="eyebrow">${grade}</p><h4>${esc(tip.title)}</h4></div>
+            ${canSay() ? `<button type="button" class="say-btn small" data-say-rule="${key}" aria-label="Read ${esc(tip.title)} aloud">🔊</button>` : ""}</div>
+          <p class="tip-rule">${esc(tip.rule)}</p><p class="tip-example">${esc(tip.example)}</p>${labelGlossary(skill, level)}</div>`;
+      }).join("");
+      return `<section class="rule-skill" style="--skill:${skill.color}"><h3>${esc(skill.name)}</h3>${cards}</section>`;
+    }).join("");
+    return `<section class="rule-world" id="rules-${world.id}"><h2 class="section-title">${world.emoji} ${esc(world.name)}</h2>${skills}</section>`;
+  }).join("");
+  showScreen("rules");
+  if (focusWorld) document.getElementById(`rules-${focusWorld}`)?.scrollIntoView({ block: "start" });
 }
 
 /* ==================== Badges ==================== */
@@ -568,7 +623,35 @@ function wire() {
     const { tip } = state.tip;
     say(`${tip.title}. ${tip.rule} For example: ${tip.example}`);
   });
-  $("tip-start").addEventListener("click", () => startLevel(state.tip.skillId, state.tip.level));
+  $("tip-start").addEventListener("click", () => {
+    if (state.tip.review) {
+      closeOverlay("tip-overlay");
+      openOverlay("result-overlay");
+    } else {
+      startLevel(state.tip.skillId, state.tip.level);
+    }
+  });
+  $("result-rule").addEventListener("click", () => {
+    closeOverlay("result-overlay");
+    openTip(state.lastPlayed.skillId, state.lastPlayed.level, { review: true });
+  });
+  $("rules-btn").addEventListener("click", () => renderRules(null, "home"));
+  $("world-rules").addEventListener("click", () => renderRules(state.worldId, "world"));
+  $("rules-back").addEventListener("click", () => {
+    stopSaying();
+    if (state.rulesBack === "world" && state.worldId) renderWorld(state.worldId);
+    else renderHome();
+  });
+  $("rules-list").addEventListener("click", (event) => {
+    const btn = event.target.closest("[data-say-rule]");
+    if (!btn) return;
+    const tip = state.content.tips[btn.dataset.sayRule];
+    say(`${tip.title}. ${tip.rule} For example: ${tip.example}`);
+  });
+  $("rules-jump").addEventListener("click", (event) => {
+    const btn = event.target.closest("[data-jump]");
+    if (btn) document.getElementById(`rules-${btn.dataset.jump}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
   $("say-btn").addEventListener("click", readItem);
   $("check-btn").addEventListener("click", () => {
     const ctrl = state.play?.ctrl;
@@ -623,6 +706,7 @@ function wire() {
       if (open && open.id !== "result-overlay") {
         closeOverlay(open.id);
         if (open.id === "settings-overlay") renderHome();
+        if (open.id === "tip-overlay" && state.tip?.review) openOverlay("result-overlay");
       }
     }
   });

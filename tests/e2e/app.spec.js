@@ -367,3 +367,70 @@ test("Advanced Q&A Flow: pattern choices go up to 7 and the understood (You) is 
   await expect(page.locator("#item [data-pattern]")).toHaveCount(7);
   await expect(page.locator('#item [data-pattern="6"]')).toHaveText("SN V-t DO OCN P6");
 });
+
+test("after a round: mistakes listed correctly, Review the rule opens the Tip Card and comes back", async ({ page }) => {
+  await openApp(page, { players: [player()], current: "p1" });
+  await startLevel(page, "commas", 2);
+  let missed = null;
+  for (let n = 0; n < 8; n++) {
+    if (!missed) {
+      const item = await currentItem(page);
+      await miss(page);
+      if (await miss(page)) missed = item;
+      else await answer(page);
+    } else {
+      await answer(page);
+    }
+    await page.locator("#next-btn").click();
+  }
+  await expect(page.locator("#result-review .review-title")).toContainText("Look again");
+  const { answerText } = await import("../../src/lib/parse.js");
+  await expect(page.locator("#result-review")).toContainText(answerText(missed));
+  await expect(page.locator("#result-review")).toContainText(missed.hint);
+
+  await page.locator("#result-rule").click();
+  await expect(page.locator("#tip-overlay")).toBeVisible();
+  await expect(page.locator("#tip-title")).toHaveText("Commas with clauses");
+  await expect(page.locator("#tip-close")).toBeHidden();
+  await page.locator("#tip-start").click();
+  await expect(page.locator("#result-overlay")).toBeVisible();
+  await expect(page.locator("#play")).toBeVisible(); // still on the results, nothing new started
+
+  await page.locator("#result-rule").click();
+  await page.keyboard.press("Escape");
+  await expect(page.locator("#result-overlay")).toBeVisible();
+});
+
+test("a perfect round says there were no mistakes", async ({ page }) => {
+  await openApp(page, { players: [player()], current: "p1" });
+  await startLevel(page, "verbs", 1, "works");
+  for (let n = 0; n < 8; n++) {
+    await answer(page);
+    await page.locator("#next-btn").click();
+  }
+  await expect(page.locator("#result-review")).toContainText("No mistakes this round");
+});
+
+test("Rule Book: unlocked rules with examples, locked ones by title, Flow Factory label glossary", async ({ page }) => {
+  await openApp(page, { players: [player({ grade: 4 })], current: "p1" });
+  await page.locator("#rules-btn").click();
+  await expect(page.locator("#rules")).toBeVisible();
+  await expect(page.locator("#rules-list")).toContainText("Commas in a list");
+  await expect(page.locator("#rules-list")).toContainText("We saw ducks, geese, and swans.");
+  const locked = page.locator(".rule-card.locked").filter({ hasText: "Commas and colons" });
+  await expect(page.locator(".rule-card.locked h4").first()).toContainText("🔒");
+  await expect(page.locator("#rules-list")).not.toContainText("Use a colon before a list"); // grade 5 rule stays hidden
+  await expect(page.locator("#rules-desk")).toHaveCount(0); // no Editing Desk for a 4th grader
+  await page.locator('#rules-flow .glossary summary').first().click();
+  await expect(page.locator("#rules-flow .glossary dl").first()).toContainText("subject noun");
+  await page.locator("#rules-back").click();
+  await expect(page.locator("#home")).toBeVisible();
+
+  // From a world: opens at that world, back returns to the world.
+  await page.locator('[data-world="studio"]').click();
+  await page.locator("#world-rules").click();
+  await expect(page.locator("#rules-studio")).toBeInViewport();
+  await page.locator("#rules-back").click();
+  await expect(page.locator("#world")).toBeVisible();
+  await expect(page.locator("#world-title")).toContainText("Sentence Studio");
+});

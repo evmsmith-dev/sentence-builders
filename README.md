@@ -50,6 +50,7 @@ Proofreading levels are 5 paragraphs: tap a mistake, pick the fix. Still to come
 - Gold on a skill: 7 or more on its level 3 on two different days. That turns its tower into a lighthouse.
 - Badges: one per skill (Bronze, Silver, Gold), one per world (Port Champion, Works Wizard, Studio Star, Chief Editor), First Brick, Builder's Week and Fix-It Pro.
 - Settings per player: read every sentence aloud, Pip's comments, sounds, grade.
+- **Looking back:** the results screen lists the round's mistakes ("Look again"), each written correctly with its rule, and a **Review the rule** button reopens that level's Tip Card and returns to the results. The **Rule Book** (home screen chip, or the 📘 button on a world) shows every unlocked Tip Card with its example and read-aloud, plus the labels and patterns for each Flow Factory level; locked rules show only their title.
 - **Grown-up view** (from the player screen or Settings, behind a "type this number" check): per child, minutes and days played this week, stars and badge for every skill, the sentences missed most, and a break reminder (off, 15, 20, 30 or 45 minutes). It also saves and restores a backup file.
 - Everything is saved on the device (localStorage). No accounts, ads, tracking or network calls.
 
