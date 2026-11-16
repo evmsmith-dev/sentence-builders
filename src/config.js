@@ -20,6 +20,10 @@ export const WORLDS = [
   { id: "works", name: "Word Works", emoji: "⚙️", ready: true, blurb: "Verb tenses, agreement and pronouns" },
   { id: "studio", name: "Sentence Studio", emoji: "🎨", ready: true, blurb: "Fragments, run-ons, compound and complex sentences" },
   { id: "flow", name: "Flow Factory", emoji: "🏭", ready: true, blurb: "Label every word with the Q&A Flow" },
+  {
+    id: "desk", name: "Editing Desk", emoji: "📝", ready: true, minGrade: 6, blurb: "Grades 6–8: pronoun case and proofreading",
+    comingSoon: "Coming next to the Editing Desk: dashes, hyphens and commas around extra information; compound-complex sentences; misplaced modifiers, active and passive voice.",
+  },
 ];
 
 // grades: the grade each of the skill's 3 levels belongs to (2020 Minnesota ELA benchmarks).
@@ -77,6 +81,18 @@ export const SKILLS = [
     levelPlan: [{ type: "flow", count: 3 }, { type: "labels", count: 2 }],
     goldNeedsAllRight: "labels",
   },
+  {
+    id: "case", world: "desk", name: "Pronoun case and clarity", short: "Pronoun case", color: "#00695c",
+    grades: [6, 7, 8], benchmarks: "MN 6.2.1.1, 7.2.1.1, 8.2.1.1",
+    badge: { id: "case-closed", name: "Case Closed", emoji: "🕵️" },
+  },
+  {
+    id: "proofread", world: "desk", name: "Proofreading", short: "Proofread", color: "#ad1457",
+    grades: [6, 7, 8], benchmarks: "MN 6.2.1.1, 7.2.1.1, 8.2.1.1 (edit for punctuation, capitalization and grammar)",
+    badge: { id: "eagle-eye", name: "Eagle Eye", emoji: "🦅" },
+    // Paragraphs take longer, so a level is 5 of them, no review.
+    levelPlan: [{ type: "proofread", count: 5 }],
+  },
 ];
 
 // The marks offered on "Mark it" items, per skill and level; the right marks are always added.
@@ -126,6 +142,9 @@ export const PATTERNS = { 1: "SN V P1", 2: "SN V-t DO P2", 3: "SN V-t IO DO P3",
 
 export const MARK_ORDER = [",", ".", "?", "!", '"', "'", ":", ";"];
 
+/** Worlds a player can open: the Editing Desk waits until grade 6. */
+export const worldOpenFor = (world, player) => world.ready && (!world.minGrade || (player?.grade || 0) >= world.minGrade);
+
 export const skillById = (id) => SKILLS.find((skill) => skill.id === id);
 export const skillsInWorld = (worldId) => SKILLS.filter((skill) => skill.world === worldId);
 
@@ -137,6 +156,7 @@ export const WORLD_BADGES = [
   { id: "port-champion", world: "port", name: "Port Champion", emoji: "🏆", how: "Get every Punctuation Port skill to Silver." },
   { id: "works-wizard", world: "works", name: "Works Wizard", emoji: "🧙", how: "Get every Word Works skill to Silver." },
   { id: "studio-star", world: "studio", name: "Studio Star", emoji: "⭐", how: "Get every Sentence Studio skill to Silver." },
+  { id: "chief-editor", world: "desk", name: "Chief Editor", emoji: "🖋️", how: "Get every Editing Desk skill to Silver." },
 ];
 export const HABIT_BADGES = [
   { id: "first-brick", name: "First Brick", emoji: "🧱", how: "Finish your first level.", goal: 1, measure: "levelsPassed" },

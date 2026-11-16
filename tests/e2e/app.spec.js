@@ -214,7 +214,7 @@ test("Sentence Studio: every level of all three skills, with Sentence check and 
       await page.locator("#result-town").click();
     }
   }
-  await expect(page.locator(".town")).toHaveAttribute("aria-label", /9 of 30 buildings/);
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /9 of 36 buildings/);
 });
 
 test("Sentence check and Join it: a miss gives a hint, two show the answer", async ({ page }) => {
@@ -261,7 +261,7 @@ test("Flow Factory: all three levels, 3 Q&A Flows then 2 Build from labels", asy
     await expect(page.locator("#result-score")).toContainText("5 of 5 points");
     await page.locator("#result-town").click();
   }
-  await expect(page.locator(".town")).toHaveAttribute("aria-label", /3 of 30 buildings/);
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /3 of 36 buildings/);
 });
 
 test("Q&A Flow: a miss gives a step hint; a second miss shows that step and moves on", async ({ page }) => {
@@ -281,4 +281,50 @@ test("Q&A Flow: a miss gives a step hint; a second miss shows that step and move
   await expect(page.locator("#feedback.hint")).toBeVisible();
   await answer(page);
   await expect(page.locator("#feedback.good")).toContainText("A hint helped");
+});
+
+test("Editing Desk: closed below grade 6, open for a 7th grader with grades 6-7 unlocked", async ({ page }) => {
+  await openApp(page, { players: [player({ grade: 4 }), player({ id: "p2", name: "Max", avatar: "🐯", grade: 7 })], current: "p1" });
+  await expect(page.locator('[data-world="desk"]')).toBeDisabled();
+  await expect(page.locator('[data-world="desk"]')).toContainText("Grade 6+");
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /of 30 buildings/);
+  await page.locator("#who-btn").click();
+  await page.locator('[data-player="p2"]').click();
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /of 36 buildings/);
+  await page.locator('[data-world="desk"]').click();
+  await expect(page.locator('.level-btn[data-skill="case"][data-level="2"]')).toBeEnabled();
+  await expect(page.locator('.level-btn[data-skill="case"][data-level="3"]')).toBeDisabled();
+  await expect(page.locator("#skill-list .coming-soon")).toContainText("Coming next");
+});
+
+test("Editing Desk: play Pronoun case and Proofreading levels", async ({ page }) => {
+  await openApp(page, { players: [player({ grade: 8 })], current: "p1" });
+  for (const [skill, level, count] of [["case", 1, 8], ["case", 3, 8], ["proofread", 1, 5], ["proofread", 3, 5]]) {
+    await startLevel(page, skill, level, "desk");
+    for (let n = 0; n < count; n++) {
+      await expect(page.locator("#progress-text")).toHaveText(`${n + 1} of ${count}`);
+      await answer(page);
+      await expect(page.locator("#feedback.good")).toBeVisible();
+      await page.locator("#next-btn").click();
+    }
+    await expect(page.locator("#result-title")).toHaveText("Perfect build!");
+    await page.locator("#result-town").click();
+  }
+});
+
+test("Proofread: tapping a fine word hints, a wrong fix twice shows it", async ({ page }) => {
+  await openApp(page, { players: [player({ grade: 8 })], current: "p1" });
+  await startLevel(page, "proofread", 2, "desk");
+  const item = await currentItem(page);
+  const errorIndexes = new Set((await import("../../src/lib/parse.js")).parseProofread(item).errors.map((e) => e.index));
+  const fine = [0, 1, 2, 3, 4, 5].find((i) => !errorIndexes.has(i));
+  await page.locator(`#item [data-pw="${fine}"]`).click();
+  await expect(page.locator("#feedback.hint")).toContainText("That word is fine");
+  await miss(page);
+  await expect(page.locator("#feedback.hint")).toContainText("Not that one");
+  await miss(page);
+  await expect(page.locator("#feedback.hint")).toContainText("Here's that one");
+  await expect(page.locator("#item .proof-count")).toContainText("Mistakes fixed: 1 of 3");
+  await answer(page);
+  await expect(page.locator("#feedback.shown")).toContainText("come back later");
 });

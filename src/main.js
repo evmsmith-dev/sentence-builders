@@ -1,7 +1,7 @@
 // Startup and screens: players, the town, worlds, levels, results, badges and settings.
 import {
   AVATARS, HABIT_BADGES, ITEMS_PER_LEVEL, MAX_GRADE, MAX_PLAYERS, MIN_GRADE, PIP, SKILLS, TIER_NAMES, WORLDS, WORLD_BADGES,
-  GOLD_DAYS, skillById, skillsInWorld,
+  GOLD_DAYS, skillById, skillsInWorld, worldOpenFor,
 } from "./config.js";
 import { answerText, spokenText } from "./lib/parse.js";
 import { numberWords } from "./lib/words.js";
@@ -73,7 +73,7 @@ function choosePlayer(id) {
 /* ==================== Home ==================== */
 
 function nextUp(player) {
-  for (const skill of SKILLS) {
+  for (const skill of SKILLS.filter((sk) => worldOpenFor(WORLDS.find((w) => w.id === sk.world), player))) {
     for (const level of [1, 2, 3]) {
       if (isUnlocked(player, skill.id, level) && !isPassed(player, skill.id, level)) return { skill, level };
     }
@@ -96,10 +96,12 @@ function renderHome() {
   $("world-list").innerHTML = WORLDS.map((world) => {
     const skills = skillsInWorld(world.id);
     const built = skills.reduce((n, s) => n + [1, 2, 3].filter((l) => isPassed(player, s.id, l)).length, 0);
-    return `<button type="button" class="world-card${world.ready ? "" : " soon"}" data-world="${world.id}" ${world.ready ? "" : "disabled"}>
+    const open = worldOpenFor(world, player);
+    const meta = open ? `${built}/${skills.length * 3} built` : world.ready ? `Grade ${world.minGrade}+` : "Coming soon";
+    return `<button type="button" class="world-card${open ? "" : " soon"}" data-world="${world.id}" ${open ? "" : "disabled"}>
       <span class="world-emoji" aria-hidden="true">${world.emoji}</span>
       <span class="world-text"><span class="world-name">${esc(world.name)}</span><span class="world-blurb">${esc(world.blurb)}</span></span>
-      <span class="world-meta">${world.ready ? `${built}/${skills.length * 3} built` : "Coming soon"}</span></button>`;
+      <span class="world-meta">${meta}</span></button>`;
   }).join("");
   showScreen("home");
 }
@@ -130,7 +132,7 @@ function renderWorld(worldId) {
       <div class="levels">${levels}</div>
       ${gold ? `<p class="gold-note">${esc(gold)}</p>` : ""}
     </section>`;
-  }).join("");
+  }).join("") + (world.comingSoon ? `<p class="note coming-soon">${esc(world.comingSoon)}</p>` : "");
   showScreen("world");
 }
 
@@ -264,10 +266,10 @@ function completeItem({ tries, correct }) {
     sound("right", s.sound);
     buzz(10);
     $("feedback").className = "feedback good";
-    $("feedback").innerHTML = `<p><strong>✓ ${esc(tries === 1 ? pick(PIP.right) : "All labelled. A hint helped on the way.")}</strong></p>`;
+    $("feedback").innerHTML = `<p><strong>✓ ${esc(tries === 1 ? pick(PIP.right) : "Done! A hint helped on the way.")}</strong></p>`;
   } else {
     $("feedback").className = "feedback shown";
-    $("feedback").innerHTML = `<p><strong>All labelled. Some steps were shown, so this one will come back later.</strong></p><p class="answer-line">${esc(answerText(item))}</p>`;
+    $("feedback").innerHTML = `<p><strong>Done. Some answers were shown, so this one will come back later.</strong></p><p class="answer-line">${esc(answerText(item))}</p>`;
   }
 }
 
@@ -374,7 +376,7 @@ function renderParent() {
     const week = weekSummary(p, now);
     const badges = Object.values(currentBadges(p)).filter(Boolean).length;
     const last = p.days.length ? [...p.days].sort().at(-1) : null;
-    const worlds = WORLDS.filter((w) => w.ready).map((world) => {
+    const worlds = WORLDS.filter((w) => worldOpenFor(w, p)).map((world) => {
       const rows = skillsInWorld(world.id).map((skill) => {
         const tier = skillTier(p, skill.id);
         const cells = [1, 2, 3].map((level) => {

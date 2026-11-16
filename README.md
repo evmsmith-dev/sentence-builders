@@ -2,7 +2,7 @@
 
 A grammar and punctuation game for grades 3–5 that installs as an app on phones, tablets and computers (PWA) and works offline. Players fix and build sentences; each level they pass puts up a building in their town, and badges reward mastery and steady practice. Skills follow the 2020 Minnesota K–12 ELA standards.
 
-All four worlds are playable: **Punctuation Port**, **Word Works**, **Sentence Studio** and **Flow Factory** (Shurley-style Q&A Flow).
+Five worlds are playable: **Punctuation Port**, **Word Works**, **Sentence Studio**, **Flow Factory** (Shurley-style Q&A Flow) and, for grades 6–8, the **Editing Desk**.
 
 | Skill | Level 1 | Level 2 | Level 3 |
 | --- | --- | --- | --- |
@@ -28,15 +28,26 @@ All four worlds are playable: **Punctuation Port**, **Word Works**, **Sentence S
 
 Flow Factory levels are 5 items: 3 Q&A Flows, then 2 Build-from-labels sentences, which must be right for Gold. In a flow, kids answer one question at a time (tap the word, then pick its label); a miss gives a hint for that step, and a second miss shows that step and moves on. Labels and question order follow Shurley English Levels 3–5 as commonly taught; the sentences are original.
 
+### Editing Desk (grades 6–8)
+
+Opens for players in grade 6 or higher. Minnesota's grade 6–8 benchmarks (6.2.1.1, 7.2.1.1, 8.2.1.1) ask for correct punctuation, capitalization and grammar in edited writing, so the skills follow the usual middle-school sequence.
+
+| Skill | Level 1 (gr 6) | Level 2 (gr 7) | Level 3 (gr 8) |
+| --- | --- | --- | --- |
+| Pronoun case and clarity | I or me; we or us | Clear pronouns, no shifts to you | who or whom |
+| Proofreading | Paragraphs with 2 mistakes | 3 mistakes | 4 mistakes |
+
+Proofreading levels are 5 paragraphs: tap a mistake, pick the fix. Still to come: dashes, hyphens and commas around extra information; compound-complex sentences; modifiers and voice.
+
 ## How it plays
 
 - Up to 4 players per device, each with a name, avatar and grade. Levels at or below a player's grade start unlocked, so an older child can review anything.
 - A level opens with a Tip Card (the rule and an example, with read-aloud), then 8 items: 6 on the skill and 2 review items from levels already passed (Flow Factory: 5 items, see above).
-- Nine kinds of items: **Mark it** (tap a space, add the marks; where commas are the only choice, a tap adds or removes one), **Fix it** (find the wrong word and fix it), **Which is right?**, **Build it** (put the pieces in order) **Sort it** (tap a word, then the box it belongs in), **Sentence check** (complete, fragment or run-on, then the best fix) **Join it** (pick the joining word, then decide if a comma goes in), **Q&A Flow** and **Build from labels**.
+- Ten kinds of items: **Mark it** (tap a space, add the marks; where commas are the only choice, a tap adds or removes one), **Fix it** (find the wrong word and fix it), **Which is right?**, **Build it** (put the pieces in order) **Sort it** (tap a word, then the box it belongs in), **Sentence check** (complete, fragment or run-on, then the best fix) **Join it** (pick the joining word, then decide if a comma goes in), **Q&A Flow**, **Build from labels** and **Proofread**.
 - A first miss shows a hint and allows a second try; a second miss shows the answer, and the item comes back later.
 - Points: 1 for right on the first try, ½ on the second. Stars at 6, 7 and 8 points out of 8 (scaled for shorter levels); under 6 means "build it again", and nothing is lost.
 - Gold on a skill: 7 or more on its level 3 on two different days. That turns its tower into a lighthouse.
-- Badges: one per skill (Bronze, Silver, Gold), one per world (Port Champion, Works Wizard, Studio Star), First Brick, Builder's Week and Fix-It Pro.
+- Badges: one per skill (Bronze, Silver, Gold), one per world (Port Champion, Works Wizard, Studio Star, Chief Editor), First Brick, Builder's Week and Fix-It Pro.
 - Settings per player: read every sentence aloud, Pip's comments, sounds, grade.
 - **Grown-up view** (from the player screen or Settings, behind a "type this number" check): per child, minutes and days played this week, stars and badge for every skill, the sentences missed most, and a break reminder (off, 15, 20, 30 or 45 minutes). It also saves and restores a backup file.
 - Everything is saved on the device (localStorage). No accounts, ads, tracking or network calls.

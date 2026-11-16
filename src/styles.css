@@ -263,6 +263,17 @@ button:disabled { cursor: default; }
 .slot-empty { display: block; width: 64px; height: 52px; border-radius: 12px; border: 2px dashed var(--border); background: #f7faff; }
 .label-line { margin: 0 0 6px; font-weight: 700; color: var(--shown); }
 
+/* Proofread */
+.proof-count { margin: 0 0 8px; font-size: 0.85rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.proof-text { margin: 0; font-size: 1.3rem; line-height: 2.3; }
+.proof-word { display: inline; padding: 6px 3px; border: 0; border-bottom: 2px solid transparent; border-radius: 6px; background: none; font-size: inherit; line-height: inherit; }
+button.proof-word:hover { background: var(--primary-soft); }
+.proof-word.selected { background: var(--primary-soft); border-bottom-color: var(--primary); }
+.proof-word.pointed { background: #fff4d6; box-shadow: 0 0 0 2px var(--accent); }
+span.proof-word.right { background: var(--good-soft); color: var(--good); font-weight: 700; }
+span.proof-word.shown { background: var(--shown-soft); color: var(--shown); font-weight: 700; }
+.coming-soon { margin-top: 16px; padding: 12px 14px; border-radius: 12px; background: var(--card); }
+
 /* Feedback */
 .feedback { border-radius: 14px; padding: 0 14px; font-size: 1.05rem; }
 .feedback p { margin: 6px 0; }

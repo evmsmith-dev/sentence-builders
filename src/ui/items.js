@@ -9,7 +9,7 @@
 // Types that answer on a tap call answer(correct) themselves.
 import {
   CHECK_KINDS, checkBuild, checkLabels, checkMark, checkSort, joinTiles, paletteFor, parseBuild, parseCheck, parseFix, parseFlow,
-  parseJoin, parseLabels, parseMark, parseSort, parseWhich,
+  parseJoin, parseLabels, parseMark, parseProofread, parseSort, parseWhich,
 } from "../lib/parse.js";
 import { LABELS, PATTERNS, SENTENCE_KINDS } from "../config.js";
 import { shuffle } from "../lib/select.js";
@@ -633,10 +633,118 @@ function renderLabels(root, item, { onChange, onTap }) {
   };
 }
 
+/**
+ * Proofread: tap each mistake in the paragraph and pick the fix. A wrong fix gives a hint; a second wrong fix
+ * on the same mistake shows it. Tapping words that are fine gives a hint, and after 3 such taps the next
+ * mistake is pointed out.
+ */
+function renderProofread(root, item, { hint, complete, onChange, onTap }) {
+  const parsed = parseProofread(item);
+  const fixed = {}; // word index → "right" or "shown"
+  const fixMisses = {};
+  let open = null; // index of the mistake being fixed
+  let misses = 0;
+  let wrongTaps = 0;
+  let revealed = false;
+  let done = false;
+  let pointed = null;
+  const errorAt = (i) => parsed.errors.find((e) => e.index === i);
+  const choicesFor = {};
+  for (const e of parsed.errors) choicesFor[e.index] = shuffle(e.choices);
+
+  root.innerHTML = `<div class="proofread" data-type="proofread"><p class="proof-count"></p><p class="proof-text"></p>
+    <div class="choices" hidden><p class="palette-label"></p><div class="choice-row"></div></div></div>`;
+  const left = () => parsed.errors.filter((e) => !fixed[e.index]).length;
+
+  function draw() {
+    root.querySelector(".proof-count").textContent = done ? "All mistakes fixed" : `Mistakes fixed: ${parsed.errors.length - left()} of ${parsed.errors.length}`;
+    root.querySelector(".proof-text").innerHTML = parsed.words.map((word, i) => {
+      const e = errorAt(i);
+      if (e && fixed[i]) return `<span class="proof-word ${fixed[i]}">${esc(e.fixed)}</span>`;
+      return `<button type="button" class="proof-word${open === i ? " selected" : ""}${pointed === i ? " pointed" : ""}" data-pw="${i}" ${done ? "disabled" : ""}>${esc(word)}</button>`;
+    }).join(" ");
+    const box = root.querySelector(".choices");
+    box.hidden = open === null || done;
+    if (open !== null) {
+      const e = errorAt(open);
+      box.querySelector(".palette-label").textContent = `Change "${parsed.words[open]}" to:`;
+      box.querySelector(".choice-row").innerHTML = choicesFor[open].map((c) =>
+        `<button type="button" class="choice" data-pfix="${esc(c)}">${esc(e.prefix + c + e.suffix)}</button>`).join("");
+    }
+  }
+  function finishIfDone() {
+    if (left()) return;
+    done = true;
+    open = null;
+    draw();
+    complete({ tries: misses ? 2 : 1, correct: !revealed });
+  }
+  root.addEventListener("click", (event) => {
+    if (done) return;
+    const word = event.target.closest("[data-pw]");
+    const fix = event.target.closest("[data-pfix]");
+    if (word) {
+      onTap();
+      const i = Number(word.dataset.pw);
+      if (errorAt(i)) {
+        open = i;
+        hint(null);
+      } else {
+        open = null;
+        misses += 1;
+        wrongTaps += 1;
+        if (wrongTaps >= 3) {
+          pointed = parsed.errors.find((e) => !fixed[e.index]).index;
+          hint("Look at the highlighted word.");
+        } else {
+          hint(`That word is fine. ${left()} ${left() === 1 ? "mistake" : "mistakes"} left. ${item.hint}`);
+        }
+      }
+      draw();
+    } else if (fix && open !== null) {
+      onTap();
+      const e = errorAt(open);
+      if (fix.dataset.pfix === e.correct) {
+        fixed[open] = "right";
+        if (pointed === open) pointed = null;
+        open = null;
+        hint(null);
+        draw();
+        finishIfDone();
+      } else {
+        misses += 1;
+        fixMisses[open] = (fixMisses[open] || 0) + 1;
+        if (fixMisses[open] >= 2) {
+          revealed = true;
+          fixed[open] = "shown";
+          hint(`Here's that one: "${e.fixed}".`);
+          open = null;
+          draw();
+          finishIfDone();
+        } else {
+          fix.disabled = true;
+          hint(`Not that one. ${item.hint}`);
+        }
+      }
+    }
+    onChange();
+  });
+  draw();
+  return {
+    get prompt() {
+      return done ? "All fixed!" : "Find each mistake. Tap it, then pick the fix.";
+    },
+    usesCheck: false,
+    retry: () => {},
+    reveal: () => {},
+    lock: () => { done = true; draw(); },
+  };
+}
+
 export function renderItem(root, item, hooks) {
   const render = {
     mark: renderMark, fix: renderFix, which: renderWhich, build: renderBuild, sort: renderSort, check: renderCheck, join: renderJoin,
-    flow: renderFlow, labels: renderLabels,
+    flow: renderFlow, labels: renderLabels, proofread: renderProofread,
   }[item.type];
   if (!render) throw new Error(`Unknown item type: ${item.type}`);
   root.innerHTML = "";

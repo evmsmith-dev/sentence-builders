@@ -1,5 +1,5 @@
 // Drawings made in code: Pip the foreman robot and the player's town.
-import { SKILLS, WORLDS, skillsInWorld } from "../config.js";
+import { SKILLS, WORLDS, skillsInWorld, worldOpenFor } from "../config.js";
 import { levelStars, skillTier } from "../lib/progress.js";
 import { esc } from "./dom.js";
 
@@ -70,7 +70,7 @@ function street(player, world, ground) {
 
 /** The player's town: a street for each world that's open, with the harbor at the bottom. */
 export function townSvg(player) {
-  const worlds = WORLDS.filter((world) => world.ready);
+  const worlds = WORLDS.filter((world) => worldOpenFor(world, player));
   const grounds = worlds.map((_, r) => TOP + 96 + r * ROW);
   const last = grounds[grounds.length - 1];
   const height = last + 22 + 10 + 38;

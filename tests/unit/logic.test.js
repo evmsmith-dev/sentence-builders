@@ -247,3 +247,19 @@ test("Flow Factory: 5-item levels, and Gold needs the label sentences right", as
   p = recordLevel(p, { skill: "flow", level: 3, results: results(true), now: day(16) }).player;
   assert.equal(skillTier(p, "flow"), 3);
 });
+
+test("proofread: mistakes, choices and the fixed paragraph", async () => {
+  const { parseProofread } = await import("../../src/lib/parse.js");
+  const parsed = parseProofread(content.items.find((i) => i.id === "proofread-1-05"));
+  assert.equal(parsed.errors.length, 2);
+  assert.equal(parsed.errors[0].shown, "fossils");
+  assert.equal(parsed.errors[0].correct, "fossils,");
+  assert.equal(parsed.answerText, "At the museum we saw fossils, rocks, and gems. The guide answered all of our questions.");
+});
+
+test("the Editing Desk opens at grade 6", async () => {
+  const { WORLDS, worldOpenFor } = await import("../../src/config.js");
+  const desk = WORLDS.find((w) => w.id === "desk");
+  assert.equal(worldOpenFor(desk, { grade: 5 }), false);
+  assert.equal(worldOpenFor(desk, { grade: 6 }), true);
+});

@@ -1,8 +1,8 @@
 import { expect } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import {
-  CHECK_KINDS, paletteFor, parseBuild, parseCheck, parseFix, parseFlow, parseJoin, parseLabels, parseMark, parseMarkText, parseSort,
-  parseWhich,
+  CHECK_KINDS, paletteFor, parseBuild, parseCheck, parseFix, parseFlow, parseJoin, parseLabels, parseMark, parseMarkText,
+  parseProofread, parseSort, parseWhich,
 } from "../../src/lib/parse.js";
 
 /** Which step of a Q&A Flow is on screen: a step index, "kind" or "pattern". */
@@ -125,6 +125,19 @@ export async function miss(page) {
       }
     }
     return true;
+  } else if (item.type === "proofread") {
+    // Pick a wrong fix for the first mistake still open.
+    const parsed = parseProofread(item);
+    for (const e of parsed.errors) {
+      const word = page.locator(`#item [data-pw="${e.index}"]`);
+      if (!(await word.count())) continue;
+      await word.click();
+      const wrong = page.locator(`#item [data-pfix]:not([data-pfix="${e.correct}"]):not([disabled])`).first();
+      if (!(await wrong.count())) return false;
+      await wrong.click();
+      return true;
+    }
+    return false;
   } else if (item.type === "labels") {
     const parsed = parseLabels(item);
     while (await page.locator("#item .label-slots .tile").count()) await page.locator("#item .label-slots .tile").first().click();
@@ -196,6 +209,14 @@ export async function answer(page) {
         if (await word.isEnabled()) await word.click();
         await page.locator(`#item [data-label="${step.label}"]`).click();
       }
+    }
+  } else if (item.type === "proofread") {
+    const parsed = parseProofread(item);
+    for (const e of parsed.errors) {
+      const word = page.locator(`#item [data-pw="${e.index}"]`);
+      if (!(await word.count())) continue; // already fixed or shown
+      await word.click();
+      await page.locator(`#item [data-pfix="${e.correct}"]`).click();
     }
   } else if (item.type === "labels") {
     const parsed = parseLabels(item);

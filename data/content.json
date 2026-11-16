@@ -149,6 +149,36 @@
      "title": "Objects and patterns",
      "rule": "After the verb, ask what? or whom? A direct object (DO) makes the verb transitive (V-t). An indirect object (IO) tells to whom. After a linking verb (LV), a predicate noun (PrN) renames the subject, and a predicate adjective (PA) describes it.",
      "example": "Sam kicked the ball. → SN V-t A DO, Pattern 2"
+   },
+   "case-1": {
+     "title": "I or me?",
+     "rule": "Use I, he, she, we and they for the one doing the action, and me, him, her, us and them for the one getting it. Cover the other person to check: Sam and I went → I went. Myself only goes with I in the same sentence.",
+     "example": "Mom drove Ava and me to practice. Sam and I built a robot."
+   },
+   "case-2": {
+     "title": "Clear pronouns",
+     "rule": "A pronoun has to point clearly to one noun. If it could mean two people or things, use the noun instead. Don't switch from they to you in the same sentence.",
+     "example": "When Ana called Mia, Ana was upset. When students study, they remember more."
+   },
+   "case-3": {
+     "title": "Who or whom?",
+     "rule": "Use who where you could say he or she, and whom where you could say him or her. We and us work the same way before a noun: we students, us students.",
+     "example": "Who called? (He called.) To whom did you write? (I wrote to him.)"
+   },
+   "proofread-1": {
+     "title": "Proofreading",
+     "rule": "Read slowly, one sentence at a time. Check that verbs stay in the same tense, pronouns are right, and apostrophes and commas are where they belong. Each paragraph has 2 mistakes.",
+     "example": "Last weekend we drive to the lake. → Last weekend we drove to the lake."
+   },
+   "proofread-2": {
+     "title": "Proofreading: 3 mistakes",
+     "rule": "Each paragraph has 3 mistakes. Check every verb against its subject and its time, and test every pronoun by covering the other person.",
+     "example": "The players was proud. → The players were proud."
+   },
+   "proofread-3": {
+     "title": "Proofreading: 4 mistakes",
+     "rule": "Each paragraph has 4 mistakes, from any skill: tense, agreement, pronoun case, who and whom, apostrophes and sound-alike words.",
+     "example": "To who should we write? → To whom should we write?"
    }
  },
  "items": [
@@ -449,6 +479,57 @@
   {"id": "flow-3-07", "skill": "flow", "level": 3, "type": "flow", "tags": "Leo|SN threw|V-t the|A dog|IO a|A stick.|DO", "steps": [["Who threw the dog a stick?", 0], ["What is being said about Leo?", 1, "V"], ["Leo threw what?", 5], ["Leo threw a stick to what?", 3], [null, 1], [null, 4], [null, 2]], "kind": "D", "pattern": 3, "hint": "After the verb, ask what? or whom? Then check: does that word mean the same thing as the subject?"},
   {"id": "flow-3-08", "skill": "flow", "level": 3, "type": "labels", "tiles": "Maya|SN painted|V-t a|A colorful|Adj picture.|DO", "hint": "Each word has to match the label above its space. The first word gets a capital letter, and the end mark goes last."},
   {"id": "flow-3-09", "skill": "flow", "level": 3, "type": "labels", "tiles": "The|A whale|SN is|LV a|A mammal.|PrN", "hint": "Each word has to match the label above its space. The first word gets a capital letter, and the end mark goes last."},
-  {"id": "flow-3-10", "skill": "flow", "level": 3, "type": "labels", "tiles": "My|PPA room|SN is|LV very|Adv messy.|PA", "hint": "Each word has to match the label above its space. The first word gets a capital letter, and the end mark goes last."}
+  {"id": "flow-3-10", "skill": "flow", "level": 3, "type": "labels", "tiles": "My|PPA room|SN is|LV very|Adv messy.|PA", "hint": "Each word has to match the label above its space. The first word gets a capital letter, and the end mark goes last."},
+  {"id": "case-1-01", "skill": "case", "level": 1, "type": "fix", "text": "Sam and [me|I|myself] went to the store.", "hint": "Cover the other person: would you say I went or me went? Use the same pronoun with both names."},
+  {"id": "case-1-02", "skill": "case", "level": 1, "type": "which", "text": "Mom drove Ava and [me|I|myself] to practice.", "hint": "After a verb or a word like to, for or between, use me, him, her, us or them."},
+  {"id": "case-1-03", "skill": "case", "level": 1, "type": "which", "text": "Just between you and [me|I], this book is better than the movie.", "hint": "After a verb or a word like to, for or between, use me, him, her, us or them."},
+  {"id": "case-1-04", "skill": "case", "level": 1, "type": "fix", "text": "[Him|He|His] and his cousin built a robot.", "hint": "Cover the other person: would you say I went or me went? Use the same pronoun with both names."},
+  {"id": "case-1-05", "skill": "case", "level": 1, "type": "which", "text": "The coach gave [us|we] players new jerseys.", "hint": "Cover the noun: we planned or us planned? Use the same pronoun with the noun."},
+  {"id": "case-1-06", "skill": "case", "level": 1, "type": "which", "text": "[We|Us] students planned the dance.", "hint": "Cover the noun: we planned or us planned? Use the same pronoun with the noun."},
+  {"id": "case-1-07", "skill": "case", "level": 1, "type": "fix", "text": "Please send the photos to Ben or [myself|me|I].", "hint": "Myself only goes with I in the same sentence, like I made it myself."},
+  {"id": "case-1-08", "skill": "case", "level": 1, "type": "sort", "bins": {"Does the action": ["I", "she", "we", "they"], "Gets the action": ["me", "her", "us", "them"]}, "hint": "I, she, we and they do the action. Me, her, us and them get it."},
+  {"id": "case-1-09", "skill": "case", "level": 1, "type": "which", "text": "The teacher asked Lena and [me|I] to hand out papers.", "hint": "After a verb or a word like to, for or between, use me, him, her, us or them."},
+  {"id": "case-1-10", "skill": "case", "level": 1, "type": "which", "text": "[She|Her] and I are on the same team.", "hint": "Cover the other person: would you say I went or me went? Use the same pronoun with both names."},
+  {"id": "case-2-01", "skill": "case", "level": 2, "type": "which", "options": ["When Ana called Mia, Ana was upset.", "When Ana called Mia, she was upset."], "hint": "A pronoun has to point clearly to one noun. If it could mean two, use the noun. She could mean Ana or Mia."},
+  {"id": "case-2-02", "skill": "case", "level": 2, "type": "which", "options": ["Jake told Leo that Leo's bike had a flat tire.", "Jake told Leo that his bike had a flat tire."], "hint": "A pronoun has to point clearly to one noun. If it could mean two, use the noun. His could mean Jake's or Leo's."},
+  {"id": "case-2-03", "skill": "case", "level": 2, "type": "which", "options": ["The sign at the park said dogs must be on a leash.", "At the park, they said dogs must be on a leash."], "hint": "They needs to point to someone. Name who or what said it."},
+  {"id": "case-2-04", "skill": "case", "level": 2, "type": "fix", "text": "When students study each night, [you|they|we] remember more.", "hint": "Don't switch from they or we to you in the same sentence."},
+  {"id": "case-2-05", "skill": "case", "level": 2, "type": "which", "options": ["I took the cake out of the pan and ate the cake.", "I took the cake out of the pan and ate it."], "hint": "A pronoun has to point clearly to one noun. If it could mean two, use the noun. It could mean the cake or the pan."},
+  {"id": "case-2-06", "skill": "case", "level": 2, "type": "fix", "text": "If players want to improve, [you|they|it] should practice every day.", "hint": "Don't switch from they or we to you in the same sentence."},
+  {"id": "case-2-07", "skill": "case", "level": 2, "type": "which", "options": ["The players thanked the coaches after the coaches won the award.", "The players thanked the coaches after they won the award."], "hint": "A pronoun has to point clearly to one noun. If it could mean two, use the noun. They could mean the players or the coaches."},
+  {"id": "case-2-08", "skill": "case", "level": 2, "type": "fix", "text": "My friends and I hiked all day, and [you|we|they] were tired by sunset.", "hint": "Don't switch from they or we to you in the same sentence."},
+  {"id": "case-2-09", "skill": "case", "level": 2, "type": "which", "options": ["When the glass hit the table, the glass broke.", "When the glass hit the table, it broke."], "hint": "A pronoun has to point clearly to one noun. If it could mean two, use the noun. It could mean the glass or the table."},
+  {"id": "case-2-10", "skill": "case", "level": 2, "type": "which", "options": ["Max gave his old phone to Omar because Max got a new one.", "Max gave his old phone to Omar because he got a new one."], "hint": "A pronoun has to point clearly to one noun. If it could mean two, use the noun. He could mean Max or Omar."},
+  {"id": "case-3-01", "skill": "case", "level": 3, "type": "which", "text": "[Who|Whom] called you last night?", "hint": "Use who where you could say he or she, and whom where you could say him or her. He called, so who."},
+  {"id": "case-3-02", "skill": "case", "level": 3, "type": "which", "text": "To [whom|who] should I give this letter?", "hint": "Use who where you could say he or she, and whom where you could say him or her. Give it to him, so whom."},
+  {"id": "case-3-03", "skill": "case", "level": 3, "type": "which", "text": "The girl [who|whom] won the spelling bee is my neighbor.", "hint": "Use who where you could say he or she, and whom where you could say him or her. She won, so who."},
+  {"id": "case-3-04", "skill": "case", "level": 3, "type": "which", "text": "The man [whom|who] we met at the museum was an artist.", "hint": "Use who where you could say he or she, and whom where you could say him or her. We met him, so whom."},
+  {"id": "case-3-05", "skill": "case", "level": 3, "type": "fix", "text": "[Whom|Who|Whose] is going to the game?", "hint": "Use who where you could say he or she, and whom where you could say him or her. She is going, so who."},
+  {"id": "case-3-06", "skill": "case", "level": 3, "type": "which", "text": "[Whom|Who] did you invite to the party?", "hint": "Use who where you could say he or she, and whom where you could say him or her. You invited him, so whom."},
+  {"id": "case-3-07", "skill": "case", "level": 3, "type": "which", "text": "The coach chose Mia and [me|I] as captains.", "hint": "After a verb or a word like to, for or between, use me, him, her, us or them."},
+  {"id": "case-3-08", "skill": "case", "level": 3, "type": "which", "text": "The award went to [us|we] eighth graders.", "hint": "Cover the noun: we planned or us planned? Use the same pronoun with the noun."},
+  {"id": "case-3-09", "skill": "case", "level": 3, "type": "fix", "text": "The teacher [who|whom|whose] I asked for help was very kind.", "hint": "Use who where you could say he or she, and whom where you could say him or her. I asked her, so whom."},
+  {"id": "case-3-10", "skill": "case", "level": 3, "type": "sort", "bins": {"who": ["___ won the race?", "___ is coming over?", "___ wrote this note?"], "whom": ["With ___ did you go?", "For ___ is this gift?", "___ did you call?"]}, "hint": "Use who where you could say he or she, and whom where you could say him or her."},
+  {"id": "proofread-1-01", "skill": "proofread", "level": 1, "type": "proofread", "text": "Last weekend my family [drive|drove|drives] to Duluth. We walked along the lake and [watch|watched|watching] the big ships.", "hint": "The story happened last weekend, so every verb is in the past."},
+  {"id": "proofread-1-02", "skill": "proofread", "level": 1, "type": "proofread", "text": "My brother and [me|I|myself] built a birdhouse. We painted [it's|its|its'] roof bright red.", "hint": "Read each sentence slowly. Check verbs, pronouns, apostrophes, commas and sound-alike words."},
+  {"id": "proofread-1-03", "skill": "proofread", "level": 1, "type": "proofread", "text": "The [dogs|dog's|dogs's] leash was tangled. Maya and [him|he|his] untangled it quickly.", "hint": "Read each sentence slowly. Check verbs, pronouns, apostrophes, commas and sound-alike words."},
+  {"id": "proofread-1-04", "skill": "proofread", "level": 1, "type": "proofread", "text": "Each of the players [have|has|having] a water bottle. Coach Lee gave Ava and [I|me|myself] the extra ones.", "hint": "Read each sentence slowly. Check verbs, pronouns, apostrophes, commas and sound-alike words."},
+  {"id": "proofread-1-05", "skill": "proofread", "level": 1, "type": "proofread", "text": "At the museum we saw [fossils|fossils,|fossils;] rocks, and gems. The guide [answer|answered|answers] all of our questions.", "hint": "Read each sentence slowly. Check verbs, pronouns, apostrophes, commas and sound-alike words."},
+  {"id": "proofread-1-06", "skill": "proofread", "level": 1, "type": "proofread", "text": "There [is|are|be] three new students in our class. [Their|They're|There] names are Kai, Rosa, and Ben.", "hint": "Read each sentence slowly. Check verbs, pronouns, apostrophes, commas and sound-alike words."},
+  {"id": "proofread-1-07", "skill": "proofread", "level": 1, "type": "proofread", "text": "Yesterday Jamal [run|ran|runned] the fastest mile in our class. Everyone [cheer|cheered|cheers] for him.", "hint": "Read each sentence slowly. Check verbs, pronouns, apostrophes, commas and sound-alike words."},
+  {"id": "proofread-2-01", "skill": "proofread", "level": 2, "type": "proofread", "text": "The players [was|were|is] proud of their new uniforms. Each player [get|got|gets] a jersey with a number, and the coach gave Ava and [I|me|myself] the first ones.", "hint": "Read each sentence slowly. Check verbs, pronouns, apostrophes, commas and sound-alike words."},
+  {"id": "proofread-2-02", "skill": "proofread", "level": 2, "type": "proofread", "text": "My grandparents live on a farm near Mankato. Last summer I [help|helped|helps] them feed the chickens. Grandpa and [me|I|myself] fixed the fence, and Grandma [bake|baked|bakes] pies for us.", "hint": "Read each sentence slowly. Check verbs, pronouns, apostrophes, commas and sound-alike words."},
+  {"id": "proofread-2-03", "skill": "proofread", "level": 2, "type": "proofread", "text": "When students read every day, [you|they|we] learn new words. Our teacher [say|says|saying] that reading [improve|improves|improving] spelling too.", "hint": "Read each sentence slowly. Check verbs, pronouns, apostrophes, commas and sound-alike words."},
+  {"id": "proofread-2-04", "skill": "proofread", "level": 2, "type": "proofread", "text": "Did you see Leo at the game? I sat with [he|him|his] and his dad. We [was|were|is] all cheering, and our team [win|won|wins] by two points.", "hint": "Read each sentence slowly. Check verbs, pronouns, apostrophes, commas and sound-alike words."},
+  {"id": "proofread-2-05", "skill": "proofread", "level": 2, "type": "proofread", "text": "The [childrens|children's|childrens'] museum has a new exhibit. Visitors build bridges, and [there|their|they're] designs are tested with weights. My cousin and [me|I|myself] built the strongest one.", "hint": "Read each sentence slowly. Check verbs, pronouns, apostrophes, commas and sound-alike words."},
+  {"id": "proofread-2-06", "skill": "proofread", "level": 2, "type": "proofread", "text": "The box of markers [are|is|be] on the shelf. Please bring it to Rosa and [I|me|myself]. She [need|needs|needing] the markers for her poster.", "hint": "Read each sentence slowly. Check verbs, pronouns, apostrophes, commas and sound-alike words."},
+  {"id": "proofread-2-07", "skill": "proofread", "level": 2, "type": "proofread", "text": "Last night the wind [blowed|blew|blows] so hard that a branch fell on our porch. Dad and [me|I|myself] dragged it away. It [were|was|is] heavier than it looked.", "hint": "Read each sentence slowly. Check verbs, pronouns, apostrophes, commas and sound-alike words."},
+  {"id": "proofread-3-01", "skill": "proofread", "level": 3, "type": "proofread", "text": "The scientist [who|whom|which] we interviewed studies wolves. She told us that a wolf pack [protect|protects|protecting] [it's|its|its'] territory. Each of the wolves [have|has|having] a job.", "hint": "Read each sentence slowly. Check verbs, pronouns, apostrophes, commas and sound-alike words."},
+  {"id": "proofread-3-02", "skill": "proofread", "level": 3, "type": "proofread", "text": "[Who|Whom|Whose] did the principal choose for the award? She chose Mia and [I|me|myself]. We were surprised, and our parents [was|were|is] proud. Mia's grandmother [send|sent|sends] us flowers.", "hint": "Read each sentence slowly. Check verbs, pronouns, apostrophes, commas and sound-alike words."},
+  {"id": "proofread-3-03", "skill": "proofread", "level": 3, "type": "proofread", "text": "Yesterday our class [take|took|takes] a field trip to the state capitol. The guide showed us the room where lawmakers [meets|meet|meeting]. [There|Their|They're] desks form a half circle, and everyone in our group [want|wanted|wanting] to sit in one.", "hint": "Read each sentence slowly. Check verbs, pronouns, apostrophes, commas and sound-alike words."},
+  {"id": "proofread-3-04", "skill": "proofread", "level": 3, "type": "proofread", "text": "To [who|whom|whose] should we send the thank-you letter? The [volunteers|volunteers'|volunteer's] hard work made the event a success. They [raise|raised|raises] money for the library, and [us|we|our] students want to thank them.", "hint": "Read each sentence slowly. Check verbs, pronouns, apostrophes, commas and sound-alike words."},
+  {"id": "proofread-3-05", "skill": "proofread", "level": 3, "type": "proofread", "text": "My aunt, [which|who|whom] lives in Duluth, [own|owns|owning] a bakery. Every morning she and her helper [bakes|bake|baking] fresh bread. The [bakerys|bakery's|bakeries'] cinnamon rolls are famous.", "hint": "Read each sentence slowly. Check verbs, pronouns, apostrophes, commas and sound-alike words."},
+  {"id": "proofread-3-06", "skill": "proofread", "level": 3, "type": "proofread", "text": "The students [whom|who|which] finished early [helps|helped|helping] clean up. Ms. Park thanked Leo and [I|me|myself], and she said [its|it's|its'] been a great year.", "hint": "Read each sentence slowly. Check verbs, pronouns, apostrophes, commas and sound-alike words."},
+  {"id": "proofread-3-07", "skill": "proofread", "level": 3, "type": "proofread", "text": "Between you and [I|me|myself], the book is better than the movie. The [authors|author's|authors's] descriptions [is|are|be] vivid, and the ending [surprise|surprises|surprising] every reader.", "hint": "Read each sentence slowly. Check verbs, pronouns, apostrophes, commas and sound-alike words."}
  ]
 }

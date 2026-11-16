@@ -199,6 +199,22 @@ export function checkLabels(parsed, placed) {
     && placed.at(-1) === parsed.tiles.at(-1).word;
 }
 
+/** Proofread: a paragraph where each mistake is written [shown|right|other wrong choices]. */
+export function parseProofread(item) {
+  const tokens = item.text.trim().split(/ +/);
+  const errors = [];
+  const words = tokens.map((token, index) => {
+    const match = token.match(/^(.*)\[([^\]]+)\](.*)$/);
+    if (!match) return token;
+    const [, prefix, inner, suffix] = match;
+    const [shown, correct, ...wrong] = inner.split("|");
+    errors.push({ index, prefix, suffix, shown, correct, choices: [correct, ...wrong], fixed: prefix + correct + suffix });
+    return prefix + shown + suffix;
+  });
+  const fixedWords = words.map((word, i) => errors.find((e) => e.index === i)?.fixed || word);
+  return { words, errors, answerText: fixedWords.join(" ") };
+}
+
 /** What read-aloud says for an item's sentence: plain words, no marks to place. */
 export function spokenText(item) {
   if (item.type === "mark") return parseMark(item).words.join(" ");
@@ -212,6 +228,7 @@ export function spokenText(item) {
   if (item.type === "join") return `${item.first} ${item.second}`;
   if (item.type === "flow") return parseFlow(item).words.map((w) => w.word).join(" ");
   if (item.type === "labels") return parseLabels(item).line.join(", ");
+  if (item.type === "proofread") return parseProofread(item).words.join(" ");
   return "";
 }
 
@@ -229,10 +246,11 @@ export function answerText(item) {
   if (item.type === "join") return parseJoin(item).answerText;
   if (item.type === "flow") return parseFlow(item).answerText;
   if (item.type === "labels") return parseLabels(item).answerText;
+  if (item.type === "proofread") return parseProofread(item).answerText;
   throw new Error(`Unknown item type: ${item.type}`);
 }
 
-export const ITEM_TYPES = ["mark", "fix", "which", "build", "sort", "check", "join", "flow", "labels"];
+export const ITEM_TYPES = ["mark", "fix", "which", "build", "sort", "check", "join", "flow", "labels", "proofread"];
 
 /** Throws if an item can't be shown or can't be answered. Used by the validator. */
 export function validateItem(item) {
@@ -296,6 +314,14 @@ export function validateItem(item) {
     if (!SENTENCE_KINDS[item.kind]) throw new Error(`${item.id}: unknown sentence kind ${item.kind}`);
     if (item.level === 3 && !PATTERNS[item.pattern]) throw new Error(`${item.id}: level 3 flows need a pattern`);
     if (!/[.!?]$/.test(parsed.words.at(-1).word)) throw new Error(`${item.id}: the last word needs its end mark`);
+  }
+  if (item.type === "proofread") {
+    const parsed = parseProofread(item);
+    if (parsed.errors.length < 2) throw new Error(`${item.id}: a paragraph needs 2+ mistakes`);
+    for (const e of parsed.errors) {
+      if (e.choices.length < 2 || new Set(e.choices).size !== e.choices.length) throw new Error(`${item.id}: "${e.shown}" needs 2+ different choices`);
+      if (e.shown === e.correct || !e.shown) throw new Error(`${item.id}: "${e.shown}" isn't a mistake`);
+    }
   }
   if (item.type === "labels") {
     const parsed = parseLabels(item);
