@@ -26,7 +26,7 @@
     </header>
     <h2 class="screen-title">Who's playing?</h2>
     <div id="player-list" class="player-list"></div>
-    <p class="progress-link"><button type="button" class="link" data-progress>📊 Progress and backup</button></p>
+    <p class="progress-link"><button type="button" class="link" data-progress>📊 Progress</button> · <button type="button" class="link" data-about>ℹ️ About</button></p>
   </main>
 
   <!-- ==================== Add a player ==================== -->
@@ -131,6 +131,32 @@
     <div id="parent-players"></div>
   </main>
 
+  <!-- ==================== About ==================== -->
+  <main id="about" class="screen" hidden>
+    <header class="top">
+      <button type="button" id="about-back" class="back" aria-label="Back">←</button>
+      <h1 class="screen-title">ℹ️ About Sentence Builders</h1>
+    </header>
+    <section class="card about">
+      <p>A grammar, punctuation and sentence game for grades 3–8. Fix and build sentences, and every level you pass puts up a building in your town.</p>
+      <h2>How to play</h2>
+      <ul>
+        <li>Pick a world, then a skill and a level. Each level starts with a Tip Card that explains the rule.</li>
+        <li>Right on the first try is 1 point; on the second try, ½. Pass a level with 6 of 8 points; 7 earns two stars and 8 earns three. (Shorter levels scale the same way.)</li>
+        <li>Levels for your grade and below are open from the start. Pass a level to open the next one.</li>
+        <li>Each skill has a badge: Bronze for passing level 1, Silver for level 2, and Gold for scoring 7 or more on level 3 on two different days. More badges come from finishing worlds and from steady practice.</li>
+        <li>Forgot a rule? Open 📘 Rule Book, or tap 📘 Labels during a Q&amp;A Flow.</li>
+      </ul>
+      <h2>What it's based on</h2>
+      <p><strong>Minnesota standards.</strong> The skills follow the 2020 Minnesota K–12 Academic Standards in English Language Arts. Each skill lists the benchmarks it practices (for example, 4.2.1.1 is grade 4 punctuation, spelling, capitalization and grammar). The Tip Cards also use the words teachers and tests often use, like parenthetical and nonrestrictive.</p>
+      <p><strong>Shurley English.</strong> Flow Factory follows the Shurley English method many schools teach: the Question and Answer Flow, its word labels (SN, V, Adj and the rest), the seven sentence patterns, the Skill Check mark-up (circle the nouns, slash, underline the subject once and the verb twice) and sentence diagramming. Each Shurley level is assumed to match the player's grade.</p>
+      <p><strong>Grades.</strong> Grades 3–5 get Punctuation Port, Word Works, Sentence Studio and Flow Factory. Sentence Diagramming opens in grade 5. Grade 6 adds the Editing Desk and Advanced Q&amp;A Flow for review and grades 6–8 skills.</p>
+      <p class="note">The sentences, hints and Tip Cards are original. Sentence Builders isn't made by or connected to Shurley Instructional Materials or the Minnesota Department of Education.</p>
+      <h2>Privacy</h2>
+      <p>No accounts, no ads, and nothing is sent anywhere. Progress stays on this device; use Settings → Backup to move it to another one. After the first visit it works offline.</p>
+    </section>
+  </main>
+
   <!-- ==================== Overlays ==================== -->
   <div id="tip-overlay" class="overlay" hidden>
     <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="tip-title">
@@ -208,6 +234,7 @@
         <p id="backup-status" class="note" role="status"></p>
       </section>
       <div class="sheet-actions">
+        <button type="button" class="link about-link" data-about>ℹ️ About this game</button>
         <button type="button" class="primary" data-close>Done</button>
       </div>
     </div>

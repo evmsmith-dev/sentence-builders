@@ -708,3 +708,20 @@ test("Edit player: ✏️ on a player card changes name, grade and avatar on Sav
   await page.reload();
   await expect(page.locator("#who-btn")).toContainText("🎧");
 });
+
+test("About: from Settings and Who's playing?, Back returns where you were", async ({ page }) => {
+  await openApp(page, { players: [player({ grade: 4 })], current: "p1" });
+  await page.locator("#settings-btn").click();
+  await page.locator("#settings-overlay [data-about]").click();
+  await expect(page.locator("#about")).toBeVisible();
+  await expect(page.locator("#about")).toContainText("2020 Minnesota K–12 Academic Standards");
+  await expect(page.locator("#about")).toContainText("Shurley English");
+  await page.goBack();
+  await expect(page.locator("#settings-overlay")).toBeVisible();
+  await page.locator("#settings-overlay [data-close]").click();
+  await page.locator("#who-btn").click();
+  await page.locator("#players [data-about]").click();
+  await expect(page.locator("#about")).toBeVisible();
+  await page.locator("#about-back").click();
+  await expect(page.locator("#players")).toBeVisible();
+});

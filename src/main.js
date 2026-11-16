@@ -696,6 +696,13 @@ function wire() {
       return;
     }
     if (target.closest("[data-add-player]")) return openAddPlayer();
+    if (target.closest("[data-about]")) {
+      state.aboutFrom = topOverlay()?.id === "settings-overlay" ? "settings" : document.body.dataset.screen;
+      closeOverlay("settings-overlay");
+      showScreen("about");
+      window.scrollTo(0, 0);
+      return;
+    }
     if (target.closest("[data-progress]")) {
       closeOverlay("settings-overlay");
       return renderParent();
@@ -734,6 +741,14 @@ function wire() {
   });
 
   $("who-btn").addEventListener("click", renderPlayers);
+  // About goes back where it came from: Settings (over the town) or Who's playing?
+  $("about-back").addEventListener("click", () => {
+    if (state.aboutFrom === "settings" && state.player) {
+      renderHome();
+      openSettings();
+    } else if (state.player && state.aboutFrom !== "players") renderHome();
+    else renderPlayers();
+  });
   $("parent-back").addEventListener("click", () => (state.player ? renderHome() : renderPlayers()));
   $("backup-save").addEventListener("click", saveBackup);
   $("backup-file").addEventListener("change", (event) => {
@@ -844,6 +859,7 @@ function handleBack() {
   else if (screen === "world" || screen === "badges") renderHome();
   else if (screen === "rules") $("rules-back").click();
   else if (screen === "parent") $("parent-back").click();
+  else if (screen === "about") $("about-back").click();
   else if (screen === "add-player" && state.players.length) renderPlayers();
   else if (screen === "players" && state.player) renderHome();
 }
