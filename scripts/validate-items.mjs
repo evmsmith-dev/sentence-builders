@@ -1,7 +1,7 @@
 // Checks data/content.json before tests and deploys: every item can be shown and answered,
 // ids are unique, every skill and level has enough items and a Tip Card.
 import { readFile } from "node:fs/promises";
-import { ITEMS_PER_LEVEL, SKILLS } from "../src/config.js";
+import { HOMEWORK_PER_ROUND, ITEMS_PER_LEVEL, SKILLS } from "../src/config.js";
 import { validateItem } from "../src/lib/parse.js";
 
 const content = JSON.parse(await readFile(new URL("../data/content.json", import.meta.url), "utf8"));
@@ -17,6 +17,21 @@ for (const item of content.items) {
   ids.add(item.id);
   if (!SKILLS.some((skill) => skill.id === item.skill)) problems.push(`${item.id}: unknown skill ${item.skill}`);
   if (![1, 2, 3].includes(item.level)) problems.push(`${item.id}: level must be 1, 2 or 3`);
+}
+// Pip's homework: proofreading paragraphs for grades 3–5 and 6–8.
+for (const band of ["3-5", "6-8"]) {
+  const set = (content.homework || []).filter((h) => h.band === band);
+  if (set.length < HOMEWORK_PER_ROUND * 2) problems.push(`Pip's homework ${band}: only ${set.length} paragraphs (needs ${HOMEWORK_PER_ROUND * 2}+)`);
+}
+for (const hw of content.homework || []) {
+  try {
+    validateItem({ ...hw, skill: "proofread", level: 1 });
+  } catch (error) {
+    problems.push(error.message);
+  }
+  if (!hw.title) problems.push(`${hw.id}: needs a title`);
+  if (ids.has(hw.id)) problems.push(`${hw.id}: id used twice`);
+  ids.add(hw.id);
 }
 for (const skill of SKILLS) {
   for (const level of [1, 2, 3]) {
@@ -37,4 +52,4 @@ if (problems.length) {
   console.error(`${problems.length} problem(s) in data/content.json:\n- ${problems.join("\n- ")}`);
   process.exit(1);
 }
-console.log(`data/content.json OK: ${content.items.length} items, ${Object.keys(content.tips).length} Tip Cards`);
+console.log(`data/content.json OK: ${content.items.length} items, ${(content.homework || []).length} homework paragraphs, ${Object.keys(content.tips).length} Tip Cards`);

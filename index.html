@@ -61,7 +61,12 @@
       <button type="button" id="rules-btn" class="tool-btn"><span class="tool-emoji" aria-hidden="true">📘</span><span>Rule Book</span></button>
       <button type="button" id="badges-btn" class="tool-btn"></button>
       <button type="button" class="tool-btn" data-progress><span class="tool-emoji" aria-hidden="true">📊</span><span>Progress</span></button>
+      <button type="button" id="build-btn" class="tool-btn"></button>
     </nav>
+    <button type="button" id="homework-btn" class="homework-card">
+      <span class="homework-emoji" aria-hidden="true">📝</span>
+      <span><strong>Pip needs a teacher!</strong><span>Find the mistakes in Pip's homework and earn bricks.</span></span>
+    </button>
     <section class="card town-card" aria-labelledby="town-title">
       <h2 id="town-title">Your town</h2>
       <div id="town"></div>
@@ -129,6 +134,18 @@
     </header>
     <p class="note">How each player on this device is doing. Everything stays on this device.</p>
     <div id="parent-players"></div>
+  </main>
+
+  <!-- ==================== Build: spend bricks on town decorations ==================== -->
+  <main id="build" class="screen" hidden>
+    <header class="top">
+      <button type="button" id="build-back" class="back" aria-label="Back">←</button>
+      <h1 class="screen-title">🧱 Build your town</h1>
+    </header>
+    <p id="build-bricks" class="build-bricks" aria-live="polite"></p>
+    <div id="build-town" class="card town-card"></div>
+    <p class="note">Earn bricks for every sentence you get right, for stars, and for passing a level for the first time. Bricks only buy decorations.</p>
+    <ul id="build-list" class="build-list"></ul>
   </main>
 
   <!-- ==================== About ==================== -->
@@ -201,6 +218,7 @@
       <div id="result-stars" class="result-stars" aria-hidden="true"></div>
       <h2 id="result-title"></h2>
       <p id="result-score" class="result-score"></p>
+      <p id="result-bricks" class="result-bricks" hidden></p>
       <div id="result-review" class="result-review"></div>
       <div id="result-pip" class="pip-row"></div>
       <div id="result-badges" class="result-badges"></div>

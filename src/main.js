@@ -1,16 +1,16 @@
 // Startup and screens: players, the town, worlds, levels, results, badges and settings.
 import {
-  AVATARS, AVATAR_GROUPS, HABIT_BADGES, ITEMS_PER_LEVEL, MAX_GRADE, MAX_PLAYERS, MIN_GRADE, PIP, SKILLS, STUDIO_FROM_GRADE, NOUN_TABLE_FROM_GRADE, NOUN_KINDS, NOUN_REMINDERS_UNTIL, TIER_NAMES, WORLDS, WORLD_BADGES,
+  AVATARS, AVATAR_GROUPS, HABIT_BADGES, ITEMS_PER_LEVEL, MAX_GRADE, MAX_PLAYERS, MIN_GRADE, PIP, DECOR, HOMEWORK_PER_ROUND, SKILLS, STUDIO_FROM_GRADE, NOUN_TABLE_FROM_GRADE, NOUN_KINDS, NOUN_REMINDERS_UNTIL, TIER_NAMES, WORLDS, WORLD_BADGES,
   GOLD_DAYS, LABELS, LABEL_LISTS, PATTERNS, FLOW_LABELS, FLOW_PATTERNS, WORD_LISTS, skillById, skillOpenFor, skillsInWorld, skillsInWorldFor, worldOpenFor,
 } from "./config.js";
 import { answerText, spokenText } from "./lib/parse.js";
 import { pickLevelItems } from "./lib/select.js";
-import {
+import { recordHomework, buyDecor,
   currentBadges, habitValue, isPassed, isUnlocked, levelStars, localDate, mostMissed, newPlayer, normalizePlayer,
   passedKeys, recordLevel, skillTier, weekSummary,
 } from "./lib/progress.js";
 import { loadCurrentId, loadPlayers, saveCurrentId, savePlayers } from "./storage.js";
-import { pipSays, townSvg } from "./ui/art.js";
+import { parkSvg, pipSays, townSvg } from "./ui/art.js";
 import { $, closeOverlay, esc, initBackButton, openOverlay, pick, showScreen, topOverlay } from "./ui/dom.js";
 import { renderItem } from "./ui/items.js";
 import { buzz, canSay, celebrate, say, sound, stopSaying } from "./ui/feel.js";
@@ -116,11 +116,18 @@ function renderHome() {
     ? `Hi ${player.name}! Next up: ${next.skill.name}, level ${next.level}.`
     : `Every building is up, ${player.name}. Go for Gold: score 7 or more on a level 3, on two different days.`;
   $("pip-home").innerHTML = pipSays(greeting, settings().pip);
-  $("town").innerHTML = townSvg(player);
+  $("town").innerHTML = townSvg(player, { rising: state.rising });
+  if (state.rising) {
+    // Bring the new building into view so its rise is seen, then forget it.
+    const built = $("town").querySelector(".rise");
+    if (built && !matchMedia("(prefers-reduced-motion: reduce)").matches) setTimeout(() => built.scrollIntoView({ block: "center", behavior: "smooth" }), 150);
+    state.rising = null;
+  }
   const earned = Object.entries(currentBadges(player)).filter(([id, tier]) => tier && visibleBadgeIds(player).has(id)).length;
   const shown = visibleBadgeIds(player);
   const total = shown.size;
   $("badges-btn").innerHTML = `<span class="tool-emoji" aria-hidden="true">🏅</span><span>Badges ${earned}/${total}</span>`;
+  $("build-btn").innerHTML = `<span class="tool-emoji" aria-hidden="true">🧱</span><span>Build · ${player.bricks || 0}</span>`;
   $("world-list").innerHTML = WORLDS.map((world) => {
     const skills = skillsInWorldFor(world.id, player);
     const built = skills.reduce((n, s) => n + [1, 2, 3].filter((l) => isPassed(player, s.id, l)).length, 0);
@@ -185,6 +192,48 @@ function openTip(skillId, level, { review = false } = {}) {
 
 /* ==================== Playing a level ==================== */
 
+/** Pip's homework: three paragraphs with mistakes to find, unseen ones first. Doesn't count toward levels or badges. */
+function startHomework() {
+  const band = state.player.grade <= 5 ? "3-5" : "6-8";
+  const stats = state.player.items;
+  const pool = (state.content.homework || []).filter((h) => h.band === band)
+    .map((h) => ({ h, last: stats[h.id]?.last ?? -1, r: Math.random() }))
+    .sort((a, b) => a.last - b.last || a.r - b.r);
+  const items = pool.slice(0, HOMEWORK_PER_ROUND).map(({ h }) => ({ ...h, skill: "proofread", level: 1 }));
+  state.play = { mode: "homework", skillId: "proofread", level: 1, items, index: 0, tries: 0, results: [], ctrl: null, done: false, startedAt: Date.now() };
+  if (!state.sessionStart) state.sessionStart = Date.now();
+  showScreen("play");
+  showItem();
+}
+
+function finishHomework() {
+  const play = state.play;
+  const now = Date.now();
+  const out = recordHomework(state.player, { results: play.results, now, durationMs: now - play.startedAt });
+  savePlayer(out.player);
+  $("progress-fill").style.width = "100%";
+  $("result-stars").innerHTML = "";
+  $("result-title").textContent = `Pip's grade: ${out.grade}`;
+  $("result-score").textContent = `${out.right} of ${play.results.length} paragraphs right on the first try`;
+  $("result-bricks").hidden = !out.bricks;
+  $("result-bricks").innerHTML = `+${out.bricks} 🧱 bricks <span class="note">· ${out.player.bricks} to build with</span>`;
+  const lines = { "A+": "An A+! Thank you, teacher. I'll fix those mistakes for good.", A: "An A! Thanks for checking my work so carefully.",
+    B: "A B. Not bad! Thanks for catching my mistakes.", C: "A C. Hmm, some of those mistakes were sneaky.", "Try again": "Those were tricky. Want to check another one?" };
+  $("result-pip").innerHTML = pipSays(lines[out.grade], true);
+  $("result-badges").innerHTML = "";
+  $("result-review").innerHTML = reviewHtml(play);
+  state.resultNext = { homework: true };
+  $("result-next").textContent = "Check more homework";
+  $("result-again").hidden = true;
+  $("result-rule").hidden = true;
+  openOverlay("result-overlay");
+  if (out.grade === "A+" || out.grade === "A") {
+    sound("done", settings().sound);
+    celebrate(out.grade === "A+" ? 3 : 2);
+  }
+  state.play = null;
+}
+
 function startLevel(skillId, level) {
   closeOverlay("tip-overlay");
   const items = pickLevelItems({
@@ -205,7 +254,8 @@ function showItem() {
   play.done = false;
   $("progress-fill").style.width = `${(play.index / play.items.length) * 100}%`;
   $("progress-text").textContent = `${play.index + 1} of ${play.items.length}`;
-  $("play-skill").textContent = item.review ? `Review: ${skill.name}` : `${skill.name} · Level ${item.level}`;
+  $("play-skill").textContent = play.mode === "homework" ? `📝 Pip's homework: ${item.title}`
+    : item.review ? `Review: ${skill.name}` : `${skill.name} · Level ${item.level}`;
   $("play-skill").classList.toggle("review", Boolean(item.review));
   $("feedback").innerHTML = "";
   $("feedback").className = "feedback";
@@ -356,6 +406,9 @@ function nextItem() {
 
 function finishLevel() {
   const play = state.play;
+  if (play.mode === "homework") return finishHomework();
+  $("result-rule").hidden = false;
+  const starsBefore = state.player.levels[`${play.skillId}-${play.level}`]?.stars ?? 0;
   const now = Date.now();
   const out = recordLevel(state.player, { skill: play.skillId, level: play.level, results: play.results, now, durationMs: now - play.startedAt });
   savePlayer(out.player);
@@ -365,6 +418,8 @@ function finishLevel() {
   $("result-stars").innerHTML = [1, 2, 3].map((n) => `<span class="${n <= out.stars ? "on" : ""}">★</span>`).join("");
   $("result-title").textContent = ["Almost there", "Built it!", "Great build!", "Perfect build!"][out.stars];
   $("result-score").textContent = `${points(out.points)} of ${play.results.length} points · ${skill.name} level ${play.level}`;
+  $("result-bricks").hidden = !out.bricks;
+  $("result-bricks").innerHTML = `+${out.bricks} 🧱 bricks <span class="note">· ${out.player.bricks} to build with</span>`;
   let pipLine = out.passed ? pick(PIP.passed) : PIP.notYet;
   if (out.passed && play.level === 3 && skillTier(out.player, skill.id) < 3) {
     const goldAt = (7 / 8) * play.results.length;
@@ -391,7 +446,10 @@ function finishLevel() {
   openOverlay("result-overlay");
   if (out.passed) {
     sound("done", s.sound);
-    celebrate();
+    celebrate(out.stars);
+    buzz(out.stars === 3 ? [30, 60, 30, 60, 60] : [30, 60, 30]);
+    // A new building (or a better one) rises when the town is next shown.
+    if (out.stars > starsBefore) state.rising = `${play.skillId}-${play.level}`;
   }
   state.play = null;
 }
@@ -478,6 +536,36 @@ function renderRules(focusWorld, back) {
       }).join("")}</div></section>`;
   }
   showScreen("rules");
+}
+
+/* ==================== Build: town decorations ==================== */
+
+function renderBuild(fresh = null) {
+  const player = state.player;
+  const bricks = player.bricks || 0;
+  $("build-bricks").innerHTML = `You have <strong>🧱 ${bricks}</strong> brick${bricks === 1 ? "" : "s"}.`;
+  $("build-town").innerHTML = parkSvg(player, { fresh });
+  $("build-list").innerHTML = DECOR.map((d) => {
+    const owned = player.decor.includes(d.id);
+    const short = d.cost - bricks;
+    const action = owned
+      ? '<span class="build-done">Built ✓</span>'
+      : `<button type="button" class="${short > 0 ? "secondary" : "primary"}" data-buy="${d.id}" ${short > 0 ? "disabled" : ""}>
+          ${short > 0 ? `${short} more` : "Build"}</button>`;
+    return `<li class="build-item${owned ? " owned" : ""}"><span class="build-emoji" aria-hidden="true">${d.emoji}</span>
+      <span class="build-name">${esc(d.name)}<small>🧱 ${d.cost}</small></span>${action}</li>`;
+  }).join("");
+  showScreen("build");
+}
+
+function buyDecoration(id) {
+  const next = buyDecor(state.player, id);
+  if (!next) return;
+  savePlayer(next);
+  sound("done", settings().sound);
+  buzz([20, 40, 20]);
+  renderBuild(id);
+  $("build-town").scrollIntoView({ block: "nearest", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
 }
 
 /* ==================== Badges ==================== */
@@ -717,6 +805,14 @@ function wire() {
       return;
     }
     if (target.closest("[data-add-player]")) return openAddPlayer();
+    const buy = target.closest("[data-buy]");
+    if (buy) return buyDecoration(buy.dataset.buy);
+    if (target.closest("#homework-btn")) return startHomework();
+    if (target.closest("#build-btn")) {
+      renderBuild();
+      window.scrollTo(0, 0);
+      return;
+    }
     if (target.closest("[data-about]")) {
       state.aboutFrom = topOverlay()?.id === "settings-overlay" ? "settings" : document.body.dataset.screen;
       closeOverlay("settings-overlay");
@@ -763,6 +859,7 @@ function wire() {
 
   $("who-btn").addEventListener("click", renderPlayers);
   // About goes back where it came from: Settings (over the town) or Who's playing?
+  $("build-back").addEventListener("click", () => renderHome());
   $("about-back").addEventListener("click", () => {
     if (state.aboutFrom === "settings" && state.player) {
       renderHome();
@@ -826,13 +923,16 @@ function wire() {
     closeOverlay("quit-overlay");
     stopSaying();
     const skill = skillById(state.play.skillId);
+    const homework = state.play.mode === "homework";
     state.play = null;
-    renderWorld(skill.world);
+    if (homework) renderHome();
+    else renderWorld(skill.world);
   });
   $("result-next").addEventListener("click", () => {
     closeOverlay("result-overlay");
     const next = state.resultNext;
-    if (next.world) renderWorld(next.world);
+    if (next.homework) startHomework();
+    else if (next.world) renderWorld(next.world);
     else openTip(next.skillId, next.level);
   });
   $("result-again").addEventListener("click", () => {
@@ -881,6 +981,7 @@ function handleBack() {
   else if (screen === "rules") $("rules-back").click();
   else if (screen === "parent") $("parent-back").click();
   else if (screen === "about") $("about-back").click();
+  else if (screen === "build") renderHome();
   else if (screen === "add-player" && state.players.length) renderPlayers();
   else if (screen === "players" && state.player) renderHome();
 }

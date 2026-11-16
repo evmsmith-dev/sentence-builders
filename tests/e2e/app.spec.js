@@ -799,3 +799,53 @@ test("noun table reminders fade once a child knows them; the Rule Book explains 
   await expect(page.locator("#item .flow-count")).toHaveText("Noun table · 1 of 8");
   await expect(page.locator("#item .nt-reminder")).toHaveCount(0);
 });
+
+test("bricks: a level pays bricks, the new building rises, and the Build screen spends them", async ({ page }) => {
+  await openApp(page, { players: [player({ grade: 4 })], current: "p1" });
+  await startLevel(page, "commas", 1);
+  for (let n = 0; n < 8; n++) {
+    await answer(page);
+    await page.locator("#next-btn").click();
+  }
+  await expect(page.locator("#result-bricks")).toContainText("+35 🧱 bricks");
+  await page.locator("#result-town").click();
+  await expect(page.locator("#town .rise")).toHaveCount(1);
+  await expect(page.locator("#build-btn")).toContainText("Build · 35");
+  await page.locator("#build-btn").click();
+  await expect(page.locator("#build")).toBeVisible();
+  await expect(page.locator('[data-buy="ferris"]')).toBeDisabled();
+  await expect(page.locator('[data-buy="ferris"]')).toContainText("125 more");
+  await page.locator('[data-buy="oak"]').click();
+  await expect(page.locator("#build-bricks")).toContainText("23");
+  await expect(page.locator('#build-list .build-item.owned')).toContainText("Oak tree");
+  await expect(page.locator("#build-town .decor title")).toHaveText("Oak tree");
+  await page.goBack();
+  await expect(page.locator("#home")).toBeVisible();
+  await expect(page.locator("#town .decor title")).toHaveText("Oak tree");
+  await expect(page.locator("#town .rise")).toHaveCount(0); // only rises once
+});
+
+test("Pip's homework: grade three paragraphs, earn bricks, and it doesn't count as a level", async ({ page }) => {
+  await openApp(page, { players: [player({ grade: 7 })], current: "p1" });
+  await page.locator("#homework-btn").click();
+  await expect(page.locator("#play-skill")).toContainText("📝 Pip's homework:");
+  await expect(page.locator("#progress-text")).toHaveText("1 of 3");
+  const first = await currentItem(page);
+  expect(first.id).toMatch(/^hw-6-8-/);
+  for (let n = 0; n < 3; n++) {
+    await answer(page);
+    await page.locator("#next-btn").click();
+  }
+  await expect(page.locator("#result-title")).toHaveText("Pip's grade: A+");
+  await expect(page.locator("#result-bricks")).toContainText("+18 🧱 bricks");
+  await expect(page.locator("#result-rule")).toBeHidden();
+  await page.locator("#result-next").click();
+  await expect(page.locator("#play-skill")).toContainText("📝 Pip's homework:");
+  const second = await currentItem(page);
+  expect(second.id).not.toBe(first.id); // unseen paragraphs come first
+  await page.locator("#quit-btn").click();
+  await page.locator("#quit-yes").click();
+  await expect(page.locator("#home")).toBeVisible();
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("sentenceBuilders_players")));
+  expect(Object.keys(saved[0].levels)).toHaveLength(0);
+});

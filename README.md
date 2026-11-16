@@ -101,3 +101,9 @@ After every Q&A Flow, **Mark it up** walks through the Shurley Skill Check on th
 ## Looks
 
 Grades 6+ get the calmer **Studio** look by default (system font, slate and indigo, flatter cards, no cartoon helper); Settings → Look switches between Automatic, Bright and Studio for any player. To change a player's name, avatar or grade, tap ✏️ on their card in Who's playing?; changes save on Save, and Delete player is there too. 50 avatars in two groups (grade 6+ see Sports, music and more first).
+
+## Bricks, Pip's homework and celebrations
+
+- **Bricks** (`BRICKS` in `src/config.js`): 2 per sentence right on the first try, 1 on the second, 3 per star, 10 the first time a level is passed. **🧱 Build** on the home screen spends them on 21 town decorations (`DECOR`): park items in back and front rows, things in the sky and on the water; the dog and cat stroll. Bricks only buy decorations.
+- **📝 Pip's homework** (the card on the home screen): three of Pip's paragraphs to proofread (`homework` in `data/content.json`, 12 for grades 3–5 and 10 for grades 6–8), unseen ones first. Pip gets a grade (A+ when all three are right on the first try) and the player earns 6 bricks a paragraph (3 on the second try). It doesn't count toward levels or badges.
+- **Celebrations:** confetti grows with the stars, results stars pop in one at a time, the building just earned rises in the town, buttons give under a tap, and phones buzz on a passed level. All motion is skipped when the device asks for reduced motion.

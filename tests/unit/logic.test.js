@@ -355,3 +355,29 @@ test("noun table: job, singular or plural, common or proper, then the simple sub
   const hv = split("The|A tiny|Adj mouse|SN was|HV hiding|V behind|P the|A couch!|OP");
   assert.equal(nounTableQuestions(hv.map((x) => x[1]), hv.map((x) => x[0])).at(-1).answer, "was hiding");
 });
+
+test("bricks: earned per sentence, star and first pass; decorations cost bricks and are built once", async () => {
+  const { bricksFor, buyDecor, recordLevel, newPlayer, homeworkGrade, recordHomework } = await import("../../src/lib/progress.js");
+  const results = [{ correct: true, tries: 1 }, { correct: true, tries: 2 }, { correct: false, tries: 2 }];
+  assert.equal(bricksFor(results, 2, true), 2 + 1 + 0 + 6 + 10);
+  assert.equal(bricksFor(results, 0, false), 3);
+  let p = newPlayer({ id: "p", name: "Ava", avatar: "🦊", grade: 4, now: 0 });
+  const eight = Array.from({ length: 8 }, (_, i) => ({ id: `commas-1-0${i + 1}`, correct: true, tries: 1 }));
+  const out = recordLevel(p, { skill: "commas", level: 1, results: eight, now: Date.UTC(2026, 10, 16) });
+  assert.equal(out.bricks, 16 + 9 + 10);
+  assert.equal(out.player.bricks, 35);
+  assert.equal(recordLevel(out.player, { skill: "commas", level: 1, results: eight, now: Date.UTC(2026, 10, 17) }).bricks, 25); // no first-pass bonus twice
+  p = out.player;
+  assert.equal(buyDecor(p, "ferris"), null); // 160 is too many
+  const bought = buyDecor(p, "oak");
+  assert.equal(bought.bricks, 35 - 12);
+  assert.deepEqual(bought.decor, ["oak"]);
+  assert.equal(buyDecor(bought, "oak"), null); // built once
+  // Pip's homework: graded A+ … Try again; 6 bricks a paragraph right first, 3 on the second try.
+  assert.equal(homeworkGrade([{ correct: true, tries: 1 }, { correct: true, tries: 1 }]), "A+");
+  assert.equal(homeworkGrade([{ correct: true, tries: 1 }, { correct: true, tries: 2 }]), "B");
+  const hw = recordHomework(p, { results: [{ id: "hw-3-5-01", correct: true, tries: 1 }, { id: "hw-3-5-02", correct: true, tries: 2 }, { id: "hw-3-5-03", correct: false, tries: 2 }], now: 1 });
+  assert.equal(hw.bricks, 9);
+  assert.equal(hw.right, 1);
+  assert.deepEqual(hw.player.levels, p.levels); // doesn't count toward levels
+});

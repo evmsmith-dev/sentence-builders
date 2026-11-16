@@ -75,7 +75,14 @@ export function buzz(ms = 15) {
   }
 }
 
-export function celebrate() {
+/** Confetti that grows with the stars: a small puff for one, a burst for two, bursts from both sides for three. */
+export function celebrate(stars = 2) {
   if (typeof window.confetti !== "function" || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  window.confetti({ particleCount: 90, spread: 70, origin: { y: 0.35 }, disableForReducedMotion: true });
+  const shot = (opts) => window.confetti({ disableForReducedMotion: true, origin: { y: 0.35 }, ...opts });
+  if (stars <= 1) return shot({ particleCount: 40, spread: 50 });
+  shot({ particleCount: 90, spread: 70 });
+  if (stars >= 3) {
+    setTimeout(() => shot({ particleCount: 70, angle: 60, spread: 60, origin: { x: 0, y: 0.6 } }), 250);
+    setTimeout(() => shot({ particleCount: 70, angle: 120, spread: 60, origin: { x: 1, y: 0.6 } }), 400);
+  }
 }

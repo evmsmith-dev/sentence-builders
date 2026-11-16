@@ -1,7 +1,7 @@
 // A player's progress: what's unlocked, recording a finished level, stars, mastery and badges.
 // Pure functions on plain data, so they're easy to test and save.
 import {
-  GOLD_DAYS, GOLD_POINTS, HABIT_BADGES, POINTS, SKILLS, STAR_THRESHOLDS, WORLD_BADGES, skillById, skillsInWorld,
+  BRICKS, DECOR, GOLD_DAYS, GOLD_POINTS, HABIT_BADGES, POINTS, SKILLS, STAR_THRESHOLDS, WORLD_BADGES, skillById, skillsInWorld,
 } from "../config.js";
 
 export const levelKey = (skill, level) => `${skill}-${level}`;
@@ -22,6 +22,8 @@ export function newPlayer({ id, name, avatar, grade, now }) {
     days: [], // dates played
     time: {}, // date: milliseconds spent in levels that day
     badges: {}, // badge id: highest tier earned (kept even if data is later trimmed)
+    bricks: 0, // spent on town decorations
+    decor: [], // decoration ids built in the town
   };
 }
 
@@ -132,6 +134,10 @@ export function recordLevel(player, { skill, level, results, now, durationMs = 0
     if (!days.includes(date)) next.goldDays[skill] = [...days, date];
   }
 
+  const firstPass = stars > 0 && before.stars === 0;
+  const bricks = bricksFor(results, stars, firstPass);
+  next.bricks += bricks;
+
   const earned = currentBadges(next);
   const newBadges = [];
   for (const [id, tier] of Object.entries(earned)) {
@@ -143,9 +149,51 @@ export function recordLevel(player, { skill, level, results, now, durationMs = 0
   return {
     player: next, points, stars,
     passed: stars > 0,
-    firstPass: stars > 0 && before.stars === 0,
+    firstPass, bricks,
     newBest: points > before.best,
     newBadges,
     goldProgress: level === 3 ? (next.goldDays[skill] || []).length : null,
   };
+}
+
+/**
+ * Bricks for a finished level: 2 for each sentence right on the first try, 1 on the second try, 3 per star, and 10
+ * the first time a level is passed. Bricks only buy decorations, never answers.
+ */
+export function bricksFor(results, stars, firstPass) {
+  const perSentence = results.reduce((sum, r) => sum + (!r.correct ? 0 : r.tries === 1 ? BRICKS.first : BRICKS.second), 0);
+  return perSentence + stars * BRICKS.star + (firstPass ? BRICKS.firstPass : 0);
+}
+
+/** Builds a decoration if the player has the bricks and doesn't have it yet; returns the new player or null. */
+export function buyDecor(player, id) {
+  const item = DECOR.find((d) => d.id === id);
+  const next = normalizePlayer(player);
+  if (!item || next.decor.includes(id) || next.bricks < item.cost) return null;
+  return { ...next, bricks: next.bricks - item.cost, decor: [...next.decor, id] };
+}
+
+/** Pip's grade for a homework round: A+ when every paragraph was right on the first try. */
+export function homeworkGrade(results) {
+  const share = results.reduce((sum, r) => sum + pointsFor(r), 0) / Math.max(results.length, 1);
+  return share === 1 ? "A+" : share >= 0.8 ? "A" : share >= 0.6 ? "B" : share >= 0.4 ? "C" : "Try again";
+}
+
+/**
+ * Records a round of Pip's homework: item stats (so unseen paragraphs come first next time), the day and time
+ * played, and bricks (BRICKS.homeworkFix × 2 for a paragraph right on the first try, × 1 on the second). It doesn't
+ * touch levels or badges.
+ */
+export function recordHomework(player, { results, now, durationMs = 0 }) {
+  const next = normalizePlayer(JSON.parse(JSON.stringify(player)));
+  const date = localDate(now);
+  for (const result of results) {
+    const s = next.items[result.id] || { seen: 0, misses: 0, last: 0 };
+    next.items[result.id] = { seen: s.seen + 1, misses: s.misses + (result.tries > 1 || !result.correct ? 1 : 0), last: now };
+  }
+  if (!next.days.includes(date)) next.days.push(date);
+  next.time[date] = (next.time[date] || 0) + Math.min(Math.max(durationMs, 0), MAX_LEVEL_MS);
+  const bricks = results.reduce((sum, r) => sum + (!r.correct ? 0 : r.tries === 1 ? 2 : 1) * BRICKS.homeworkFix, 0);
+  next.bricks += bricks;
+  return { player: next, bricks, grade: homeworkGrade(results), right: results.filter((r) => r.correct && r.tries === 1).length };
 }

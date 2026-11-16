@@ -23,7 +23,8 @@ async function flowStage(page) {
 }
 
 const content = JSON.parse(readFileSync(new URL("../../data/content.json", import.meta.url), "utf8"));
-export const itemById = (id) => content.items.find((item) => item.id === id);
+export const itemById = (id) => content.items.find((item) => item.id === id)
+  ?? (content.homework || []).map((h) => ({ ...h, skill: "proofread", level: 1 })).find((item) => item.id === id);
 
 /** Opens the app with players already saved (or none, for a first visit). */
 export async function openApp(page, { players = [], current = null } = {}) {

@@ -277,3 +277,37 @@ export const NOUN_KINDS = [
     pairs: [["puppy", "puppies"], ["box", "boxes"], ["goose", "geese"], ["child", "children"], ["mouse", "mice"]],
   },
 ];
+
+/* ---------- Bricks and town decorations ---------- */
+/** Paragraphs in one round of Pip's homework. */
+export const HOMEWORK_PER_ROUND = 3;
+export const BRICKS = { first: 2, second: 1, star: 3, firstPass: 10, homeworkFix: 3 };
+
+/**
+ * Decorations, cheapest first. zone: "square" (the park by the water, in a back or front row), "sky" or
+ * "water"; x is where it sits (0–360), so nothing overlaps. walk: it strolls along the front row (only when
+ * motion is allowed).
+ */
+export const DECOR = [
+  { id: "tulips", name: "Tulips", emoji: "🌷", cost: 8, zone: "square", row: "front", x: 22 },
+  { id: "mailbox", name: "Mailbox", emoji: "📮", cost: 10, zone: "square", row: "front", x: 72 },
+  { id: "oak", name: "Oak tree", emoji: "🌳", cost: 12, zone: "square", row: "back", x: 28 },
+  { id: "balloons", name: "Balloons", emoji: "🎈", cost: 15, zone: "sky", x: 30 },
+  { id: "sunflowers", name: "Sunflowers", emoji: "🌻", cost: 15, zone: "square", row: "front", x: 338 },
+  { id: "pine", name: "Pine tree", emoji: "🌲", cost: 18, zone: "square", row: "back", x: 338 },
+  { id: "ducks", name: "Ducks", emoji: "🦆", cost: 20, zone: "water", x: 60 },
+  { id: "kite", name: "Kite", emoji: "🪁", cost: 25, zone: "sky", x: 96 },
+  { id: "icecream", name: "Ice cream cart", emoji: "🍦", cost: 30, zone: "square", row: "front", x: 292 },
+  { id: "tent", name: "Camping tent", emoji: "⛺", cost: 35, zone: "square", row: "back", x: 298 },
+  { id: "sailboat", name: "Sailboat", emoji: "⛵", cost: 40, zone: "water", x: 170 },
+  { id: "fountain", name: "Fountain", emoji: "⛲", cost: 45, zone: "square", row: "back", x: 120 },
+  { id: "dog", name: "Dog", emoji: "🐕", cost: 50, zone: "square", row: "front", x: 130, walk: true },
+  { id: "cat", name: "Cat", emoji: "🐈", cost: 50, zone: "square", row: "front", x: 230, walk: true },
+  { id: "slide", name: "Playground slide", emoji: "🛝", cost: 60, zone: "square", row: "back", x: 74 },
+  { id: "foodtruck", name: "Food truck", emoji: "🚚", cost: 75, zone: "square", row: "back", x: 256 },
+  { id: "carousel", name: "Carousel", emoji: "🎠", cost: 90, zone: "square", row: "back", x: 210 },
+  { id: "rainbow", name: "Rainbow", emoji: "🌈", cost: 110, zone: "sky", x: 196 },
+  { id: "whale", name: "Whale", emoji: "🐳", cost: 130, zone: "water", x: 110 },
+  { id: "ferris", name: "Ferris wheel", emoji: "🎡", cost: 160, zone: "square", row: "back", x: 165 },
+  { id: "ufo", name: "Friendly UFO", emoji: "🛸", cost: 200, zone: "sky", x: 250 },
+];

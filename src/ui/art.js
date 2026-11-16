@@ -1,5 +1,5 @@
 // Drawings made in code: Pip the foreman robot and the player's town.
-import { WORLDS, skillsInWorldFor, worldOpenFor } from "../config.js";
+import { DECOR, WORLDS, skillsInWorldFor, worldOpenFor } from "../config.js";
 import { levelStars, skillTier } from "../lib/progress.js";
 import { esc } from "./dom.js";
 
@@ -50,7 +50,7 @@ function emptyLot(x, ground) {
 }
 
 /** One street: one block per skill in the world, one lot per level. */
-function street(player, world, ground) {
+function street(player, world, ground, rising) {
   const skills = skillsInWorldFor(world.id, player);
   const blockW = LOT_W * 3 + 10;
   const start = (360 - skills.length * blockW + 10) / 2;
@@ -60,7 +60,10 @@ function street(player, world, ground) {
     const lots = [1, 2, 3].map((level) => {
       const stars = levelStars(player, skill.id, level);
       const x = x0 + (level - 1) * LOT_W;
-      return stars ? building(x, ground, skill, level, stars, gold) : emptyLot(x, ground);
+      if (!stars) return emptyLot(x, ground);
+      const drawn = building(x, ground, skill, level, stars, gold);
+      // The building just earned rises out of the ground (only when motion is allowed).
+      return rising === `${skill.id}-${level}` ? `<g class="rise">${drawn}</g>` : drawn;
     }).join("");
     return `<g data-skill="${skill.id}">${lots}<text x="${x0 + (LOT_W * 3) / 2}" y="${ground + 15}" text-anchor="middle" font-size="10.5" font-weight="600" fill="#2c3e5c">${esc(skill.short)}</text></g>`;
   }).join("");
@@ -69,24 +72,68 @@ function street(player, world, ground) {
 }
 
 /** The player's town: a street for each world that's open, with the harbor at the bottom. */
-export function townSvg(player) {
+const PARK = 74; // the park strip between the last street and the water
+const SKY = 44; // extra sky, added once something flies there
+
+/** One decoration as an emoji in the SVG; `fresh` pops in (just built). */
+function decorSvg(d, x, y, fresh) {
+  const cls = ["decor", d.walk ? "walk" : "", d.id === fresh ? "pop" : ""].filter(Boolean).join(" ");
+  return `<text class="${cls}" x="${x}" y="${y}" text-anchor="middle" font-size="${d.zone === "square" && d.row === "back" ? 30 : 24}">${d.emoji}<title>${d.name}</title></text>`;
+}
+
+export function townSvg(player, { fresh = null, rising = null } = {}) {
   const worlds = WORLDS.filter((world) => worldOpenFor(world, player));
-  const grounds = worlds.map((_, r) => TOP + 96 + r * ROW);
+  const owned = DECOR.filter((d) => (player.decor || []).includes(d.id));
+  const sky = owned.some((d) => d.zone === "sky") ? SKY : 0;
+  const grounds = worlds.map((_, r) => sky + TOP + 96 + r * ROW);
   const last = grounds[grounds.length - 1];
-  const height = last + 22 + 10 + 38;
+  const park = last + 32;
+  const height = park + PARK + 38;
   const shownSkills = worlds.flatMap((w) => skillsInWorldFor(w.id, player));
   const built = shownSkills.reduce((n, skill) => n + [1, 2, 3].filter((level) => levelStars(player, skill.id, level)).length, 0);
   const total = shownSkills.length * 3;
-  const water = last + 32;
+  const water = park + PARK;
+  const inPark = owned.filter((d) => d.zone === "square");
   return `<svg class="town" viewBox="0 0 360 ${height}" role="img" aria-label="Your town: ${built} of ${total} buildings built">
     <defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#cfe6ff"/><stop offset="1" stop-color="#eef6ff"/></linearGradient></defs>
     <rect width="360" height="${height}" fill="url(#sky)"/>
     <circle cx="318" cy="28" r="13" fill="#ffd54f"/>
     <path d="M150 30q8-10 18 0q10-6 16 4h-40q0-6 6-4z" fill="#fff"/><path d="M230 22q8-10 18 0q10-6 16 4h-40q0-6 6-4z" fill="#fff"/>
-    ${worlds.map((world, r) => street(player, world, grounds[r])).join("")}
+    ${worlds.map((world, r) => street(player, world, grounds[r], rising)).join("")}
     <rect y="${last + 22}" width="360" height="10" fill="#c9c3b5"/>
+    <rect y="${park}" width="360" height="${PARK}" fill="#a5d6a7"/>
+    <path d="M0 ${park + 46}h360" stroke="#c8e6c9" stroke-width="10"/>
+    ${inPark.length ? "" : `<text x="180" y="${park + 42}" text-anchor="middle" class="park-sign">Town park: build here with 🧱 bricks</text>`}
+    ${inPark.filter((d) => d.row === "back").map((d) => decorSvg(d, d.x, park + 36, fresh)).join("")}
+    ${inPark.filter((d) => d.row === "front").map((d) => decorSvg(d, d.x, park + 66, fresh)).join("")}
+    ${owned.filter((d) => d.zone === "sky").map((d) => decorSvg(d, d.x, 44, fresh)).join("")}
     <rect y="${water}" width="360" height="38" fill="#6fb6e8"/>
     <path d="M0 ${water + 8}q15-4 30 0t30 0t30 0t30 0t30 0t30 0t30 0t30 0t30 0t30 0t30 0t30 0" stroke="#a9d8f5" stroke-width="2" fill="none"/>
     <g transform="translate(286 ${water + 8})"><path d="M0 8h40l-6 10H6z" fill="#e85d4a"/><rect x="18" y="-14" width="2.5" height="22" fill="#5a3a22"/><path d="M21 -13l14 18H21z" fill="#fff"/></g>
+    ${owned.filter((d) => d.zone === "water").map((d) => decorSvg(d, d.x, water + 28, fresh)).join("")}
+  </svg>`;
+}
+
+/** Close-up of the decorations for the Build screen: a strip of sky, the park and the water. */
+export function parkSvg(player, { fresh = null } = {}) {
+  const owned = DECOR.filter((d) => (player.decor || []).includes(d.id));
+  const park = 64;
+  const water = park + PARK;
+  const height = water + 38;
+  const inPark = owned.filter((d) => d.zone === "square");
+  return `<svg class="town park-view" viewBox="0 0 360 ${height}" role="img" aria-label="Your town park: ${owned.length} of ${DECOR.length} decorations">
+    <defs><linearGradient id="park-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#cfe6ff"/><stop offset="1" stop-color="#eef6ff"/></linearGradient></defs>
+    <rect width="360" height="${park}" fill="url(#park-sky)"/>
+    <circle cx="330" cy="20" r="10" fill="#ffd54f"/>
+    <rect y="${park - 8}" width="360" height="8" fill="#c9c3b5"/>
+    <rect y="${park}" width="360" height="${PARK}" fill="#a5d6a7"/>
+    <path d="M0 ${park + 46}h360" stroke="#c8e6c9" stroke-width="10"/>
+    ${inPark.length ? "" : `<text x="180" y="${park + 42}" text-anchor="middle" class="park-sign">Town park: build here with 🧱 bricks</text>`}
+    ${inPark.filter((d) => d.row === "back").map((d) => decorSvg(d, d.x, park + 36, fresh)).join("")}
+    ${inPark.filter((d) => d.row === "front").map((d) => decorSvg(d, d.x, park + 66, fresh)).join("")}
+    ${owned.filter((d) => d.zone === "sky").map((d) => decorSvg(d, d.x, 40, fresh)).join("")}
+    <rect y="${water}" width="360" height="38" fill="#6fb6e8"/>
+    <path d="M0 ${water + 8}q15-4 30 0t30 0t30 0t30 0t30 0t30 0t30 0t30 0t30 0t30 0t30 0t30 0" stroke="#a9d8f5" stroke-width="2" fill="none"/>
+    ${owned.filter((d) => d.zone === "water").map((d) => decorSvg(d, d.x, water + 28, fresh)).join("")}
   </svg>`;
 }

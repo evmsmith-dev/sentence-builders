@@ -6,7 +6,7 @@ export function esc(text) {
   return String(text).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 }
 
-const SCREENS = ["players", "add-player", "home", "world", "play", "badges", "parent", "rules", "about"];
+const SCREENS = ["players", "add-player", "home", "world", "play", "badges", "parent", "rules", "about", "build"];
 
 // The phone's Back gesture (and the browser's Back button) should close the top popup or step back a
 // screen, not leave the game, as in Bible Trivia and World Geography. Away from the home screen, one
