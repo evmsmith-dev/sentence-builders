@@ -327,7 +327,7 @@
   {"id": "apostrophes-1-08", "skill": "apostrophes", "level": 1, "type": "fix", "text": "We [didnt|didn't|did'nt] see the rainbow.", "hint": "An apostrophe goes where letters are left out."},
   {"id": "apostrophes-1-09", "skill": "apostrophes", "level": 1, "type": "fix", "text": "Mr. [Lees|Lee's|Lees'] store sells kites.", "hint": "Add 's to show that something belongs to one person or thing."},
   {"id": "apostrophes-1-10", "skill": "apostrophes", "level": 1, "type": "which", "text": "It [isn't|isnt|is'nt] cold today.", "hint": "An apostrophe goes where letters are left out."},
-  {"id": "apostrophes-2-01", "skill": "apostrophes", "level": 2, "type": "which", "text": "The two [girls'|girl's|girls] team won the relay.", "hint": "If the plural already ends in s, add only an apostrophe."},
+  {"id": "apostrophes-2-01", "skill": "apostrophes", "level": 2, "type": "which", "text": "Both [girls'|girl's|girls] bikes have flat tires.", "hint": "If the plural already ends in s, add only an apostrophe."},
   {"id": "apostrophes-2-02", "skill": "apostrophes", "level": 2, "type": "which", "text": "All the [students'|student's|students] lunches are in the bin.", "hint": "If the plural already ends in s, add only an apostrophe."},
   {"id": "apostrophes-2-03", "skill": "apostrophes", "level": 2, "type": "which", "text": "The [children's|childrens'|childrens] books are on the low shelf.", "hint": "If the plural doesn't end in s, add 's."},
   {"id": "apostrophes-2-04", "skill": "apostrophes", "level": 2, "type": "which", "text": "Both [dogs'|dog's|dogs] collars are blue.", "hint": "If the plural already ends in s, add only an apostrophe."},
