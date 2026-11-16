@@ -22,3 +22,5 @@ In every format, **the first choice is the right one**; the game shuffles choice
 Tense: keep a sentence's verbs in one time frame (all past, all present, or all future). Shifts are fine only where the grammar calls for them: a present-tense if/when part with a future result ("If it rains, we will stay inside"), and quoted words, which keep the speaker's own tense. Avoid verbs that look the same in past and present (read, lead), because read-aloud may say the wrong one.
 
 Style: sentences under 15 words, about things students care about (pets, sports, games, science, weather; for grades 6–8, topics like school events, history, jobs and travel work well), a mix of names, no trick questions. Hints name the rule in one sentence.
+
+Q&A Flow questions must be correct English too: *who* and *what* take a singular verb ("Who is swimming?", "Who calls me Bean?"); a command's subject question uses *should* ("Who should close the door?"); a question with *did* asks in the past tense ("What ate its dinner?", "Dog ate what?").
