@@ -850,3 +850,19 @@ test("Pip's homework: grade three paragraphs, earn bricks, and it doesn't count 
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("sentenceBuilders_players")));
   expect(Object.keys(saved[0].levels)).toHaveLength(0);
 });
+
+test("Rule Book: word endings (-ed, plurals, will, -s/-ing, irregular verbs) in Word Works and Word lists", async ({ page }) => {
+  await openApp(page, { players: [player({ grade: 4 })], current: "p1" });
+  await page.locator("#rules-btn").click();
+  await page.locator('[data-rules-tab="works"]').click();
+  await page.locator("#spell-past-ed summary").click();
+  await expect(page.locator("#spell-past-ed")).toContainText("carry → carried");
+  await page.locator("#spell-irregular summary").click();
+  await expect(page.locator("#spell-irregular .spell-pairs li")).toContainText(["go → went"]);
+  await page.locator('[data-rules-tab="lists"]').click();
+  await page.locator("#spell-plurals summary").click();
+  await expect(page.locator("#spell-plurals")).toContainText("leaf → leaves");
+  await page.locator("#spell-future summary").click();
+  await expect(page.locator("#spell-future")).toContainText("will + the plain verb");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+});

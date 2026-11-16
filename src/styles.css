@@ -3,7 +3,7 @@
   font-family: "DashFix";
   src: local("Helvetica Neue"), local("HelveticaNeue"), local("Arial"), local("ArialMT"), local("Roboto"), local("Roboto-Regular"),
     local("Segoe UI"), local("Liberation Sans"), local("DejaVu Sans");
-  unicode-range: U+2014, U+2026;
+  unicode-range: U+2011, U+2014, U+2026;
   font-weight: 100 900;
 }
 /* Sentence Builders. Big type, big targets, calm colors. Colors are tokens on :root. */
@@ -650,3 +650,10 @@ details.noun-kind > .rule-card { margin-top: 8px; }
 .build-bar > span { display: block; height: 100%; background: #c98b5a; border-radius: 4px; }
 .build-ready { padding: 8px 14px; border-radius: 10px; background: #c0612b; color: #fff; font-weight: 700; }
 body.theme-studio .build-card { background: var(--card); }
+
+.spell-rules { list-style: none; margin: 8px 0 0; padding: 0; }
+.spell-rules li { padding: 8px 0; border-top: 1px solid var(--border); }
+.spell-rules li:first-child { border-top: 0; }
+.spell-ex { display: block; color: var(--muted); font-weight: 600; margin-top: 2px; }
+details.spell-card > .rule-card { margin-top: 8px; }
+.spell-pairs li { white-space: nowrap; }

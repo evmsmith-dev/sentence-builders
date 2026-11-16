@@ -311,3 +311,67 @@ export const DECOR = [
   { id: "ferris", name: "Ferris wheel", emoji: "🎡", cost: 160, zone: "square", row: "back", x: 165 },
   { id: "ufo", name: "Friendly UFO", emoji: "🛸", cost: 200, zone: "sky", x: 250 },
 ];
+
+/**
+ * How words change their endings: shown in the Rule Book (Word Works and Word lists). rows: [when, do this, examples].
+ * list: word pairs (irregular verbs).
+ */
+export const SPELLING_RULES = [
+  {
+    id: "past-ed", title: "Past tense: adding -ed",
+    note: "Most verbs show the past by adding -ed. The spelling changes in a few patterns.",
+    rows: [
+      ["Most verbs", "Add -ed", "walk → walked, jump → jumped"],
+      ["Ends in silent e", "Add only -d", "bake → baked, smile → smiled"],
+      ["Ends in a consonant + y", "Change y to i, add -ed", "carry → carried, cry → cried"],
+      ["Ends in a vowel + y", "Just add -ed", "play → played, stay → stayed"],
+      ["Short word ending consonant-vowel-consonant", "Double the last letter, add -ed", "stop → stopped, hug → hugged"],
+    ],
+  },
+  {
+    id: "irregular", title: "Irregular past tense verbs",
+    note: "These change their spelling instead of adding -ed. With has, have or had, some use a third form (have gone, has eaten).",
+    list: [["be", "was / were"], ["begin", "began"], ["bring", "brought"], ["build", "built"], ["buy", "bought"], ["catch", "caught"],
+      ["choose", "chose"], ["come", "came"], ["dig", "dug"], ["do", "did"], ["draw", "drew"], ["drink", "drank"], ["drive", "drove"],
+      ["eat", "ate"], ["fall", "fell"], ["feel", "felt"], ["find", "found"], ["fly", "flew"], ["freeze", "froze"], ["get", "got"],
+      ["give", "gave"], ["go", "went"], ["grow", "grew"], ["have", "had"], ["hide", "hid"], ["keep", "kept"], ["know", "knew"],
+      ["leave", "left"], ["make", "made"], ["ride", "rode"], ["run", "ran"], ["say", "said"], ["see", "saw"], ["sing", "sang"],
+      ["sit", "sat"], ["sleep", "slept"], ["speak", "spoke"], ["swim", "swam"], ["take", "took"], ["teach", "taught"],
+      ["tell", "told"], ["think", "thought"], ["throw", "threw"], ["wake", "woke"], ["wear", "wore"], ["write", "wrote"]],
+  },
+  {
+    id: "plurals", title: "Plural nouns: -s, -es, -ies, -ves",
+    note: "Plural means more than one. Most nouns add -s; these patterns change the spelling.",
+    rows: [
+      ["Most nouns", "Add -s", "dog → dogs, book → books"],
+      ["Ends in s, x, z, ch or sh", "Add -es", "bus → buses, box → boxes, lunch → lunches, dish → dishes"],
+      ["Ends in a consonant + y", "Change y to i, add -es", "puppy → puppies, city → cities"],
+      ["Ends in a vowel + y", "Just add -s", "boy → boys, day → days"],
+      ["Ends in f or fe (many words)", "Change to v, add -es", "leaf → leaves, knife → knives (but roof → roofs)"],
+      ["Ends in o", "Add -s or -es (check a dictionary)", "piano → pianos, potato → potatoes"],
+      ["Changes completely", "Learn these", "child → children, mouse → mice, foot → feet, tooth → teeth, goose → geese, person → people"],
+      ["Stays the same", "No change", "sheep, deer, fish, moose"],
+    ],
+  },
+  {
+    id: "future", title: "Future tense: will",
+    note: "The future doesn't change the verb's ending. Put will (or am, is or are going to) before the plain verb.",
+    rows: [
+      ["Any verb", "will + the plain verb", "walk → will walk, swim → will swim"],
+      ["Also", "am / is / are going to + the plain verb", "I am going to swim. She is going to read."],
+      ["Happening for a while", "will be + the -ing verb", "We will be camping all week."],
+    ],
+  },
+  {
+    id: "s-ing", title: "Adding -s and -ing to verbs",
+    note: "He, she, it or one person in the present gets a verb with -s, spelled like plurals. The -ing ending has its own patterns.",
+    rows: [
+      ["-s: most verbs", "Add -s", "run → runs, sing → sings"],
+      ["-s: ends in s, x, z, ch or sh", "Add -es", "catch → catches, wash → washes"],
+      ["-s: ends in a consonant + y", "Change y to i, add -es", "fly → flies, try → tries"],
+      ["-ing: ends in silent e", "Drop the e, add -ing", "make → making, ride → riding"],
+      ["-ing: short word ending consonant-vowel-consonant", "Double the last letter, add -ing", "run → running, swim → swimming"],
+      ["-ing: ends in ie", "Change ie to y, add -ing", "lie → lying, tie → tying"],
+    ],
+  },
+];

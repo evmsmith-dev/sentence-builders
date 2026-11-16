@@ -1,6 +1,6 @@
 // Startup and screens: players, the town, worlds, levels, results, badges and settings.
 import {
-  AVATARS, AVATAR_GROUPS, HABIT_BADGES, ITEMS_PER_LEVEL, MAX_GRADE, MAX_PLAYERS, MIN_GRADE, PIP, DECOR, HOMEWORK_PER_ROUND, SKILLS, STUDIO_FROM_GRADE, NOUN_TABLE_FROM_GRADE, NOUN_KINDS, NOUN_REMINDERS_UNTIL, TIER_NAMES, WORLDS, WORLD_BADGES,
+  AVATARS, AVATAR_GROUPS, HABIT_BADGES, ITEMS_PER_LEVEL, MAX_GRADE, MAX_PLAYERS, MIN_GRADE, PIP, DECOR, HOMEWORK_PER_ROUND, SKILLS, SPELLING_RULES, STUDIO_FROM_GRADE, NOUN_TABLE_FROM_GRADE, NOUN_KINDS, NOUN_REMINDERS_UNTIL, TIER_NAMES, WORLDS, WORLD_BADGES,
   GOLD_DAYS, LABELS, LABEL_LISTS, PATTERNS, FLOW_LABELS, FLOW_PATTERNS, WORD_LISTS, skillById, skillOpenFor, skillsInWorld, skillsInWorldFor, worldOpenFor,
 } from "./config.js";
 import { answerText, spokenText } from "./lib/parse.js";
@@ -488,13 +488,26 @@ function nounKindsHtml(open = false) {
   }).join("");
 }
 
+/** Word endings (-ed, plurals, will, -s and -ing, irregular verbs): folding cards in the Rule Book. */
+function spellingHtml() {
+  // Keep an ending like "-es" on one line: a non-breaking hyphen, and a non-breaking space before it.
+  const keep = (text) => esc(text).replace(/(^|\s)-(\w)/g, (_, space, letter) => `${space ? "\u00a0" : ""}\u2011${letter}`);
+  return SPELLING_RULES.map((r) => {
+    const body = r.rows
+      ? `<ul class="spell-rules">${r.rows.map(([when, how, ex]) => `<li><strong>${keep(when)}:</strong> ${keep(how)}<span class="spell-ex">${keep(ex)}</span></li>`).join("")}</ul>`
+      : `<ul class="word-chips spell-pairs">${r.list.map(([a, b]) => `<li>${esc(a)} → ${esc(b)}</li>`).join("")}</ul>`;
+    return `<details class="rule-skill spell-card" id="spell-${r.id}"><summary><span class="skill-name">${esc(r.title)}</span></summary>
+      <div class="rule-card"><p class="note">${keep(r.note)}</p>${body}</div></details>`;
+  }).join("");
+}
+
 const wordChips = (words) => `<ul class="word-chips">${words.map((w) => `<li>${esc(w)}</li>`).join("")}</ul>`;
 
 function wordListsHtml() {
   return `<p class="note rules-intro">Words to know when you look for each word's job. Tap a list to open it.</p>
     <div class="rules-grid">${WORD_LISTS.map((list) => `<details class="rule-skill word-list" id="list-${list.id}">
       <summary><span class="skill-name">${esc(list.title)}</span><span class="skill-count">${list.words.length} words</span></summary>
-      <p class="note">${esc(list.note)}</p>${wordChips(list.words)}</details>`).join("")}${nounKindsHtml()}</div>`;
+      <p class="note">${esc(list.note)}</p>${wordChips(list.words)}</details>`).join("")}${nounKindsHtml()}${spellingHtml()}</div>`;
 }
 
 /**
@@ -518,7 +531,7 @@ function renderRules(focusWorld, back) {
     const skills = skillsInWorldFor(world.id, player);
     $("rules-list").innerHTML = `<section class="rule-world" id="rules-${world.id}">
       <p class="note rules-intro">Tap a skill to see its rules. Tap 🔊 to hear one.</p>
-      <div class="rules-grid">${world.id === "flow" ? nounKindsHtml() : ""}${skills.map((skill) => {
+      <div class="rules-grid">${world.id === "flow" ? nounKindsHtml() : ""}${world.id === "works" ? spellingHtml() : ""}${skills.map((skill) => {
         const open = [1, 2, 3].filter((level) => isUnlocked(player, skill.id, level)).length;
         const cards = [1, 2, 3].map((level) => {
           const key = `${skill.id}-${level}`;
