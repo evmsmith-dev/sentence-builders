@@ -13,6 +13,14 @@ test("first visit: make a player and land in the town", async ({ page }) => {
   await page.locator("#player-grade").selectOption("4");
   await page.locator('#player-form button[type="submit"]').click();
   await expect(page.locator("#home")).toBeVisible();
+  // Pip introduces himself once: four short bubbles, then never again.
+  await expect(page.locator("#pip-intro-overlay")).toBeVisible();
+  await expect(page.locator("#pip-intro-text")).toContainText("Hi, Ava! I'm Pip");
+  for (let n = 0; n < 3; n++) await page.locator("#pip-intro-next").click();
+  await expect(page.locator("#pip-intro-next")).toHaveText("Let's build!");
+  await page.locator("#pip-intro-next").click();
+  await expect(page.locator("#pip-intro-overlay")).toBeHidden();
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("sentenceBuilders_players"))[0].introSeen)).toBe(true);
   await expect(page.locator("#who-btn")).toContainText("Ava");
   await expect(page.locator("#pip-home")).toContainText("Next up: Commas and colons, level 1");
   await expect(page.locator(".town")).toBeVisible();

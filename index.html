@@ -173,6 +173,7 @@
         <li>Each skill has a badge: Bronze for passing level 1, Silver for level 2, and Gold for scoring 7 or more on level 3 on two different days. More badges come from finishing worlds and from steady practice.</li>
         <li>Forgot a rule? Open 📘 Rule Book, or tap 📘 Labels during a Q&amp;A Flow.</li>
       </ul>
+      <p class="about-pip"><button type="button" class="secondary" data-meet-pip>🤖 Meet Pip again</button></p>
       <h2>What it's based on</h2>
       <p><strong>Minnesota standards.</strong> The skills follow the 2020 Minnesota K–12 Academic Standards in English Language Arts. Each skill lists the benchmarks it practices (for example, 4.2.1.1 is grade 4 punctuation, spelling, capitalization and grammar). The Tip Cards also use the words teachers and tests often use, like parenthetical and nonrestrictive.</p>
       <p><strong>Shurley English.</strong> Flow Factory follows the Shurley English method many schools teach: the Question and Answer Flow, its word labels (SN, V, Adj and the rest), the seven sentence patterns, the Skill Check mark-up (noun check, parentheses around prepositional phrases, a slash before the verb, the complete subject underlined once and the complete predicate twice) and sentence diagramming. Each Shurley level is assumed to match the player's grade.</p>
@@ -191,9 +192,21 @@
     </div>
   </div>
 
+  <div id="pip-intro-overlay" class="overlay" hidden>
+    <div class="sheet pip-intro" role="dialog" aria-modal="true" aria-labelledby="pip-intro-text">
+      <div id="pip-intro-face" class="pip-intro-face"></div>
+      <p id="pip-intro-text" class="bubble pip-intro-text" aria-live="polite"></p>
+      <div id="pip-intro-dots" class="pip-intro-dots" aria-hidden="true"></div>
+      <div class="sheet-actions">
+        <button type="button" id="pip-intro-next" class="primary big">Next</button>
+      </div>
+      <button type="button" id="pip-intro-skip" class="link">Skip</button>
+    </div>
+  </div>
+
   <div id="tip-overlay" class="overlay" hidden>
     <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="tip-title">
-      <p id="tip-level" class="eyebrow"></p>
+      <div class="tip-head"><span id="tip-pip" class="tip-pip"></span><span><span class="tip-by">Pip's tip</span><p id="tip-level" class="eyebrow"></p></span></div>
       <h2 id="tip-title"></h2>
       <p id="tip-rule" class="tip-rule"></p>
       <p class="eyebrow">Example</p>

@@ -260,6 +260,17 @@ export const AVATAR_GROUPS = [
 export const AVATARS = AVATAR_GROUPS.flatMap((g) => g.avatars);
 
 // What Pip says. Short, plain and never babyish.
+/**
+ * Pip's welcome for a new player: a few short bubbles. Each step: [younger players, grade 6 and up].
+ * {name} is the player's name.
+ */
+export const PIP_INTRO = [
+  ["Hi, {name}! I'm Pip, the foreman of Grammar Island. Let's build it together!", "Hi, {name}. I'm Pip. I run the building crew on Grammar Island."],
+  ["Every level you pass puts up a building on the island. Tap a place on the map to see its path of levels.", "Each level you pass adds a building. Tap a place on the map to see its path of levels."],
+  ["Before each level I'll show you the rule, and if something's tricky I'll give you a hint.", "I'll show the rule before each level and give a hint when an answer misses."],
+  ["Right answers earn 🧱 bricks. Spend them to decorate the island any way you like.", "Right answers earn 🧱 bricks for decorating the island."],
+];
+
 export const PIP = {
   right: ["Nice work.", "That's it.", "Solid.", "Right on.", "You got it.", "Exactly."],
   secondTry: ["Fixed it. Good recovery.", "That's it this time.", "Good fix."],

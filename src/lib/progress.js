@@ -23,6 +23,7 @@ export function newPlayer({ id, name, avatar, grade, now }) {
     time: {}, // date: milliseconds spent in levels that day
     badges: {}, // badge id: highest tier earned (kept even if data is later trimmed)
     bricks: 0, // spent on town decorations
+    introSeen: false, // Pip's welcome has been shown (or skipped)
     summits: 0, // Summit Reviews with PRACTICE_GOAL+ right on the first try: flags on Grammar Peaks
     lakeWins: 0, // Spelling Lake rounds with PRACTICE_GOAL+ right: boats on the lake
     decor: [], // decorations placed in the town: { uid, id, area, x, y } in SCENE units (area: a district id)

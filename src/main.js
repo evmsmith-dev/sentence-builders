@@ -1,6 +1,6 @@
 // Startup and screens: players, the town, worlds, levels, results, badges and settings.
 import {
-  AVATARS, AVATAR_GROUPS, HABIT_BADGES, ITEMS_PER_LEVEL, MAX_GRADE, MAX_PLAYERS, MIN_GRADE, PIP, DECOR, decorFor, HOMEWORK_PER_ROUND, PRACTICE_PER_ROUND, PRACTICE_GOAL, clampSpot, SKILLS, SPELLING_RULES, STUDIO_FROM_GRADE, NOUN_TABLE_FROM_GRADE, NOUN_KINDS, NOUN_REMINDERS_UNTIL, TIER_NAMES, WORLDS, WORLD_BADGES,
+  AVATARS, AVATAR_GROUPS, HABIT_BADGES, ITEMS_PER_LEVEL, MAX_GRADE, MAX_PLAYERS, MIN_GRADE, PIP, PIP_INTRO, DECOR, decorFor, HOMEWORK_PER_ROUND, PRACTICE_PER_ROUND, PRACTICE_GOAL, clampSpot, SKILLS, SPELLING_RULES, STUDIO_FROM_GRADE, NOUN_TABLE_FROM_GRADE, NOUN_KINDS, NOUN_REMINDERS_UNTIL, TIER_NAMES, WORLDS, WORLD_BADGES,
   GOLD_DAYS, LABELS, LABEL_LISTS, PATTERNS, FLOW_LABELS, FLOW_PATTERNS, WORD_LISTS, skillById, skillOpenFor, skillsInWorld, skillsInWorldFor, worldOpenFor,
 } from "./config.js";
 import { answerText, spokenText } from "./lib/parse.js";
@@ -10,7 +10,7 @@ import { recordHomework, recordPractice, buyDecor, moveDecor, removeDecor,
   passedKeys, recordLevel, skillTier, weekSummary,
 } from "./lib/progress.js";
 import { loadCurrentId, loadPlayers, saveCurrentId, savePlayers } from "./storage.js";
-import { districtSkills, mapDistricts, mapLayout, parkSvg, pipSays, townSvg } from "./ui/art.js";
+import { districtSkills, mapDistricts, mapLayout, parkSvg, pipSays, pipSvg, townSvg } from "./ui/art.js";
 import { createTownMap } from "./ui/townmap.js";
 import { $, closeOverlay, esc, initBackButton, openOverlay, pick, showScreen, topOverlay } from "./ui/dom.js";
 import { renderItem } from "./ui/items.js";
@@ -140,6 +140,8 @@ function renderHome() {
   const total = shown.size;
   $("badges-btn").innerHTML = `<span class="tool-emoji" aria-hidden="true">🏅</span><span>Badges ${earned}/${total}</span>`;
   $("build-btn").innerHTML = buildCardHtml(player);
+  // A player who hasn't met Pip yet gets his welcome once (unless Pip is turned off).
+  if (!player.introSeen && settings().pip && !topOverlay()) setTimeout(() => !$("home").hidden && !topOverlay() && openPipIntro(), 250);
   $("world-list").innerHTML = WORLDS.map((world) => {
     const skills = skillsInWorldFor(world.id, player);
     const built = skills.reduce((n, s) => n + [1, 2, 3].filter((l) => isPassed(player, s.id, l)).length, 0);
@@ -199,6 +201,7 @@ function openTip(skillId, level, { review = false } = {}) {
   $("tip-start").textContent = review ? "Back to my results" : "Let's build";
   $("tip-close").hidden = review;
   $("tip-level").textContent = `${skill.name} · Level ${level} · Grade ${skill.grades[level - 1]}`;
+  $("tip-pip").innerHTML = settings().pip ? pipSvg(48) : "";
   $("tip-title").textContent = tip.title;
   $("tip-rule").textContent = tip.rule;
   $("tip-example").textContent = tip.example;
@@ -221,6 +224,33 @@ function startHomework() {
   if (!state.sessionStart) state.sessionStart = Date.now();
   showScreen("play");
   showItem();
+}
+
+/* ==================== Meet Pip ==================== */
+
+/** Pip's welcome: a few short bubbles, shown once per player (and again from About). */
+function openPipIntro() {
+  state.pipIntro = 0;
+  $("pip-intro-face").innerHTML = pipSvg(96);
+  drawPipIntro();
+  openOverlay("pip-intro-overlay");
+}
+
+function drawPipIntro() {
+  const step = state.pipIntro;
+  const older = state.player.grade >= STUDIO_FROM_GRADE;
+  $("pip-intro-text").textContent = PIP_INTRO[step][older ? 1 : 0].replace("{name}", state.player.name);
+  $("pip-intro-dots").innerHTML = PIP_INTRO.map((_, k) => `<span class="${k === step ? "on" : ""}"></span>`).join("");
+  const last = step === PIP_INTRO.length - 1;
+  $("pip-intro-next").textContent = last ? "Let's build!" : "Next";
+  $("pip-intro-skip").hidden = last;
+  if (settings().autoRead) say($("pip-intro-text").textContent);
+}
+
+function closePipIntro() {
+  closeOverlay("pip-intro-overlay");
+  stopSaying();
+  if (!state.player.introSeen) savePlayer({ ...state.player, introSeen: true });
 }
 
 /* ==================== Grammar Peaks: Summit Review and Spelling Lake ==================== */
@@ -381,6 +411,9 @@ function updateCheck() {
   if (ctrl.usesCheck) $("check-btn").disabled = state.play.done || !ctrl.canCheck();
 }
 
+/** Pip's small face beside a hint (nothing when Pip is turned off). */
+const pipFace = () => (settings().pip ? `<span class="feedback-pip" aria-hidden="true">${pipSvg(36)}</span>` : "");
+
 function handleAnswer(right) {
   const play = state.play;
   if (!play || play.done) return;
@@ -400,14 +433,14 @@ function handleAnswer(right) {
     sound("wrong", s.sound);
     play.ctrl.retry();
     $("feedback").className = "feedback hint";
-    $("feedback").innerHTML = `<p><strong>${esc(PIP.hint)}</strong> ${esc(item.hint)}</p><p class="try-again">Try again.</p>`;
+    $("feedback").innerHTML = `${pipFace()}<div><p><strong>${esc(PIP.hint)}</strong> ${esc(item.hint)}</p><p class="try-again">Try again.</p></div>`;
     updateCheck();
   } else {
     play.results.push({ id: item.id, type: item.type, tries: 2, correct: false });
     finishItem();
     play.ctrl.reveal();
     $("feedback").className = "feedback shown";
-    $("feedback").innerHTML = `<p><strong>${esc(PIP.shown)}</strong></p><p class="answer-line">${esc(answerText(item))}</p><p class="hint-line">${esc(item.hint)}</p>`;
+    $("feedback").innerHTML = `${pipFace()}<div><p><strong>${esc(PIP.shown)}</strong></p><p class="answer-line">${esc(answerText(item))}</p><p class="hint-line">${esc(item.hint)}</p></div>`;
   }
 }
 
@@ -438,7 +471,7 @@ function showStepHint(text) {
   }
   sound("wrong", settings().sound);
   $("feedback").className = "feedback hint";
-  $("feedback").innerHTML = `<p>${esc(text)}</p>`;
+  $("feedback").innerHTML = `${pipFace()}<div><p>${esc(text)}</p></div>`;
 }
 
 /** A many-step item reports its own result when it's finished. */
@@ -457,7 +490,7 @@ function completeItem({ tries, correct }) {
     $("feedback").innerHTML = `<p><strong>✓ ${esc(tries === 1 ? pick(PIP.right) : "Done! A hint helped on the way.")}</strong></p>`;
   } else {
     $("feedback").className = "feedback shown";
-    $("feedback").innerHTML = `<p><strong>Done. Some answers were shown, so this one will come back later.</strong></p><p class="answer-line">${esc(answerText(item))}</p>`;
+    $("feedback").innerHTML = `${pipFace()}<div><p><strong>Done. Some answers were shown, so this one will come back later.</strong></p><p class="answer-line">${esc(answerText(item))}</p></div>`;
   }
 }
 
@@ -1083,6 +1116,11 @@ function wire() {
     const buy = target.closest("[data-buy]");
     if (buy) return buyDecoration(buy.dataset.buy);
     if (target.closest("#homework-btn")) return startHomework();
+    if (target.closest("[data-meet-pip]")) {
+      if (!state.player) return;
+      renderHome();
+      return openPipIntro();
+    }
     const practice = target.closest("[data-practice]");
     if (practice) return startPractice(practice.dataset.practice);
     const nextUpBtn = target.closest("[data-next-up]");
@@ -1160,6 +1198,13 @@ function wire() {
   });
 
   $("who-btn").addEventListener("click", renderPlayers);
+  $("pip-intro-next").addEventListener("click", () => {
+    if (state.pipIntro + 1 < PIP_INTRO.length) {
+      state.pipIntro += 1;
+      drawPipIntro();
+    } else closePipIntro();
+  });
+  $("pip-intro-skip").addEventListener("click", closePipIntro);
   // About goes back where it came from: Settings (over the town) or Who's playing?
   $("build-back").addEventListener("click", () => renderHome());
   initBuildDragging();

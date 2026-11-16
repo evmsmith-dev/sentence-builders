@@ -523,8 +523,6 @@ body.theme-studio .screen-title, body.theme-studio .section-title { letter-spaci
 body.theme-studio button, body.theme-studio .btn, body.theme-studio .tile, body.theme-studio .choice,
 body.theme-studio .flow-word, body.theme-studio .mark-btn, body.theme-studio .label-chip, body.theme-studio .level-btn,
 body.theme-studio .rules-tab, body.theme-studio .who, body.theme-studio .sheet { border-radius: 8px; }
-body.theme-studio .pip-row svg, body.theme-studio .pip-row .pip { display: none; }
-body.theme-studio .pip-row { gap: 0; }
 body.theme-studio .dg-slot text, body.theme-studio .mark-name { font-family: inherit; }
 body.theme-studio .town { filter: saturate(0.75); }
 body.theme-studio .bubble { border-radius: 8px; border-left: 4px solid var(--primary); box-shadow: none; }
@@ -727,3 +725,19 @@ details.spell-card > .rule-card { margin-top: 8px; }
 .peak-card small { color: var(--muted); font-weight: 600; }
 .peak-card:disabled { opacity: 0.65; cursor: default; }
 .peak-emoji { font-size: 1.8rem; flex: none; }
+
+/* ==================== Pip: welcome, tips and hints ==================== */
+.pip-intro { text-align: center; }
+.pip-intro-face .pip { display: block; margin: 4px auto 6px; }
+@media (prefers-reduced-motion: no-preference) { .pip-intro-face .pip { animation: pip-bob 1.6s ease-in-out infinite alternate; } }
+.pip-intro-text { margin: 0 auto 12px; max-width: 30em; text-align: left; font-size: 1.1rem; min-height: 4.2em; }
+.pip-intro-dots { display: flex; justify-content: center; gap: 8px; margin-bottom: 8px; }
+.pip-intro-dots span { width: 9px; height: 9px; border-radius: 50%; background: var(--border); }
+.pip-intro-dots span.on { background: var(--primary); }
+.tip-head { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+.tip-head .eyebrow { margin: 0; }
+.tip-pip:empty { display: none; }
+.tip-by { display: block; font-weight: 700; color: var(--primary-dark); font-size: 0.95rem; }
+.feedback.hint, .feedback.shown { display: flex; gap: 10px; align-items: flex-start; }
+.feedback-pip { flex: none; margin-top: 8px; }
+.about-pip { margin-top: 12px; }
