@@ -4,7 +4,6 @@ import {
   GOLD_DAYS, LABELS, LABEL_LISTS, PATTERNS, FLOW_LABELS, FLOW_PATTERNS, WORD_LISTS, skillById, skillOpenFor, skillsInWorld, skillsInWorldFor, worldOpenFor,
 } from "./config.js";
 import { answerText, spokenText } from "./lib/parse.js";
-import { numberWords } from "./lib/words.js";
 import { pickLevelItems } from "./lib/select.js";
 import {
   currentBadges, habitValue, isPassed, isUnlocked, levelStars, localDate, mostMissed, newPlayer, normalizePlayer,
@@ -121,7 +120,7 @@ function renderHome() {
   const earned = Object.entries(currentBadges(player)).filter(([id, tier]) => tier && visibleBadgeIds(player).has(id)).length;
   const shown = visibleBadgeIds(player);
   const total = shown.size;
-  $("badges-btn").textContent = `🏅 Badges ${earned}/${total}`;
+  $("badges-btn").innerHTML = `<span class="tool-emoji" aria-hidden="true">🏅</span><span>Badges ${earned}/${total}</span>`;
   $("world-list").innerHTML = WORLDS.map((world) => {
     const skills = skillsInWorldFor(world.id, player);
     const built = skills.reduce((n, s) => n + [1, 2, 3].filter((l) => isPassed(player, s.id, l)).length, 0);
@@ -490,25 +489,15 @@ function renderBadges() {
   showScreen("badges");
 }
 
-/* ==================== Grown-up view ==================== */
-
-function openAdultCheck() {
-  const number = 200 + Math.floor(Math.random() * 700);
-  state.adultNumber = number;
-  $("adult-question").textContent = `Type the number ${numberWords(number)}:`;
-  $("adult-answer").value = "";
-  $("adult-wrong").hidden = true;
-  closeOverlay("settings-overlay");
-  openOverlay("adult-overlay");
-  $("adult-answer").focus();
-}
+/* ==================== Progress (open to everyone) ==================== */
 
 const BREAK_CHOICES = [0, 15, 20, 30, 45];
 
 function renderParent() {
   const now = Date.now();
   const itemById = (id) => state.content.items.find((item) => item.id === id);
-  $("parent-players").innerHTML = state.players.length ? state.players.map((p) => {
+  const players = [...state.players].sort((a, b) => (b.id === state.player?.id) - (a.id === state.player?.id));
+  $("parent-players").innerHTML = players.length ? players.map((p) => {
     const week = weekSummary(p, now);
     const badges = Object.values(currentBadges(p)).filter(Boolean).length;
     const last = p.days.length ? [...p.days].sort().at(-1) : null;
@@ -701,11 +690,13 @@ function wire() {
     if (close) {
       closeOverlay(close.closest(".overlay").id);
       if (close.closest("#settings-overlay") && state.player) renderHome();
-      if (close.closest("#adult-overlay") && state.player && document.body.dataset.screen === "home") renderHome();
       return;
     }
     if (target.closest("[data-add-player]")) return openAddPlayer();
-    if (target.closest("[data-grownup]")) return openAdultCheck();
+    if (target.closest("[data-progress]")) {
+      closeOverlay("settings-overlay");
+      return renderParent();
+    }
     const playerBtn = target.closest("[data-player]");
     if (playerBtn) return choosePlayer(playerBtn.dataset.player);
     const editBtn = target.closest("[data-edit-player]");
@@ -740,16 +731,6 @@ function wire() {
   });
 
   $("who-btn").addEventListener("click", renderPlayers);
-  $("adult-form").addEventListener("submit", (event) => {
-    event.preventDefault();
-    if (Number($("adult-answer").value.trim()) === state.adultNumber) {
-      closeOverlay("adult-overlay");
-      renderParent();
-    } else {
-      $("adult-wrong").hidden = false;
-      $("adult-answer").select();
-    }
-  });
   $("parent-back").addEventListener("click", () => (state.player ? renderHome() : renderPlayers()));
   $("parent-players").addEventListener("change", (event) => {
     const select = event.target.closest("[data-break]");

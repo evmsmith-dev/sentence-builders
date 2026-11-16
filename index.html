@@ -26,7 +26,7 @@
     </header>
     <h2 class="screen-title">Who's playing?</h2>
     <div id="player-list" class="player-list"></div>
-    <p class="grownup-link"><button type="button" class="link" data-grownup>Grown-ups: progress and backup</button></p>
+    <p class="progress-link"><button type="button" class="link" data-progress>📊 Progress and backup</button></p>
   </main>
 
   <!-- ==================== Add a player ==================== -->
@@ -57,14 +57,13 @@
       <button type="button" id="settings-btn" class="icon-btn" aria-label="Settings">⚙️</button>
     </header>
     <div id="pip-home" class="pip-row"></div>
+    <nav class="home-tools" aria-label="Rule Book, badges and progress">
+      <button type="button" id="rules-btn" class="tool-btn"><span class="tool-emoji" aria-hidden="true">📘</span><span>Rule Book</span></button>
+      <button type="button" id="badges-btn" class="tool-btn"></button>
+      <button type="button" class="tool-btn" data-progress><span class="tool-emoji" aria-hidden="true">📊</span><span>Progress</span></button>
+    </nav>
     <section class="card town-card" aria-labelledby="town-title">
-      <div class="card-head">
-        <h2 id="town-title">Your town</h2>
-        <div class="chip-row">
-          <button type="button" id="rules-btn" class="chip">📘 Rule Book</button>
-          <button type="button" id="badges-btn" class="chip"></button>
-        </div>
-      </div>
+      <h2 id="town-title">Your town</h2>
       <div id="town"></div>
     </section>
     <h2 class="section-title">Worlds</h2>
@@ -122,13 +121,13 @@
     <div id="rules-list" role="tabpanel"></div>
   </main>
 
-  <!-- ==================== Grown-up view ==================== -->
+  <!-- ==================== Progress (everyone on this device) ==================== -->
   <main id="parent" class="screen" hidden>
     <header class="top">
       <button type="button" id="parent-back" class="back" aria-label="Back">←</button>
-      <h1 class="screen-title">Grown-up view</h1>
+      <h1 class="screen-title">📊 Progress</h1>
     </header>
-    <p class="note">Progress for each player on this device. Everything stays on this device.</p>
+    <p class="note">How each player on this device is doing. Everything stays on this device.</p>
     <div id="parent-players"></div>
     <section class="card parent-backup" aria-labelledby="backup-title">
       <h2 id="backup-title">Backup</h2>
@@ -142,21 +141,6 @@
   </main>
 
   <!-- ==================== Overlays ==================== -->
-  <div id="adult-overlay" class="overlay" hidden>
-    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="adult-title">
-      <h2 id="adult-title">Grown-ups only</h2>
-      <form id="adult-form">
-        <label for="adult-answer" id="adult-question"></label>
-        <input id="adult-answer" inputmode="numeric" autocomplete="off" class="adult-input">
-        <p id="adult-wrong" class="note" hidden>That's not it. Try again.</p>
-        <div class="sheet-actions">
-          <button type="button" class="secondary" data-close>Cancel</button>
-          <button type="submit" class="primary">Open</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
   <div id="tip-overlay" class="overlay" hidden>
     <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="tip-title">
       <p id="tip-level" class="eyebrow"></p>
@@ -218,7 +202,6 @@
       <div class="sheet-actions stack">
         <button type="button" id="edit-current" class="secondary">Edit player: name, avatar, grade</button>
         <button type="button" id="switch-player" class="secondary">Switch player</button>
-        <button type="button" class="secondary" data-grownup>Grown-up view</button>
         <button type="button" class="primary" data-close>Done</button>
       </div>
     </div>

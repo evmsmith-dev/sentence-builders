@@ -52,7 +52,7 @@ Proofreading levels are 5 paragraphs: tap a mistake, pick the fix. Still to come
 - Settings per player: read every sentence aloud, Pip's comments, sounds, grade.
 - **Looking back:** the results screen lists the round's mistakes ("Look again"), each written correctly with its rule, and a **Review the rule** button reopens that level's Tip Card and returns to the results. The **Rule Book** (home screen chip, or the 📘 button on a world) has a tab per world plus **Word lists** (articles, prepositions, helping and linking verbs, pronouns, joining words). The tabs wrap and stay pinned at the top; each skill folds to one line until tapped, then shows its unlocked rules with examples and read-aloud (plus labels and patterns in Flow Factory). Locked rules show only their title.
 - **Back button:** the phone's Back gesture (or the browser's Back) closes the popup on top or steps back one screen, as in Bible Trivia and World Geography. Mid-round it asks before leaving; on the results it goes to the town; at the town it leaves the app.
-- **Grown-up view** (from the player screen or Settings, behind a "type this number" check): per child, minutes and days played this week, stars and badge for every skill, the sentences missed most, and a break reminder (off, 15, 20, 30 or 45 minutes). It also saves and restores a backup file.
+- **📊 Progress** (on the home screen and on Who's playing?, open to everyone): per player, the current player first, minutes and days played this week, stars and badge for every skill, the sentences missed most, and a break reminder (off, 15, 20, 30 or 45 minutes). It also saves and restores a backup file.
 - Everything is saved on the device (localStorage). No accounts, ads, tracking or network calls.
 
 ## Project layout

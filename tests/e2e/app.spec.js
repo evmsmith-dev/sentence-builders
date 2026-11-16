@@ -155,32 +155,17 @@ test("Sort it: a wrong sort gives a hint, then the answer", async ({ page }) => 
   throw new Error("no sort item in the level");
 });
 
-test("grown-up view: adult check, progress, break reminder, backup and restore", async ({ page }) => {
+test("Progress: open to everyone from the home screen, not in Settings; break reminder, backup and restore", async ({ page }) => {
   const ava = player({ levels: { "commas-1": { best: 7, stars: 2, plays: 1 } } });
   ava.items = { "commas-1-01": { seen: 2, misses: 2, last: 5 } };
   ava.days = ["2026-11-14"];
-  await openApp(page, { players: [ava, player({ id: "p2", name: "Max", avatar: "🐯", grade: 7 })], current: "p1" });
+  await openApp(page, { players: [ava, player({ id: "p2", name: "Max", avatar: "🐯", grade: 7 })], current: "p2" });
   await page.locator("#settings-btn").click();
-  await page.locator("#settings-overlay [data-grownup]").click();
-  await expect(page.locator("#adult-overlay")).toBeVisible();
-  await page.locator("#adult-answer").fill("1");
-  await page.locator('#adult-form button[type="submit"]').click();
-  await expect(page.locator("#adult-wrong")).toBeVisible();
-  const number = await page.evaluate(() => {
-    const words = document.getElementById("adult-question").textContent.replace("Type the number ", "").replace(":", "");
-    const ones = ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"];
-    const tens = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"];
-    const [h, , ...rest] = words.split(" ");
-    let n = ones.indexOf(h) * 100;
-    const r = rest.join(" ");
-    if (r) {
-      const [t, o] = r.split("-");
-      n += ones.includes(t) && ones.indexOf(t) > 0 ? ones.indexOf(t) : tens.indexOf(t) * 10 + (o ? ones.indexOf(o) : 0);
-    }
-    return n;
-  });
-  await page.locator("#adult-answer").fill(String(number));
-  await page.locator('#adult-form button[type="submit"]').click();
+  await expect(page.locator("#settings-overlay [data-progress]")).toHaveCount(0);
+  await page.locator("#settings-overlay [data-close]").click();
+  await page.locator("#home [data-progress]").click();
+  await expect(page.locator("#parent .screen-title")).toHaveText("📊 Progress");
+  await expect(page.locator("[data-parent-player]").first()).toHaveAttribute("data-parent-player", "p2"); // current player first
   await expect(page.locator("#parent")).toBeVisible();
   const avaCard = page.locator('[data-parent-player="p1"]');
   await expect(avaCard).toContainText("Ava");

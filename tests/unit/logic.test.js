@@ -184,13 +184,6 @@ test("time played, week summary, most missed, and old saves", async () => {
   assert.deepEqual(old.time, {});
 });
 
-test("numbers in words for the grown-up check", async () => {
-  const { numberWords } = await import("../../src/lib/words.js");
-  assert.equal(numberWords(712), "seven hundred twelve");
-  assert.equal(numberWords(340), "three hundred forty");
-  assert.equal(numberWords(865), "eight hundred sixty-five");
-  assert.equal(numberWords(200), "two hundred");
-});
 
 test("sentence check: levels 1-2 ask complete or fragment, level 3 adds run-on", async () => {
   const { parseCheck } = await import("../../src/lib/parse.js");
