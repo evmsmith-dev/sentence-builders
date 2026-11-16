@@ -21,8 +21,8 @@ export const WORLDS = [
   { id: "studio", tab: "Sentences", name: "Sentence Studio", emoji: "🎨", ready: true, blurb: "Fragments, run-ons, compound and complex sentences" },
   { id: "flow", tab: "Q&A Flow", name: "Flow Factory", emoji: "🏭", ready: true, blurb: "Label every word with the Q&A Flow" },
   {
-    id: "desk", tab: "Editing", name: "Editing Desk", emoji: "📝", ready: true, minGrade: 6, blurb: "Grades 6–8: pronoun case and proofreading",
-    comingSoon: "Coming next to the Editing Desk: dashes, hyphens and commas around extra information; compound-complex sentences; misplaced modifiers, active and passive voice.",
+    id: "desk", tab: "Editing", name: "Editing Desk", emoji: "📝", ready: true, minGrade: 6,
+    blurb: "Grades 6–8: pronouns, punctuation, sentence types, modifiers and proofreading",
   },
 ];
 
@@ -100,6 +100,21 @@ export const SKILLS = [
     // Paragraphs take longer, so a level is 5 of them, no review.
     levelPlan: [{ type: "proofread", count: 5 }],
   },
+  {
+    id: "aside", world: "desk", name: "Dashes, hyphens and extra information", short: "Extra info", color: "#5d4037",
+    grades: [6, 7, 8], benchmarks: "MN 6.2.1.1 (dashes, hyphens, ellipses), 7.2.1.1, 8.2.1.1",
+    badge: { id: "dash-master", name: "Dash Master", emoji: "➖" },
+  },
+  {
+    id: "types", world: "desk", name: "Sentence types", short: "Sentence types", color: "#1565c0",
+    grades: [6, 7, 8], benchmarks: "MN 6.2.1.1, 7.2.1.1, 8.2.1.1",
+    badge: { id: "sentence-architect", name: "Sentence Architect", emoji: "🏛️" },
+  },
+  {
+    id: "modifiers", world: "desk", name: "Modifiers and voice", short: "Modifiers", color: "#6a1b9a",
+    grades: [6, 7, 8], benchmarks: "MN 6.2.1.1, 7.2.1.1, 8.2.1.1",
+    badge: { id: "word-wrangler", name: "Word Wrangler", emoji: "🪄" },
+  },
 ];
 
 // The marks offered on "Mark it" items, per skill and level; the right marks are always added.
@@ -113,6 +128,9 @@ export const PALETTES = {
   apostrophes: [["'"], ["'"], ["'"]],
   compound: [[","], [","], [",", ";"]],
   complex: [[","], [","], [","]],
+  aside: [["-", "—", ","], [","], [",", "—", "…", "(", ")"]],
+  types: [[","], [",", ";"], [",", ";"]],
+  modifiers: [[","], [","], [","]],
 };
 // Quick-reference word lists for the Rule Book and the Labels reminder.
 export const WORD_LISTS = [
@@ -181,7 +199,7 @@ export const PATTERNS = {
   6: "SN V-t DO OCN P6", 7: "SN V-t DO OCA P7",
 };
 
-export const MARK_ORDER = [",", ".", "?", "!", '"', "'", ":", ";"];
+export const MARK_ORDER = [",", ".", "?", "!", '"', "'", ":", ";", "-", "—", "…", "(", ")"];
 
 /** Skills a player can see: some (like Advanced Q&A Flow) wait until grade 6. */
 export const skillOpenFor = (skill, player) => !skill.minGrade || (player?.grade || 0) >= skill.minGrade;

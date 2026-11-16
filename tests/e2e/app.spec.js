@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
 import { answer, currentItem, miss, openApp, player, startLevel } from "./helpers.js";
 
@@ -131,7 +132,10 @@ test("Word Works: play a level with every item type it uses, including Sort it",
 });
 
 test("Sort it: a wrong sort gives a hint, then the answer", async ({ page }) => {
-  await openApp(page, { players: [player()], current: "p1" });
+  // Mark the level's other items as already seen, so the unseen sort items come first.
+  const { items } = JSON.parse(readFileSync("data/content.json", "utf8"));
+  const seen = Object.fromEntries(items.filter((i) => i.skill === "verbs" && i.level === 1 && i.type !== "sort").map((i) => [i.id, { seen: 1, misses: 0, last: 1 }]));
+  await openApp(page, { players: [player({ items: seen })], current: "p1" });
   await startLevel(page, "verbs", 1, "works");
   for (let n = 0; n < 8; n++) {
     const item = await currentItem(page);
@@ -214,7 +218,7 @@ test("Sentence Studio: every level of all three skills, with Sentence check and 
       await page.locator("#result-town").click();
     }
   }
-  await expect(page.locator(".town")).toHaveAttribute("aria-label", /9 of 39 buildings/);
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /9 of 48 buildings/);
 });
 
 test("Sentence check and Join it: a miss gives a hint, two show the answer", async ({ page }) => {
@@ -261,7 +265,7 @@ test("Flow Factory: all three levels, 3 Q&A Flows then 2 Build from labels", asy
     await expect(page.locator("#result-score")).toContainText("5 of 5 points");
     await page.locator("#result-town").click();
   }
-  await expect(page.locator(".town")).toHaveAttribute("aria-label", /3 of 39 buildings/);
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /3 of 48 buildings/);
 });
 
 test("Q&A Flow: a miss gives a step hint; a second miss shows that step and moves on", async ({ page }) => {
@@ -290,16 +294,23 @@ test("Editing Desk: closed below grade 6, open for a 7th grader with grades 6-7 
   await expect(page.locator(".town")).toHaveAttribute("aria-label", /of 30 buildings/);
   await page.locator("#who-btn").click();
   await page.locator('[data-player="p2"]').click();
-  await expect(page.locator(".town")).toHaveAttribute("aria-label", /of 39 buildings/);
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /of 48 buildings/);
   await page.locator('[data-world="desk"]').click();
   await expect(page.locator('.level-btn[data-skill="case"][data-level="2"]')).toBeEnabled();
   await expect(page.locator('.level-btn[data-skill="case"][data-level="3"]')).toBeDisabled();
-  await expect(page.locator("#skill-list .coming-soon")).toContainText("Coming next");
+  for (const skill of ["aside", "types", "modifiers"]) {
+    await expect(page.locator(`.level-btn[data-skill="${skill}"][data-level="2"]`)).toBeEnabled();
+    await expect(page.locator(`.level-btn[data-skill="${skill}"][data-level="3"]`)).toBeDisabled();
+  }
+  await expect(page.locator("#skill-list .coming-soon")).toHaveCount(0);
 });
 
-test("Editing Desk: play Pronoun case and Proofreading levels", async ({ page }) => {
+test("Editing Desk: play every skill, including hyphens, dashes, parentheses and ellipses", async ({ page }) => {
+  test.setTimeout(120000);
   await openApp(page, { players: [player({ grade: 8 })], current: "p1" });
-  for (const [skill, level, count] of [["case", 1, 8], ["case", 3, 8], ["proofread", 1, 5], ["proofread", 3, 5]]) {
+  const levels = [["case", 1, 8], ["case", 3, 8], ["proofread", 1, 5], ["proofread", 3, 5],
+    ["aside", 1, 8], ["aside", 3, 8], ["types", 1, 8], ["types", 3, 8], ["modifiers", 2, 8], ["modifiers", 3, 8]];
+  for (const [skill, level, count] of levels) {
     await startLevel(page, skill, level, "desk");
     for (let n = 0; n < count; n++) {
       await expect(page.locator("#progress-text")).toHaveText(`${n + 1} of ${count}`);

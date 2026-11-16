@@ -30,11 +30,11 @@ export async function openApp(page, { players = [], current = null } = {}) {
   await expect(page.locator("body.is-ready")).toBeAttached();
 }
 
-export function player({ id = "p1", name = "Ava", avatar = "🦊", grade = 4, levels = {}, settings = {} } = {}) {
+export function player({ id = "p1", name = "Ava", avatar = "🦊", grade = 4, levels = {}, settings = {}, items = {} } = {}) {
   return {
     id, name, avatar, grade, created: 0,
     settings: { autoRead: false, pip: true, sound: false, ...settings },
-    levels, goldDays: {}, items: {}, secondTryWins: 0, days: [], badges: {},
+    levels, goldDays: {}, items, secondTryWins: 0, days: [], badges: {},
   };
 }
 

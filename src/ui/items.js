@@ -8,7 +8,7 @@
 //   lock()          no more changes
 // Types that answer on a tap call answer(correct) themselves.
 import {
-  CHECK_KINDS, checkBuild, checkLabels, checkMark, checkSort, joinTiles, paletteFor, parseBuild, parseCheck, parseFix, parseFlow,
+  CHECK_KINDS, spaceAfter, checkBuild, checkLabels, checkMark, checkSort, joinTiles, paletteFor, parseBuild, parseCheck, parseFix, parseFlow,
   parseJoin, parseLabels, parseMark, parseProofread, parseSort, parseWhich,
 } from "../lib/parse.js";
 import { FLOW_LABELS, LABELS, PATTERNS, SENTENCE_KINDS } from "../config.js";
@@ -17,7 +17,10 @@ const LABELS_BUTTON = '<button type="button" class="labels-help" data-labels-hel
 import { shuffle } from "../lib/select.js";
 import { esc } from "./dom.js";
 
-const MARK_NAMES = { ",": "comma", ".": "period", "?": "question mark", "!": "exclamation point", '"': "quotation mark", ":": "colon", ";": "semicolon", "'": "apostrophe" };
+const MARK_NAMES = {
+  ",": "comma", ".": "period", "?": "question mark", "!": "exclamation point", '"': "quotation mark", ":": "colon", ";": "semicolon",
+  "'": "apostrophe", "-": "hyphen", "—": "dash", "…": "ellipsis", "(": "opening parenthesis", ")": "closing parenthesis",
+};
 
 /** The right answer with the marks that had to be placed highlighted. */
 function markAnswerHtml(parsed) {
@@ -26,7 +29,7 @@ function markAnswerHtml(parsed) {
   let out = hi(gaps[0].before);
   parsed.words.forEach((word, i) => {
     const gap = gaps[i + 1];
-    out += esc(word) + hi(gap.after) + (i < parsed.words.length - 1 ? " " : "") + hi(gap.before);
+    out += esc(word) + hi(gap.after) + (i < parsed.words.length - 1 ? spaceAfter(gap) : "") + hi(gap.before);
   });
   return out;
 }
@@ -57,7 +60,7 @@ function renderMark(root, item, { onChange, onTap }, { allowEmpty = false } = {}
     if (selected !== null) {
       palette.querySelector(".palette-label").textContent = `Space ${gapLabel(selected)}:`;
       palette.querySelector(".palette-buttons").innerHTML = parsed.palette.map((mark) =>
-        `<button type="button" class="mark-btn" data-mark="${esc(mark)}" aria-label="Add ${esc(MARK_NAMES[mark] || mark)}">${esc(mark)}</button>`).join("")
+        `<button type="button" class="mark-btn" data-mark="${esc(mark)}" aria-label="Add ${esc(MARK_NAMES[mark] || mark)}">${esc(mark)}${mark === "-" || mark === "—" ? `<small class="mark-name" aria-hidden="true">${MARK_NAMES[mark]}</small>` : ""}</button>`).join("")
         + '<button type="button" class="mark-btn erase" data-erase aria-label="Erase this space">⌫</button>';
     }
   }
@@ -183,7 +186,7 @@ function renderWhich(root, item, { answer, onTap }) {
     }
   };
   return {
-    prompt: parsed.kind === "blank" ? "Which one fits in the blank?" : "Which sentence is written correctly?",
+    prompt: item.prompt || (parsed.kind === "blank" ? "Which one fits in the blank?" : "Which sentence is written correctly?"),
     usesCheck: false,
     choicesText: choices,
     retry: () => {},
@@ -279,7 +282,7 @@ function renderSort(root, item, { onChange, onTap }) {
   draw();
   const byText = () => Object.fromEntries(tiles.filter((t) => placed[t.id] !== undefined).map((t) => [t.text, parsed.bins[placed[t.id]].name]));
   return {
-    prompt: "Tap a word, then tap the box it belongs in.",
+    prompt: item.prompt || "Tap a word, then tap the box it belongs in.",
     usesCheck: true,
     canCheck: () => tiles.every((t) => placed[t.id] !== undefined),
     check: () => checkSort(parsed, byText()),

@@ -279,3 +279,12 @@ test("Advanced Q&A Flow: grade gate, labels and patterns per level", async () =>
   assert.deepEqual(p6.patternChoices, [1, 2, 3, 4, 5, 6, 7]);
   assert.equal(parseFlow(content.items.find((i) => i.id === "flow-3-01")).patternChoices.length, 5, "grade 5 flows still offer patterns 1-5");
 });
+
+test("hyphens and dashes join words without spaces; parentheses and ellipses space normally", () => {
+  assert.equal(answerText({ type: "mark", id: "t", text: "My sister is twenty[-]one years old." }), "My sister is twenty-one years old.");
+  assert.equal(answerText({ type: "mark", id: "t", text: "I opened the box and[—]surprise[—]it was empty!" }), "I opened the box and—surprise—it was empty!");
+  assert.equal(answerText({ type: "mark", id: "t", text: "Our coach [(]Mr. Diaz[)] drove the bus." }), "Our coach (Mr. Diaz) drove the bus.");
+  assert.equal(answerText({ type: "mark", id: "t", text: "Well[…] I guess we can go." }), "Well… I guess we can go.");
+  const parsed = parseMark({ id: "t", text: "a well[-]known author" });
+  assert.equal(checkMark(parsed, ["", "", "-", "", ""]), true);
+});

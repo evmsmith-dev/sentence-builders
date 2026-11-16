@@ -22,7 +22,9 @@ function markSpec(raw) {
  * the player fills a gap with a single string, `marks` = after + before.
  */
 export function parseMarkText(text) {
-  const tokens = text.trim().split(/ +/);
+  // A mark written inside a word (twenty[-]one, and[—]surprise) sits in the gap between two words.
+  const spaced = text.replace(/([^\s\]])\[([^\]]*)\](?=[^\s[])/g, "$1[$2] ");
+  const tokens = spaced.trim().split(/ +/);
   const words = [];
   const gaps = [{ after: "", before: "", optional: false }];
   for (const token of tokens) {
@@ -77,12 +79,18 @@ export function checkMark(parsed, filled) {
     answer.gaps.every((gap, i) => (filled[i] || "") === gap.marks || (gap.optional && !filled[i])));
 }
 
+/** Hyphens and dashes join the words on both sides with no space: twenty-one, and—surprise—it. */
+export const JOINS = /[-—]$/;
+
+/** The space between two words, given the marks hanging on the first. */
+export const spaceAfter = (gap) => (JOINS.test(gap.after) && !gap.before ? "" : " ");
+
 /** The sentence with an answer's marks in place, spaced naturally. */
 export function markSentence(words, gaps) {
   let out = gaps[0].before;
   words.forEach((word, i) => {
     const gap = gaps[i + 1];
-    out += word + gap.after + (i < words.length - 1 ? " " : "") + gap.before;
+    out += word + gap.after + (i < words.length - 1 ? spaceAfter(gap) : "") + gap.before;
   });
   return out;
 }

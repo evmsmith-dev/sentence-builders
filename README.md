@@ -84,3 +84,9 @@ To run the browser tests with an installed Chrome instead of Playwright's downlo
 Pushes to `main` are tested and deployed to GitHub Pages by `.github/workflows/deploy.yml`. One-time setup: **Settings → Pages → Build and deployment → Source: GitHub Actions**. The site is then at `https://evmsmith-dev.github.io/sentence-builders/`.
 
 The Fredoka font (SIL Open Font License) and canvas-confetti (ISC) are stored in `vendor/` so the game works offline.
+
+## Editing Desk (grades 6–8)
+
+Pronoun case, Proofreading, Dashes, hyphens and extra information (hyphens and dashes, commas around extra information, dashes/parentheses/ellipses), Sentence types (simple/compound/complex, compound-complex, combining for variety) and Modifiers and voice (commas between adjectives, misplaced and dangling modifiers, active/passive voice and moods). Mark it supports `-`, `—`, `…`, `(` and `)`; hyphens and dashes join words with no spaces (write `twenty[-]one`).
+
+Content: about 20 sentences per level, 12 Q&A Flows per Flow Factory level, 10 paragraphs per Proofreading level (840 items).
