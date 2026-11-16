@@ -243,7 +243,12 @@ export const HABIT_BADGES = [
   { id: "fix-it-pro", name: "Fix-It Pro", emoji: "🔧", how: "Get 25 items right on your second try.", goal: 25, measure: "secondTryWins" },
 ];
 
-export const AVATARS = ["🦊", "🐼", "🐯", "🦉", "🐙", "🦖", "🐢", "🦄", "🐸", "🐧", "🚀", "⚽", "🎸", "🌵", "🍕", "🐝"];
+// Avatars in two groups; players in grade 6+ see the second group first.
+export const AVATAR_GROUPS = [
+  { name: "Animals and fun", avatars: ["🦊", "🐼", "🐯", "🦉", "🐙", "🦖", "🐢", "🦄", "🐸", "🐧", "🐝", "🐨", "🐰", "🦋", "🌵", "🍕", "🚀", "🌈"] },
+  { name: "Sports, music and more", avatars: ["😎", "🎧", "🎮", "⚽", "🏀", "🏈", "⚾", "🏒", "🛹", "🏂", "🎸", "🥁", "🎤", "🎨", "📷", "♟️", "🧩", "📚", "🔬", "🧠", "⚡", "🔥", "🌙", "⭐", "🏔️", "🌊", "🐺", "🦅", "🦈", "🐉", "🤖", "👾"] },
+];
+export const AVATARS = AVATAR_GROUPS.flatMap((g) => g.avatars);
 
 // What Pip says. Short, plain and never babyish.
 export const PIP = {

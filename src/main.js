@@ -1,6 +1,6 @@
 // Startup and screens: players, the town, worlds, levels, results, badges and settings.
 import {
-  AVATARS, HABIT_BADGES, ITEMS_PER_LEVEL, MAX_GRADE, MAX_PLAYERS, MIN_GRADE, PIP, SKILLS, STUDIO_FROM_GRADE, TIER_NAMES, WORLDS, WORLD_BADGES,
+  AVATARS, AVATAR_GROUPS, HABIT_BADGES, ITEMS_PER_LEVEL, MAX_GRADE, MAX_PLAYERS, MIN_GRADE, PIP, SKILLS, STUDIO_FROM_GRADE, TIER_NAMES, WORLDS, WORLD_BADGES,
   GOLD_DAYS, LABELS, LABEL_LISTS, PATTERNS, FLOW_LABELS, FLOW_PATTERNS, WORD_LISTS, skillById, skillOpenFor, skillsInWorld, skillsInWorldFor, worldOpenFor,
 } from "./config.js";
 import { answerText, spokenText } from "./lib/parse.js";
@@ -73,8 +73,15 @@ function openAddPlayer() {
   $("player-name").focus();
 }
 
+/** Avatar buttons in groups; older players see Sports, music and more first. */
+function avatarGridHtml(selected, attr, olderFirst) {
+  const groups = olderFirst ? [...AVATAR_GROUPS].reverse() : AVATAR_GROUPS;
+  return groups.map((g) => `<p class="avatar-group">${esc(g.name)}</p><div class="avatar-grid">${g.avatars.map((a) =>
+    `<button type="button" class="avatar-btn${a === selected ? " selected" : ""}" ${attr}="${a}" aria-pressed="${a === selected}" aria-label="Avatar ${a}">${a}</button>`).join("")}</div>`).join("");
+}
+
 function drawAvatars() {
-  $("avatar-grid").innerHTML = AVATARS.map((a) => `<button type="button" class="avatar-btn${a === state.newAvatar ? " selected" : ""}" data-avatar="${a}" aria-pressed="${a === state.newAvatar}" aria-label="Avatar ${a}">${a}</button>`).join("");
+  $("avatar-grid").innerHTML = avatarGridHtml(state.newAvatar, "data-avatar", Number($("player-grade").value) >= STUDIO_FROM_GRADE);
 }
 
 function choosePlayer(id) {
@@ -573,8 +580,13 @@ async function restoreBackup(file) {
 
 /* ==================== Settings ==================== */
 
+function drawSettingsAvatars() {
+  $("set-avatar-grid").innerHTML = avatarGridHtml(state.player.avatar, "data-set-avatar", state.player.grade >= STUDIO_FROM_GRADE);
+}
+
 function openSettings() {
   const s = settings();
+  drawSettingsAvatars();
   $("set-autoread").checked = s.autoRead;
   $("set-pip").checked = s.pip;
   $("set-sound").checked = s.sound;
@@ -587,6 +599,7 @@ function openSettings() {
 }
 
 function changeSetting() {
+  queueMicrotask(drawSettingsAvatars);
   const player = {
     ...state.player,
     grade: Number($("set-grade").value),
@@ -605,6 +618,7 @@ function gradeOptions() {
 
 function wire() {
   $("player-grade").innerHTML = gradeOptions();
+  $("player-grade").addEventListener("change", drawAvatars);
   $("set-grade").innerHTML = gradeOptions();
 
   document.addEventListener("click", (event) => {
@@ -627,6 +641,13 @@ function wire() {
     if (target.closest("[data-grownup]")) return openAdultCheck();
     const playerBtn = target.closest("[data-player]");
     if (playerBtn) return choosePlayer(playerBtn.dataset.player);
+    const setAvatar = target.closest("[data-set-avatar]");
+    if (setAvatar && state.player) {
+      savePlayer({ ...state.player, avatar: setAvatar.dataset.setAvatar });
+      drawSettingsAvatars();
+      renderHome();
+      return;
+    }
     const avatar = target.closest("[data-avatar]");
     if (avatar) {
       state.newAvatar = avatar.dataset.avatar;

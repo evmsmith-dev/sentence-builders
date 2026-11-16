@@ -679,3 +679,15 @@ test("Studio look: automatic for grade 6+, and either look can be picked in Sett
   await page.locator("#set-theme").selectOption("auto");
   await expect(page.locator("body")).toHaveClass(/theme-studio/);
 });
+
+test("Settings: change the avatar; older players see sports and music avatars first", async ({ page }) => {
+  await openApp(page, { players: [player({ grade: 7, name: "Max" })], current: "p1" });
+  await page.locator("#settings-btn").click();
+  await page.locator(".set-avatar summary").click();
+  await expect(page.locator("#set-avatar-grid .avatar-group").first()).toHaveText("Sports, music and more");
+  await page.locator('#set-avatar-grid [data-set-avatar="🎧"]').click();
+  await expect(page.locator('#set-avatar-grid [data-set-avatar="🎧"]')).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("#who-btn")).toContainText("🎧");
+  await page.reload();
+  await expect(page.locator("#who-btn")).toContainText("🎧");
+});

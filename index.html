@@ -40,7 +40,7 @@
       <input id="player-name" name="name" maxlength="16" required placeholder="First name or nickname">
       <fieldset>
         <legend>Pick an avatar</legend>
-        <div id="avatar-grid" class="avatar-grid"></div>
+        <div id="avatar-grid"></div>
       </fieldset>
       <label for="player-grade">Grade</label>
       <select id="player-grade" name="grade"></select>
@@ -211,6 +211,10 @@
       <label class="toggle"><input type="checkbox" id="set-sound"> Sounds</label>
       <label for="set-grade">Grade</label>
       <select id="set-grade"></select>
+      <details class="set-avatar">
+        <summary>Change avatar</summary>
+        <div id="set-avatar-grid"></div>
+      </details>
       <label for="set-theme">Look</label>
       <select id="set-theme">
         <option value="auto">Automatic (Studio for grades 6+)</option>
