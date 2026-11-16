@@ -366,9 +366,6 @@ span.proof-word.shown { background: var(--shown-soft); color: var(--shown); font
 .missed-list { margin: 0; padding-left: 22px; }
 .missed-list li { margin-bottom: 8px; }
 .missed-skill { display: block; font-size: 0.82rem; color: var(--muted); }
-.break-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 14px; font-weight: 600; }
-.break-row select { min-height: 48px; padding: 6px 10px; border-radius: 12px; border: 2px solid var(--border); background: #fff; }
-.parent-backup h2 { margin: 0 0 4px; font-size: 1.2rem; }
 .sheet-actions.start { justify-content: flex-start; }
 .file-btn { display: inline-flex; align-items: center; cursor: pointer; }
 
@@ -572,3 +569,6 @@ body.theme-studio .bubble::before, body.theme-studio .bubble::after { display: n
 .tool-emoji { font-size: 1.45rem; line-height: 1; }
 .town-card #town-title { margin: 0 0 8px; }
 body.theme-studio .tool-btn { border-radius: 8px; }
+
+.settings-backup { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
+.settings-backup h3 { margin: 0 0 2px; font-size: 1.1rem; }

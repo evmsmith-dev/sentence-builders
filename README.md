@@ -52,7 +52,8 @@ Proofreading levels are 5 paragraphs: tap a mistake, pick the fix. Still to come
 - Settings per player: read every sentence aloud, Pip's comments, sounds, grade.
 - **Looking back:** the results screen lists the round's mistakes ("Look again"), each written correctly with its rule, and a **Review the rule** button reopens that level's Tip Card and returns to the results. The **Rule Book** (home screen chip, or the 📘 button on a world) has a tab per world plus **Word lists** (articles, prepositions, helping and linking verbs, pronouns, joining words). The tabs wrap and stay pinned at the top; each skill folds to one line until tapped, then shows its unlocked rules with examples and read-aloud (plus labels and patterns in Flow Factory). Locked rules show only their title.
 - **Back button:** the phone's Back gesture (or the browser's Back) closes the popup on top or steps back one screen, as in Bible Trivia and World Geography. Mid-round it asks before leaving; on the results it goes to the town; at the town it leaves the app.
-- **📊 Progress** (on the home screen and on Who's playing?, open to everyone): per player, the current player first, minutes and days played this week, stars and badge for every skill, the sentences missed most, and a break reminder (off, 15, 20, 30 or 45 minutes). It also saves and restores a backup file.
+- **📊 Progress** (on the home screen and on Who's playing?, open to everyone): per player, the current player first, minutes and days played this week, stars and badge for every skill and the sentences missed most.
+- **Settings** (⚙️): read aloud, comments and greeting, sounds, look, and a break reminder (off, 15, 20, 30 or 45 minutes) for the current player, plus saving and restoring a backup file of every player on the device. Switch players by tapping your name; edit a player with ✏️ on their card.
 - Everything is saved on the device (localStorage). No accounts, ads, tracking or network calls.
 
 ## Project layout
@@ -99,4 +100,4 @@ After every Q&A Flow, **Mark it up** walks through the Shurley Skill Check on th
 
 ## Looks
 
-Grades 6+ get the calmer **Studio** look by default (system font, slate and indigo, flatter cards, no cartoon helper); Settings → Look switches between Automatic, Bright and Studio for any player. To change a player's name, avatar or grade, tap ✏️ on their card in Who's playing? (or Settings → Edit player); changes save on Save, and Delete player is there too. 50 avatars in two groups (grade 6+ see Sports, music and more first).
+Grades 6+ get the calmer **Studio** look by default (system font, slate and indigo, flatter cards, no cartoon helper); Settings → Look switches between Automatic, Bright and Studio for any player. To change a player's name, avatar or grade, tap ✏️ on their card in Who's playing?; changes save on Save, and Delete player is there too. 50 avatars in two groups (grade 6+ see Sports, music and more first).

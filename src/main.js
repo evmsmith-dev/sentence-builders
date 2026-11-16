@@ -491,8 +491,6 @@ function renderBadges() {
 
 /* ==================== Progress (open to everyone) ==================== */
 
-const BREAK_CHOICES = [0, 15, 20, 30, 45];
-
 function renderParent() {
   const now = Date.now();
   const itemById = (id) => state.content.items.find((item) => item.id === id);
@@ -518,7 +516,6 @@ function renderParent() {
       if (!item) return "";
       return `<li><span class="missed-skill">${esc(skillById(item.skill)?.name || item.skill)}, level ${item.level} · missed ${misses}×</span>${esc(answerText(item))}</li>`;
     }).join("");
-    const choices = BREAK_CHOICES.map((m) => `<option value="${m}" ${p.settings.breakMinutes === m ? "selected" : ""}>${m ? `After ${m} minutes` : "Off"}</option>`).join("");
     return `<section class="card parent-card" data-parent-player="${esc(p.id)}">
       <h3><span aria-hidden="true">${p.avatar}</span> ${esc(p.name)} <span class="muted">· Grade ${p.grade}</span></h3>
       <div class="parent-stats">
@@ -531,10 +528,8 @@ function renderParent() {
       ${worlds}
       <h4>Sentences missed most</h4>
       ${missed ? `<ol class="missed-list">${missed}</ol>` : '<p class="note">None yet.</p>'}
-      <label class="break-row">Break reminder <select data-break="${esc(p.id)}">${choices}</select></label>
     </section>`;
   }).join("") : '<p class="note">No players yet.</p>';
-  $("backup-status").textContent = "";
   showScreen("parent");
 }
 
@@ -563,8 +558,14 @@ async function restoreBackup(file) {
     savePlayers(state.players);
     state.player = state.players.find((p) => p.id === state.player?.id) || null;
     saveCurrentId(state.player?.id || null);
-    renderParent();
-    $("backup-status").textContent = `Restored ${names}.`;
+    if (state.player) {
+      renderHome();
+      fillSettings();
+      $("backup-status").textContent = `Restored ${names}.`;
+    } else {
+      closeOverlay("settings-overlay");
+      renderPlayers();
+    }
   } catch {
     $("backup-status").textContent = "That file isn't a Sentence Builders backup.";
   }
@@ -640,20 +641,26 @@ function deleteEditPlayer() {
 }
 
 function openSettings() {
+  fillSettings();
+  $("backup-status").textContent = "";
+  openOverlay("settings-overlay");
+}
+
+function fillSettings() {
   const s = settings();
+  $("set-break").value = String(s.breakMinutes || 0);
   $("set-autoread").checked = s.autoRead;
   $("set-pip").checked = s.pip;
   $("set-sound").checked = s.sound;
   $("set-theme").value = s.theme || "auto";
   $("set-autoread").closest("label").hidden = !canSay();
-  openOverlay("settings-overlay");
 }
 
 function changeSetting() {
   const player = {
     ...state.player,
     settings: { ...state.player.settings, autoRead: $("set-autoread").checked, pip: $("set-pip").checked, sound: $("set-sound").checked,
-      theme: $("set-theme").value },
+      theme: $("set-theme").value, breakMinutes: Number($("set-break").value) },
   };
   savePlayer(player);
 }
@@ -672,10 +679,6 @@ function wire() {
   $("edit-grade").addEventListener("change", drawEditAvatars);
   $("edit-form").addEventListener("submit", saveEditPlayer);
   $("edit-delete").addEventListener("click", deleteEditPlayer);
-  $("edit-current").addEventListener("click", () => {
-    closeOverlay("settings-overlay");
-    openEditPlayer(state.player.id);
-  });
 
   document.addEventListener("click", (event) => {
     const target = event.target;
@@ -732,15 +735,6 @@ function wire() {
 
   $("who-btn").addEventListener("click", renderPlayers);
   $("parent-back").addEventListener("click", () => (state.player ? renderHome() : renderPlayers()));
-  $("parent-players").addEventListener("change", (event) => {
-    const select = event.target.closest("[data-break]");
-    if (!select) return;
-    const p = state.players.find((x) => x.id === select.dataset.break);
-    const updated = { ...p, settings: { ...p.settings, breakMinutes: Number(select.value) } };
-    state.players = state.players.map((x) => (x.id === p.id ? updated : x));
-    if (state.player?.id === p.id) state.player = updated;
-    savePlayers(state.players);
-  });
   $("backup-save").addEventListener("click", saveBackup);
   $("backup-file").addEventListener("change", (event) => {
     const file = event.target.files?.[0];
@@ -813,11 +807,7 @@ function wire() {
     closeOverlay("result-overlay");
     renderHome();
   });
-  for (const id of ["set-autoread", "set-pip", "set-sound", "set-theme"]) $(id).addEventListener("change", changeSetting);
-  $("switch-player").addEventListener("click", () => {
-    closeOverlay("settings-overlay");
-    renderPlayers();
-  });
+  for (const id of ["set-autoread", "set-pip", "set-sound", "set-theme", "set-break"]) $(id).addEventListener("change", changeSetting);
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
       const open = [...document.querySelectorAll(".overlay")].find((o) => !o.hidden);

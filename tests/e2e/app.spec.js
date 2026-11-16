@@ -155,7 +155,7 @@ test("Sort it: a wrong sort gives a hint, then the answer", async ({ page }) => 
   throw new Error("no sort item in the level");
 });
 
-test("Progress: open to everyone from the home screen, not in Settings; break reminder, backup and restore", async ({ page }) => {
+test("Progress: open to everyone from the home screen; break reminder and backup are in Settings", async ({ page }) => {
   const ava = player({ levels: { "commas-1": { best: 7, stars: 2, plays: 1 } } });
   ava.items = { "commas-1-01": { seen: 2, misses: 2, last: 5 } };
   ava.days = ["2026-11-14"];
@@ -172,9 +172,16 @@ test("Progress: open to everyone from the home screen, not in Settings; break re
   await expect(avaCard.locator(".missed-list")).toContainText("We packed apples, grapes, and crackers.");
   await expect(page.locator('[data-parent-player="p2"]')).toContainText("Max");
 
-  await avaCard.locator("[data-break]").selectOption("20");
+  await expect(page.locator("#parent [data-break], #parent #backup-save")).toHaveCount(0);
+
+  // The break reminder and backup live in Settings (break reminder is per player).
+  await page.locator("#parent-back").click();
+  await page.locator("#settings-btn").click();
+  await page.locator("#set-break").selectOption("20");
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("sentenceBuilders_players")));
-  expect(saved.find((p) => p.id === "p1").settings.breakMinutes).toBe(20);
+  expect(saved.find((p) => p.id === "p2").settings.breakMinutes).toBe(20);
+  await expect(page.locator("#settings-overlay")).not.toContainText("Switch player");
+  await expect(page.locator("#settings-overlay")).toContainText("Comments and greeting");
 
   const download = page.waitForEvent("download");
   await page.locator("#backup-save").click();
@@ -183,11 +190,11 @@ test("Progress: open to everyone from the home screen, not in Settings; break re
   expect(backup.app).toBe("sentence-builders");
   expect(backup.players).toHaveLength(2);
 
-  // Restore just Ava from an edited backup.
+  // Restore just Max (who is playing) from an edited backup.
   page.once("dialog", (dialog) => dialog.accept());
-  await page.locator("#backup-file").setInputFiles({ name: "b.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify({ ...backup, players: [backup.players[0]] })) });
-  await expect(page.locator("#backup-status")).toContainText("Restored Ava");
-  await expect(page.locator('[data-parent-player="p2"]')).toHaveCount(0);
+  await page.locator("#backup-file").setInputFiles({ name: "b.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify({ ...backup, players: [backup.players[1]] })) });
+  await expect(page.locator("#backup-status")).toContainText("Restored Max");
+  await expect(page.locator("#set-break")).toHaveValue("20");
   await page.locator("#backup-file").setInputFiles({ name: "x.json", mimeType: "application/json", buffer: Buffer.from("{}") });
   await expect(page.locator("#backup-status")).toContainText("isn't a Sentence Builders backup");
 });
@@ -697,11 +704,7 @@ test("Edit player: ✏️ on a player card changes name, grade and avatar on Sav
   await expect(page.locator("#edit-delete")).toContainText("Tap again to delete Ava");
   await page.locator("#edit-delete").click();
   await expect(page.locator('[data-player="p2"]')).toHaveCount(0);
-  // From Settings: Edit player opens the same sheet for the current player.
   await page.locator('[data-player="p1"]').click();
-  await page.locator("#settings-btn").click();
-  await page.locator("#edit-current").click();
-  await expect(page.locator("#edit-name")).toHaveValue("Maxwell");
   await page.reload();
   await expect(page.locator("#who-btn")).toContainText("🎧");
 });

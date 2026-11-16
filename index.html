@@ -129,15 +129,6 @@
     </header>
     <p class="note">How each player on this device is doing. Everything stays on this device.</p>
     <div id="parent-players"></div>
-    <section class="card parent-backup" aria-labelledby="backup-title">
-      <h2 id="backup-title">Backup</h2>
-      <p class="note">Save a backup file before resetting or replacing this device, then restore it on the new one.</p>
-      <div class="sheet-actions start">
-        <button type="button" id="backup-save" class="secondary">Save a backup file</button>
-        <label class="secondary file-btn">Restore from a file<input type="file" id="backup-file" accept="application/json,.json" hidden></label>
-      </div>
-      <p id="backup-status" class="note" role="status"></p>
-    </section>
   </main>
 
   <!-- ==================== Overlays ==================== -->
@@ -191,7 +182,7 @@
     <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="settings-title">
       <h2 id="settings-title">Settings</h2>
       <label class="toggle"><input type="checkbox" id="set-autoread"> Read every sentence aloud</label>
-      <label class="toggle"><input type="checkbox" id="set-pip"> Pip's comments</label>
+      <label class="toggle"><input type="checkbox" id="set-pip"> Comments and greeting</label>
       <label class="toggle"><input type="checkbox" id="set-sound"> Sounds</label>
       <label for="set-theme">Look</label>
       <select id="set-theme">
@@ -199,9 +190,24 @@
         <option value="bright">Bright</option>
         <option value="studio">Studio</option>
       </select>
-      <div class="sheet-actions stack">
-        <button type="button" id="edit-current" class="secondary">Edit player: name, avatar, grade</button>
-        <button type="button" id="switch-player" class="secondary">Switch player</button>
+      <label for="set-break">Break reminder</label>
+      <select id="set-break">
+        <option value="0">Off</option>
+        <option value="15">After 15 minutes</option>
+        <option value="20">After 20 minutes</option>
+        <option value="30">After 30 minutes</option>
+        <option value="45">After 45 minutes</option>
+      </select>
+      <section class="settings-backup" aria-labelledby="backup-title">
+        <h3 id="backup-title">Backup</h3>
+        <p class="note">Saves every player on this device to a file. Save one before resetting or replacing this device, then restore it on the new one.</p>
+        <div class="sheet-actions start">
+          <button type="button" id="backup-save" class="secondary">Save a backup file</button>
+          <label class="secondary file-btn">Restore from a file<input type="file" id="backup-file" accept="application/json,.json" hidden></label>
+        </div>
+        <p id="backup-status" class="note" role="status"></p>
+      </section>
+      <div class="sheet-actions">
         <button type="button" class="primary" data-close>Done</button>
       </div>
     </div>
