@@ -1,3 +1,11 @@
+/* Fredoka's em dash is barely longer than its hyphen. Draw only the dash (and ellipsis) from a standard device font. */
+@font-face {
+  font-family: "DashFix";
+  src: local("Helvetica Neue"), local("HelveticaNeue"), local("Arial"), local("ArialMT"), local("Roboto"), local("Roboto-Regular"),
+    local("Segoe UI"), local("Liberation Sans"), local("DejaVu Sans");
+  unicode-range: U+2014, U+2026;
+  font-weight: 100 900;
+}
 /* Sentence Builders. Big type, big targets, calm colors. Colors are tokens on :root. */
 :root {
   --bg: #eaf3ff;
@@ -28,7 +36,7 @@ body {
   min-height: 100vh;
   background: var(--bg);
   color: var(--text);
-  font: 500 18px/1.45 "Fredoka", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font: 500 18px/1.45 "DashFix", "Fredoka", system-ui, -apple-system, "Segoe UI", sans-serif;
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 button, input, select { font: inherit; color: inherit; }
@@ -467,4 +475,4 @@ details.rule-skill .rule-card:first-of-type { border-top: 1px solid var(--border
 }
 
 .mark-btn { position: relative; }
-.mark-name { position: absolute; left: 0; right: 0; bottom: 4px; font-size: 0.7rem; font-weight: 700; line-height: 1; color: var(--muted); }
+.mark-name { font-family: "Fredoka", system-ui, sans-serif; position: absolute; left: 0; right: 0; bottom: 4px; font-size: 0.7rem; font-weight: 700; line-height: 1; color: var(--muted); }
