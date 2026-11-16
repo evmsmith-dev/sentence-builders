@@ -1,5 +1,5 @@
 // Drawings made in code: Pip the foreman robot and the player's town.
-import { SKILLS, WORLDS, skillsInWorld, worldOpenFor } from "../config.js";
+import { WORLDS, skillsInWorldFor, worldOpenFor } from "../config.js";
 import { levelStars, skillTier } from "../lib/progress.js";
 import { esc } from "./dom.js";
 
@@ -51,7 +51,7 @@ function emptyLot(x, ground) {
 
 /** One street: one block per skill in the world, one lot per level. */
 function street(player, world, ground) {
-  const skills = skillsInWorld(world.id);
+  const skills = skillsInWorldFor(world.id, player);
   const blockW = LOT_W * 3 + 10;
   const start = (360 - skills.length * blockW + 10) / 2;
   const blocks = skills.map((skill, b) => {
@@ -74,8 +74,9 @@ export function townSvg(player) {
   const grounds = worlds.map((_, r) => TOP + 96 + r * ROW);
   const last = grounds[grounds.length - 1];
   const height = last + 22 + 10 + 38;
-  const built = SKILLS.reduce((n, skill) => n + [1, 2, 3].filter((level) => levelStars(player, skill.id, level)).length, 0);
-  const total = SKILLS.filter((skill) => worlds.some((w) => w.id === skill.world)).length * 3;
+  const shownSkills = worlds.flatMap((w) => skillsInWorldFor(w.id, player));
+  const built = shownSkills.reduce((n, skill) => n + [1, 2, 3].filter((level) => levelStars(player, skill.id, level)).length, 0);
+  const total = shownSkills.length * 3;
   const water = last + 32;
   return `<svg class="town" viewBox="0 0 360 ${height}" role="img" aria-label="Your town: ${built} of ${total} buildings built">
     <defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#cfe6ff"/><stop offset="1" stop-color="#eef6ff"/></linearGradient></defs>

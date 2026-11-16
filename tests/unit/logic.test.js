@@ -263,3 +263,19 @@ test("the Editing Desk opens at grade 6", async () => {
   assert.equal(worldOpenFor(desk, { grade: 5 }), false);
   assert.equal(worldOpenFor(desk, { grade: 6 }), true);
 });
+
+test("Advanced Q&A Flow: grade gate, labels and patterns per level", async () => {
+  const { SKILLS, skillOpenFor } = await import("../../src/config.js");
+  const { parseFlow } = await import("../../src/lib/parse.js");
+  const flow2 = SKILLS.find((s) => s.id === "flow2");
+  assert.equal(skillOpenFor(flow2, { grade: 5 }), false);
+  assert.equal(skillOpenFor(flow2, { grade: 6 }), true);
+  const command = parseFlow(content.items.find((i) => i.id === "flow2-1-01"));
+  assert.equal(command.words[0].word, "(You)");
+  assert.equal(command.kind, "Imp");
+  assert.deepEqual(command.patternChoices, [1, 2, 3, 4, 5]);
+  const p6 = parseFlow(content.items.find((i) => i.id === "flow2-2-01"));
+  assert.ok(p6.labels.includes("OCN"));
+  assert.deepEqual(p6.patternChoices, [1, 2, 3, 4, 5, 6, 7]);
+  assert.equal(parseFlow(content.items.find((i) => i.id === "flow-3-01")).patternChoices.length, 5, "grade 5 flows still offer patterns 1-5");
+});

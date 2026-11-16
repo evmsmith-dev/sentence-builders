@@ -214,7 +214,7 @@ test("Sentence Studio: every level of all three skills, with Sentence check and 
       await page.locator("#result-town").click();
     }
   }
-  await expect(page.locator(".town")).toHaveAttribute("aria-label", /9 of 36 buildings/);
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /9 of 39 buildings/);
 });
 
 test("Sentence check and Join it: a miss gives a hint, two show the answer", async ({ page }) => {
@@ -261,7 +261,7 @@ test("Flow Factory: all three levels, 3 Q&A Flows then 2 Build from labels", asy
     await expect(page.locator("#result-score")).toContainText("5 of 5 points");
     await page.locator("#result-town").click();
   }
-  await expect(page.locator(".town")).toHaveAttribute("aria-label", /3 of 36 buildings/);
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /3 of 39 buildings/);
 });
 
 test("Q&A Flow: a miss gives a step hint; a second miss shows that step and moves on", async ({ page }) => {
@@ -290,7 +290,7 @@ test("Editing Desk: closed below grade 6, open for a 7th grader with grades 6-7 
   await expect(page.locator(".town")).toHaveAttribute("aria-label", /of 30 buildings/);
   await page.locator("#who-btn").click();
   await page.locator('[data-player="p2"]').click();
-  await expect(page.locator(".town")).toHaveAttribute("aria-label", /of 36 buildings/);
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /of 39 buildings/);
   await page.locator('[data-world="desk"]').click();
   await expect(page.locator('.level-btn[data-skill="case"][data-level="2"]')).toBeEnabled();
   await expect(page.locator('.level-btn[data-skill="case"][data-level="3"]')).toBeDisabled();
@@ -327,4 +327,43 @@ test("Proofread: tapping a fine word hints, a wrong fix twice shows it", async (
   await expect(page.locator("#item .proof-count")).toContainText("Mistakes fixed: 1 of 3");
   await answer(page);
   await expect(page.locator("#feedback.shown")).toContainText("come back later");
+});
+
+test("Advanced Q&A Flow: hidden below grade 6; questions, commands and patterns 6-7 for older players", async ({ page }) => {
+  await openApp(page, { players: [player({ grade: 4 }), player({ id: "p2", name: "Max", avatar: "🐯", grade: 8 })], current: "p1" });
+  await page.locator('[data-world="flow"]').click();
+  await expect(page.locator('.level-btn[data-skill="flow2"]')).toHaveCount(0);
+  await page.locator("#world .back").click();
+  await page.locator("#who-btn").click();
+  await page.locator('[data-player="p2"]').click();
+  for (const level of [1, 2, 3]) {
+    await startLevel(page, "flow2", level, "flow");
+    const kinds = [];
+    for (let n = 0; n < 5; n++) {
+      const item = await currentItem(page);
+      if (item.type === "flow") kinds.push(item.kind);
+      await answer(page);
+      await expect(page.locator("#feedback.good")).toBeVisible();
+      await page.locator("#next-btn").click();
+    }
+    await expect(page.locator("#result-title")).toHaveText("Perfect build!");
+    await page.locator("#result-town").click();
+  }
+});
+
+test("Advanced Q&A Flow: pattern choices go up to 7 and the understood (You) is labeled", async ({ page }) => {
+  await openApp(page, { players: [player({ grade: 8 })], current: "p1" });
+  await startLevel(page, "flow2", 2, "flow");
+  const item = await currentItem(page);
+  // Answer every step, then check the pattern choices offered.
+  const { parseFlow } = await import("../../src/lib/parse.js");
+  const parsed = parseFlow(item);
+  for (const step of parsed.steps) {
+    const word = page.locator(`#item [data-fw="${step.index}"]`);
+    if (await word.isEnabled()) await word.click();
+    await page.locator(`#item [data-label="${step.label}"]`).click();
+  }
+  await page.locator(`#item [data-kind-pick="${parsed.kind}"]`).click();
+  await expect(page.locator("#item [data-pattern]")).toHaveCount(7);
+  await expect(page.locator('#item [data-pattern="6"]')).toHaveText("SN V-t DO OCN P6");
 });

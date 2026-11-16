@@ -1,6 +1,9 @@
 // Turns an item from data/content.json into what the screen shows and what counts as right.
 // Pure functions, unit-tested. The formats are described in data/README.md.
-import { LEVEL_LABELS, MARK_ORDER, PALETTES, PATTERNS, SENTENCE_KINDS } from "../config.js";
+import { FLOW_LABELS, FLOW_PATTERNS, MARK_ORDER, PALETTES, PATTERNS, SENTENCE_KINDS } from "../config.js";
+
+const flowLabels = (item) => (FLOW_LABELS[item.skill] || FLOW_LABELS.flow)[item.level - 1];
+const flowPatterns = (item) => (FLOW_PATTERNS[item.skill] || FLOW_PATTERNS.flow)[item.level - 1];
 
 const BRACKET_LEAD = /^\[([^\]]*)\]/;
 const BRACKET_TRAIL = /\[([^\]]*)\]$/;
@@ -174,7 +177,8 @@ export function parseFlow(item) {
   const steps = item.steps.map(([question, index, label]) => ({ question, index, label: label || words[index].label }));
   return {
     words, steps, kind: item.kind, pattern: item.pattern || null,
-    labels: LEVEL_LABELS[item.level - 1],
+    labels: flowLabels(item),
+    patternChoices: flowPatterns(item),
     labelLine: words.map((w) => w.label).join(" "),
     answerText: `${words.map((w) => w.word).join(" ")} → ${words.map((w) => w.label).join(" ")}`
       + (item.pattern ? ` · ${PATTERNS[item.pattern]}` : "") + ` · ${SENTENCE_KINDS[item.kind].split(":")[0].toLowerCase()}`,
@@ -312,7 +316,9 @@ export function validateItem(item) {
       if (finalLabel[i] !== w.label) throw new Error(`${item.id}: the last step for "${w.word}" gives ${finalLabel[i]}, not ${w.label}`);
     });
     if (!SENTENCE_KINDS[item.kind]) throw new Error(`${item.id}: unknown sentence kind ${item.kind}`);
-    if (item.level === 3 && !PATTERNS[item.pattern]) throw new Error(`${item.id}: level 3 flows need a pattern`);
+    const choices = flowPatterns(item);
+    if (choices.length > 1 && !choices.includes(item.pattern)) throw new Error(`${item.id}: needs a pattern from ${choices.join(", ")}`);
+    if (choices.length === 1 && item.pattern) throw new Error(`${item.id}: patterns aren't asked at this level`);
     if (!/[.!?]$/.test(parsed.words.at(-1).word)) throw new Error(`${item.id}: the last word needs its end mark`);
   }
   if (item.type === "proofread") {
@@ -326,7 +332,7 @@ export function validateItem(item) {
   if (item.type === "labels") {
     const parsed = parseLabels(item);
     if (parsed.tiles.length < 3) throw new Error(`${item.id}: needs 3+ words`);
-    if (!parsed.line.every((l) => LEVEL_LABELS[item.level - 1].includes(l))) throw new Error(`${item.id}: uses a label not taught by level ${item.level}`);
+    if (!parsed.line.every((l) => flowLabels(item).includes(l))) throw new Error(`${item.id}: uses a label not taught by level ${item.level}`);
     if (new Set(parsed.tiles.map((t) => t.word)).size !== parsed.tiles.length) throw new Error(`${item.id}: repeated words`);
     if (!checkLabels(parsed, parsed.tiles.map((t) => t.word))) throw new Error(`${item.id}: its own answer isn't accepted`);
   }

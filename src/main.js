@@ -1,7 +1,7 @@
 // Startup and screens: players, the town, worlds, levels, results, badges and settings.
 import {
   AVATARS, HABIT_BADGES, ITEMS_PER_LEVEL, MAX_GRADE, MAX_PLAYERS, MIN_GRADE, PIP, SKILLS, TIER_NAMES, WORLDS, WORLD_BADGES,
-  GOLD_DAYS, skillById, skillsInWorld, worldOpenFor,
+  GOLD_DAYS, skillById, skillOpenFor, skillsInWorld, skillsInWorldFor, worldOpenFor,
 } from "./config.js";
 import { answerText, spokenText } from "./lib/parse.js";
 import { numberWords } from "./lib/words.js";
@@ -72,8 +72,11 @@ function choosePlayer(id) {
 
 /* ==================== Home ==================== */
 
+/** Skills this player can play: in an open world and not waiting for a higher grade. */
+const visibleSkills = (player) => SKILLS.filter((sk) => worldOpenFor(WORLDS.find((w) => w.id === sk.world), player) && skillOpenFor(sk, player));
+
 function nextUp(player) {
-  for (const skill of SKILLS.filter((sk) => worldOpenFor(WORLDS.find((w) => w.id === sk.world), player))) {
+  for (const skill of visibleSkills(player)) {
     for (const level of [1, 2, 3]) {
       if (isUnlocked(player, skill.id, level) && !isPassed(player, skill.id, level)) return { skill, level };
     }
@@ -90,11 +93,12 @@ function renderHome() {
     : `Every building is up, ${player.name}. Go for Gold: score 7 or more on a level 3, on two different days.`;
   $("pip-home").innerHTML = pipSays(greeting, settings().pip);
   $("town").innerHTML = townSvg(player);
-  const earned = Object.values(currentBadges(player)).filter(Boolean).length;
-  const total = SKILLS.length + WORLD_BADGES.length + HABIT_BADGES.length;
+  const earned = Object.entries(currentBadges(player)).filter(([id, tier]) => tier && visibleBadgeIds(player).has(id)).length;
+  const shown = visibleBadgeIds(player);
+  const total = shown.size;
   $("badges-btn").textContent = `🏅 Badges ${earned}/${total}`;
   $("world-list").innerHTML = WORLDS.map((world) => {
-    const skills = skillsInWorld(world.id);
+    const skills = skillsInWorldFor(world.id, player);
     const built = skills.reduce((n, s) => n + [1, 2, 3].filter((l) => isPassed(player, s.id, l)).length, 0);
     const open = worldOpenFor(world, player);
     const meta = open ? `${built}/${skills.length * 3} built` : world.ready ? `Grade ${world.minGrade}+` : "Coming soon";
@@ -112,7 +116,7 @@ function renderWorld(worldId) {
   const world = WORLDS.find((w) => w.id === worldId);
   const player = state.player;
   $("world-title").textContent = `${world.emoji} ${world.name}`;
-  $("skill-list").innerHTML = skillsInWorld(worldId).map((skill) => {
+  $("skill-list").innerHTML = skillsInWorldFor(worldId, player).map((skill) => {
     const tier = skillTier(player, skill.id);
     const goldDays = (player.goldDays[skill.id] || []).length;
     const levels = [1, 2, 3].map((level) => {
@@ -335,16 +339,25 @@ function finishLevel() {
 
 /* ==================== Badges ==================== */
 
+/** Badge ids this player can work toward (no Editing Desk badges for a 4th grader). */
+function visibleBadgeIds(player) {
+  return new Set([
+    ...visibleSkills(player).map((sk) => sk.badge.id),
+    ...WORLD_BADGES.filter((b) => worldOpenFor(WORLDS.find((w) => w.id === b.world), player)).map((b) => b.id),
+    ...HABIT_BADGES.map((b) => b.id),
+  ]);
+}
+
 function renderBadges() {
   const player = state.player;
   const earned = currentBadges(player);
-  const skillRows = SKILLS.map((skill) => {
+  const skillRows = visibleSkills(player).map((skill) => {
     const tier = earned[skill.badge.id];
     return `<li class="badge${tier ? " earned" : ""}"><span class="badge-emoji" aria-hidden="true">${skill.badge.emoji}</span>
       <span><strong>${esc(skill.badge.name)}</strong> ${tier ? `<span class="tier-tag t${tier}">${TIER_NAMES[tier - 1]}</span>` : ""}
       <span class="badge-how">${esc(skill.name)}: Bronze = pass level 1, Silver = pass level 2, Gold = 7+ on level 3 on two days.</span></span></li>`;
   }).join("");
-  const other = [...WORLD_BADGES, ...HABIT_BADGES].map((badge) => {
+  const other = [...WORLD_BADGES.filter((b) => worldOpenFor(WORLDS.find((w) => w.id === b.world), player)), ...HABIT_BADGES].map((badge) => {
     const got = earned[badge.id];
     const progress = badge.measure ? ` (${Math.min(habitValue(player, badge.measure), badge.goal)}/${badge.goal})` : "";
     return `<li class="badge${got ? " earned" : ""}"><span class="badge-emoji" aria-hidden="true">${badge.emoji}</span>
@@ -377,7 +390,7 @@ function renderParent() {
     const badges = Object.values(currentBadges(p)).filter(Boolean).length;
     const last = p.days.length ? [...p.days].sort().at(-1) : null;
     const worlds = WORLDS.filter((w) => worldOpenFor(w, p)).map((world) => {
-      const rows = skillsInWorld(world.id).map((skill) => {
+      const rows = skillsInWorldFor(world.id, p).map((skill) => {
         const tier = skillTier(p, skill.id);
         const cells = [1, 2, 3].map((level) => {
           const stars = levelStars(p, skill.id, level);

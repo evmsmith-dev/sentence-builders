@@ -82,6 +82,13 @@ export const SKILLS = [
     goldNeedsAllRight: "labels",
   },
   {
+    id: "flow2", world: "flow", name: "Advanced Q&A Flow", short: "Adv. Flow", color: "#4527a0", minGrade: 6,
+    grades: [6, 7, 8], benchmarks: "Shurley English Levels 6–8: questions, commands, patterns 6 and 7",
+    badge: { id: "pattern-pro", name: "Pattern Pro", emoji: "🧠" },
+    levelPlan: [{ type: "flow", count: 3 }, { type: "labels", count: 2 }],
+    goldNeedsAllRight: "labels",
+  },
+  {
     id: "case", world: "desk", name: "Pronoun case and clarity", short: "Pronoun case", color: "#00695c",
     grades: [6, 7, 8], benchmarks: "MN 6.2.1.1, 7.2.1.1, 8.2.1.1",
     badge: { id: "case-closed", name: "Case Closed", emoji: "🕵️" },
@@ -126,27 +133,45 @@ export const LABELS = {
   LV: { name: "linking verb", hint: "A linking verb like is or was links the subject to a word that renames or describes it." },
   PrN: { name: "predicate noun", hint: "A predicate noun comes after a linking verb and means the same thing as the subject." },
   PA: { name: "predicate adjective", hint: "A predicate adjective comes after a linking verb and describes the subject." },
+  OCN: { name: "object complement noun", hint: "An object complement noun comes after the direct object and renames it: verb + DO + what?" },
+  OCA: { name: "object complement adjective", hint: "An object complement adjective comes after the direct object and describes it: verb + DO + what?" },
 };
 export const LEVEL_LABELS = [
   ["SN", "SP", "V", "A", "Adj", "Adv"],
   ["SN", "SP", "V", "HV", "A", "Adj", "Adv", "P", "OP", "PPA", "PNA"],
   ["SN", "SP", "V", "V-t", "LV", "HV", "A", "Adj", "Adv", "P", "OP", "PPA", "PNA", "DO", "IO", "PrN", "PA"],
 ];
+const ALL_GRADE5 = LEVEL_LABELS[2];
+const WITH_COMPLEMENTS = [...ALL_GRADE5, "OCN", "OCA"];
+// Labels and pattern choices per Q&A Flow skill and level.
+export const FLOW_LABELS = { flow: LEVEL_LABELS, flow2: [ALL_GRADE5, WITH_COMPLEMENTS, WITH_COMPLEMENTS] };
+export const FLOW_PATTERNS = {
+  flow: [[1], [1], [1, 2, 3, 4, 5]],
+  flow2: [[1, 2, 3, 4, 5], [1, 2, 3, 4, 5, 6, 7], [1, 2, 3, 4, 5, 6, 7]],
+};
+
 export const SENTENCE_KINDS = {
   D: "Declarative: a statement.",
   Int: "Interrogative: a question.",
   E: "Exclamatory: strong feeling.",
   Imp: "Imperative: a command.",
 };
-export const PATTERNS = { 1: "SN V P1", 2: "SN V-t DO P2", 3: "SN V-t IO DO P3", 4: "SN LV PrN P4", 5: "SN LV PA P5" };
+export const PATTERNS = {
+  1: "SN V P1", 2: "SN V-t DO P2", 3: "SN V-t IO DO P3", 4: "SN LV PrN P4", 5: "SN LV PA P5",
+  6: "SN V-t DO OCN P6", 7: "SN V-t DO OCA P7",
+};
 
 export const MARK_ORDER = [",", ".", "?", "!", '"', "'", ":", ";"];
+
+/** Skills a player can see: some (like Advanced Q&A Flow) wait until grade 6. */
+export const skillOpenFor = (skill, player) => !skill.minGrade || (player?.grade || 0) >= skill.minGrade;
 
 /** Worlds a player can open: the Editing Desk waits until grade 6. */
 export const worldOpenFor = (world, player) => world.ready && (!world.minGrade || (player?.grade || 0) >= world.minGrade);
 
 export const skillById = (id) => SKILLS.find((skill) => skill.id === id);
 export const skillsInWorld = (worldId) => SKILLS.filter((skill) => skill.world === worldId);
+export const skillsInWorldFor = (worldId, player) => skillsInWorld(worldId).filter((skill) => skillOpenFor(skill, player));
 
 export const TIER_NAMES = ["Bronze", "Silver", "Gold"];
 

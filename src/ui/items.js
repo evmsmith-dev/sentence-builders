@@ -424,7 +424,7 @@ function renderJoin(root, item, hooks) {
 }
 
 const KIND_HINT = "Look at the end mark: a period makes a statement, a question mark a question, and an exclamation point shows strong feeling.";
-const PATTERN_HINT = "Look at the labels after the verb: nothing more is P1, a DO is P2, an IO and a DO is P3, a PrN is P4, a PA is P5.";
+const PATTERN_HINT = "Look at the labels after the verb: nothing more is P1, a DO is P2, an IO and a DO is P3, a PrN is P4, a PA is P5, a DO and OCN is P6, a DO and OCA is P7.";
 
 /**
  * Q&A Flow: one question at a time. For a question, tap the word that answers it, then pick its label;
@@ -483,8 +483,8 @@ function renderFlow(root, item, { hint, complete, onChange, onTap }) {
         `<button type="button" class="choice sentence-choice" data-kind-pick="${key}">${esc(text)}</button>`).join("");
     } else {
       q.textContent = "Which pattern is it?";
-      choices.innerHTML = Object.entries(PATTERNS).map(([key, text]) =>
-        `<button type="button" class="choice" data-pattern="${key}">${esc(text)}</button>`).join("");
+      choices.innerHTML = parsed.patternChoices.map((key) =>
+        `<button type="button" class="choice" data-pattern="${key}">${esc(PATTERNS[key])}</button>`).join("");
     }
   }
 
