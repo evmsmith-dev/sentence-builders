@@ -332,8 +332,25 @@ test("diagrams: compound parts fork, very hangs from the word it describes, adve
   assert.equal(layout.dashes.length, 1);
   const verbs = buildDiagram({ tags: "We|SP swam|CV and|C fished.|CV" });
   assert.equal(verbs.tree.verb.fork, true);
-  // Not diagrammed: three compound parts, or a compound verb with a direct object.
-  assert.equal(buildDiagram({ tags: "We|SP washed|CV and|C dried|CV the|A dishes.|DO" }), null);
+  // Not diagrammed: three compound parts.
+  assert.equal(buildDiagram({ tags: "Mia|CSN Leo|CSN and|C Kai|CSN sang.|V" }), null);
+  // Compound verbs share one direct object; compound objects and predicate words fork after the verb.
+  const shared = buildDiagram({ tags: "We|SP washed|CV-t and|C dried|CV-t the|A dishes.|DO" });
+  assert.equal(shared.tree.verb.fork, true);
+  assert.equal(shared.tree.complement.kind, "DO");
+  const cdo = buildDiagram({ tags: "Mia|SN packed|V-t apples|CDO and|C grapes.|CDO" });
+  assert.equal(cdo.tree.complement.node.fork, true);
+  assert.deepEqual(cdo.slots.filter((s) => s.baseline).map((s) => s.text), ["Mia", "packed", "apples", "grapes", "and"]);
+  assert.match(explainSlot(cdo, cdo.slots.find((s) => s.text === "grapes")), /compound direct object.*packed what/);
+  assert.equal(buildDiagram({ tags: "The|A soup|SN is|LV hot|CPA and|C salty.|CPA" }).tree.complement.kind, "PA");
+  // Compound objects that hang below fork where they hang: off the preposition, or under the verb.
+  const cop = buildDiagram({ tags: "I|SP walked|V with|P Leo|COP and|C Ana.|COP" });
+  assert.equal(parentOf(cop, "Leo"), "with");
+  assert.equal(parentOf(cop, "Ana"), "with");
+  assert.equal(cop.slots.find((s) => s.text === "and").baseline, false);
+  const cio = buildDiagram({ tags: "Dad|SN gave|V-t Mom|CIO and|C me|CIO a|A hug.|DO" });
+  assert.equal(parentOf(cio, "Mom"), "gave");
+  assert.equal(layoutDiagram(cio).dashes.length, 1);
 });
 
 test("noun table: job, singular or plural, common or proper, then the simple subject and predicate", async () => {
@@ -432,4 +449,20 @@ test("practice: Summit Review mixes passed skills, missed questions first; spell
   assert.equal(out.bricks, 6 * 2 + 1); // 2 each on the first try, 1 on the second
   assert.equal(out.player.items.x6.misses, 1);
   assert.equal(recordPractice(p, { kind: "lake", results: results.map((r) => ({ ...r, tries: 2 })), now: 1 }).player.lakeWins, 0);
+});
+
+test("compounds: mark-up circles compound nouns, a phrase runs to its last object, an interjection isn't underlined", async () => {
+  const { markupTasks } = await import("../../src/lib/markup.js");
+  const split = (tags) => tags.split(" ").map((t) => t.split("|"));
+  const s = split("My|PPA sister|SN played|V with|P blocks|COP and|C trucks.|COP");
+  const tasks = Object.fromEntries(markupTasks(s.map((x) => x[1]), s.map((x) => x[0])).map((t) => [t.id, t]));
+  assert.deepEqual(tasks.circle.answer, [1, 4, 6]);
+  assert.deepEqual(tasks.parens.answer, [3, 4, 5, 6]); // with blocks and trucks
+  const w = split("Wow,|I the|A ducks|SN swam|V away!|Adv");
+  const wt = Object.fromEntries(markupTasks(w.map((x) => x[1]), w.map((x) => x[0])).map((t) => [t.id, t]));
+  assert.deepEqual(wt.subject.answer, [1, 2]); // not Wow
+  assert.deepEqual(wt.verb.answer, [3, 4]);
+  const v = split("We|SP washed|CV-t and|C dried|CV-t the|A dishes.|DO");
+  const vt = Object.fromEntries(markupTasks(v.map((x) => x[1]), v.map((x) => x[0])).map((t) => [t.id, t]));
+  assert.deepEqual(vt.slash.answer, [1]);
 });

@@ -22,7 +22,10 @@ export function nounTableQuestions(labels, words, jobs = NOUN_LABELS) {
     const info = nounInfo(words[i], i);
     if (!info.number) return [];
     const label = labels[i];
-    const others = jobs.filter((j) => j !== label && NOUN_LABELS.includes(j) && j !== "CSN").slice(0, 3);
+    // Wrong job choices: other noun jobs at this level, matching compound with compound where possible.
+    const compound = label.startsWith("C");
+    const pool = jobs.filter((j) => j !== label && NOUN_LABELS.includes(j));
+    const others = [...pool.filter((j) => j.startsWith("C") === compound), ...pool.filter((j) => j.startsWith("C") !== compound)].slice(0, 3);
     questions.push({
       id: `job-${i}`, noun: i, column: "job", prompt: `What job does ${w} do?`,
       choices: [label, ...others].map(jobName), answer: jobName(label),

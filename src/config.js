@@ -93,6 +93,13 @@ export const SKILLS = [
     goldNeedsAllRight: "labels",
   },
   {
+    id: "cflow", world: "flow", name: "Compound Q&A Flow", short: "Compounds", color: "#8e44ad",
+    grades: [3, 4, 5], benchmarks: "Shurley English Levels 3–5: compound parts (C, CSN, CV, COP, CDO, CIO, CPrN, CPA) and interjections",
+    badge: { id: "compound-crew", name: "Compound Crew", emoji: "🔗" },
+    levelPlan: [{ type: "flow", count: 3 }, { type: "labels", count: 2 }],
+    goldNeedsAllRight: "labels",
+  },
+  {
     id: "flow2", world: "flow", name: "Advanced Q&A Flow", short: "Adv. Flow", color: "#4527a0", minGrade: 6,
     grades: [6, 7, 8], benchmarks: "Shurley English Levels 6–8: questions, commands, patterns 6 and 7",
     badge: { id: "pattern-pro", name: "Pattern Pro", emoji: "🧠" },
@@ -194,6 +201,18 @@ export const LABELS = {
   CSP: { name: "compound subject pronoun", hint: "Two subject pronouns (or a noun and a pronoun) joined by and or or. Each pronoun is a compound subject pronoun." , find: 'Ask who; two answers: "Who left?" → he and I' },
   CV: { name: "compound verb", hint: "Two verbs joined by and, or or but that tell about the same subject. Each one is a compound verb." , find: 'Ask what is being said about the subject; two answers: "swam and fished"' },
   C: { name: "conjunction", hint: "A conjunction (and, or, but) joins the two parts of a compound." , find: 'The joining word between compound parts: and, or, but' },
+  "CV-t": { name: "compound verb-transitive", hint: "Two verbs joined by and, or or but that share the same direct object. Each one is a compound verb-transitive." , find: 'Two verbs with one direct object: "washed and dried the dishes" → washed, dried' },
+  CLV: { name: "compound linking verb", hint: "Two linking verbs joined by and, or or but that link the subject to the same word after them." , find: 'Two linking verbs: "looked and smelled delicious" → looked, smelled' },
+  CDO: { name: "compound direct object", hint: "Two direct objects joined by and, or or but. Both answer verb + what? or whom?" , find: 'Ask verb + what; two answers: "Mia packed what?" → apples and grapes' },
+  CIO: { name: "compound indirect object", hint: "Two indirect objects joined by and, or or but. Both answer to whom? or for whom? and come before the direct object." , find: 'Ask to whom or for whom; two answers: "gave a card to whom?" → Mom and Dad' },
+  COP: { name: "compound object of the preposition", hint: "Two objects of the same preposition joined by and, or or but." , find: 'Say the preposition + what or whom; two answers: "With whom?" → Leo and Ana' },
+  CPrN: { name: "compound predicate noun", hint: "Two predicate nouns joined by and, or or but. Both rename the subject after a linking verb." , find: 'Ask subject + verb + who or what; two answers that rename the subject: "Kai is what?" → singer and dancer' },
+  CPA: { name: "compound predicate adjective", hint: "Two predicate adjectives joined by and, or or but. Both describe the subject after a linking verb." , find: 'Ask subject + verb + what; two answers that describe the subject: "Soup is what?" → hot and salty' },
+  PrP: { name: "predicate pronoun", hint: "A predicate pronoun comes after a linking verb and means the same person as the subject: I, he, she, we, they." , find: 'Ask subject + verb + who; a pronoun answers: "The winner was who?" → she' },
+  CPrP: { name: "compound predicate pronoun", hint: "Two predicate pronouns (or a noun and a pronoun) joined by and or or after a linking verb." , find: 'Ask subject + verb + who; two answers: "The helpers were who?" → he and I' },
+  CAdj: { name: "compound adjective", hint: "Two adjectives joined by and, or or but that describe the same noun." , find: 'Ask what kind; two answers: "What kind of dog?" → big and fluffy' },
+  CAdv: { name: "compound adverb", hint: "Two adverbs joined by and, or or but that tell about the same verb." , find: 'Ask how, when or where; two answers: "Ran how?" → fast and far' },
+  I: { name: "interjection", hint: "An interjection is a word that shows strong feeling, like wow, oh or hooray. It's set off by a comma or an exclamation point." , find: 'A feeling word at the start: wow, oh, hey, hooray, oops' },
 };
 export const LEVEL_LABELS = [
   ["SN", "SP", "V", "A", "Adj", "Adv"],
@@ -203,12 +222,22 @@ export const LEVEL_LABELS = [
 const ALL_GRADE5 = LEVEL_LABELS[2];
 const WITH_COMPLEMENTS = [...ALL_GRADE5, "OCN", "OCA"];
 const WITH_COMPOUNDS = [...WITH_COMPLEMENTS, "C", "CSN", "CSP", "CV"];
+// Compound parts by grade, as in Shurley English Levels 3–5: subjects, verbs and objects of the preposition
+// (and interjections) first; then direct objects and transitive verbs; then the rest.
+const COMPOUNDS_3 = [...LEVEL_LABELS[1], "C", "CSN", "CSP", "CV", "COP", "I"];
+const COMPOUNDS_4 = [...ALL_GRADE5, "C", "CSN", "CSP", "CV", "CV-t", "COP", "CDO", "I"];
+const COMPOUNDS_5 = [...COMPOUNDS_4, "CIO", "CPrN", "CPA", "PrP", "CPrP", "CLV", "CAdj", "CAdv"];
+const ALL_LABELS = [...WITH_COMPOUNDS, "CV-t", "COP", "CDO", "I", "CIO", "CPrN", "CPA", "PrP", "CPrP", "CLV", "CAdj", "CAdv"];
+// Diagrams draw every compound on the baseline or under it, but not compound describing words or interjections.
+const DIAGRAM_COMPOUNDS = [...WITH_COMPOUNDS, "CV-t", "CLV", "CDO", "COP", "CIO", "CPrN", "CPA", "PrP", "CPrP"];
 // Labels and pattern choices per Q&A Flow skill and level.
 export const FLOW_LABELS = {
-  flow: LEVEL_LABELS, flow2: [ALL_GRADE5, WITH_COMPLEMENTS, WITH_COMPOUNDS], diagram: [LEVEL_LABELS[1], ALL_GRADE5, WITH_COMPOUNDS],
+  flow: LEVEL_LABELS, cflow: [COMPOUNDS_3, COMPOUNDS_4, COMPOUNDS_5],
+  flow2: [ALL_GRADE5, WITH_COMPLEMENTS, ALL_LABELS], diagram: [LEVEL_LABELS[1], ALL_GRADE5, DIAGRAM_COMPOUNDS],
 };
 export const FLOW_PATTERNS = {
   flow: [[1, 2], [1, 2], [1, 2, 3, 4, 5]], // levels 1–2: is it Pattern 1 (no direct object) or Pattern 2?
+  cflow: [[1], [1, 2, 3, 4, 5], [1, 2, 3, 4, 5]], // level 1 has no direct objects yet, so no pattern question
   flow2: [[1, 2, 3, 4, 5], [1, 2, 3, 4, 5, 6, 7], [1, 2, 3, 4, 5, 6, 7]],
   diagram: [[1], [1, 2, 4, 5], [1, 2, 3, 4, 5, 6, 7]],
 };

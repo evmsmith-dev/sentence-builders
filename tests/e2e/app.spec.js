@@ -56,12 +56,12 @@ test("play a whole level right: 3 stars, a building and badges", async ({ page }
   await expect(page.locator("#result-badges")).toContainText("First Brick");
   await expect(page.locator("#result-badges")).toContainText("Comma Captain");
   await page.locator("#result-town").click();
-  await expect(page.locator(".town")).toHaveAttribute("aria-label", /1 of 33 buildings/);
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /1 of 36 buildings/);
   await expect(page.locator("#pip-home")).toContainText("Next up: Commas and colons, level 2");
 
   // Saved on the device: still there after a reload.
   await page.reload();
-  await expect(page.locator(".town")).toHaveAttribute("aria-label", /1 of 33 buildings/);
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /1 of 36 buildings/);
 });
 
 test("a miss gives a hint and a second try; a second miss shows the answer", async ({ page }) => {
@@ -139,7 +139,7 @@ test("Word Works: play a level with every item type it uses, including Sort it",
     await expect(page.locator("#result-title")).toHaveText("Perfect build!");
     await page.locator("#result-town").click();
   }
-  await expect(page.locator(".town")).toHaveAttribute("aria-label", /3 of 33 buildings/);
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /3 of 36 buildings/);
 });
 
 test("Sort it: a wrong sort gives a hint, then the answer", async ({ page }) => {
@@ -180,7 +180,7 @@ test("Progress: open to everyone from the home screen; break reminder and backup
   await page.locator('[data-progress-tab="everyone"]').click();
   await expect(page.locator("[data-parent-player]")).toHaveCount(0);
   await expect(page.locator("[data-summary-player]").first()).toContainText("Max (you)");
-  await expect(page.locator('[data-summary-player="p1"]')).toContainText("1 of 33 buildings");
+  await expect(page.locator('[data-summary-player="p1"]')).toContainText("1 of 36 buildings");
   await expect(page.locator(".missed-list")).toHaveCount(0);
   await page.locator('[data-progress-tab="me"]').click();
   await expect(page.locator('[data-parent-player="p2"] .progress-table').first()).toBeVisible();
@@ -227,7 +227,7 @@ test("Sentence Studio: every level of all three skills, with Sentence check and 
       await page.locator("#result-town").click();
     }
   }
-  await expect(page.locator(".town")).toHaveAttribute("aria-label", /9 of 54 buildings/);
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /9 of 57 buildings/);
 });
 
 test("Sentence check and Join it: a miss gives a hint, two show the answer", async ({ page }) => {
@@ -275,7 +275,7 @@ test("Flow Factory: all three levels, 3 Q&A Flows then 2 Build from labels", asy
     await expect(page.locator("#result-score")).toContainText("5 of 5 points");
     await page.locator("#result-town").click();
   }
-  await expect(page.locator(".town")).toHaveAttribute("aria-label", /3 of 54 buildings/);
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /3 of 57 buildings/);
 });
 
 test("Q&A Flow: a miss gives a step hint; a second miss shows that step and moves on", async ({ page }) => {
@@ -301,10 +301,10 @@ test("Revision Ridge: closed below grade 6, open for a 7th grader with grades 6-
   await openApp(page, { players: [player({ grade: 4 }), player({ id: "p2", name: "Max", avatar: "🐯", grade: 7 })], current: "p1" });
   await expect(page.locator('[data-world="desk"]')).toBeDisabled();
   await expect(page.locator('[data-world="desk"]')).toContainText("Grade 6+");
-  await expect(page.locator(".town")).toHaveAttribute("aria-label", /of 33 buildings/);
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /of 36 buildings/);
   await page.locator("#who-btn").click();
   await page.locator('[data-player="p2"]').click();
-  await expect(page.locator(".town")).toHaveAttribute("aria-label", /of 54 buildings/);
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /of 57 buildings/);
   await page.locator('[data-world="desk"]').click();
   await expect(page.locator('.level-btn[data-skill="case"][data-level="2"]')).toBeEnabled();
   await expect(page.locator('.level-btn[data-skill="case"][data-level="3"]')).toBeDisabled();
@@ -1013,4 +1013,22 @@ test("Grammar Peaks: no Summit Review until a level is passed", async ({ page })
   await expect(page.locator('[data-practice="summit"]')).toBeDisabled();
   await expect(page.locator('[data-practice="summit"]')).toContainText("Pass a level anywhere on the island");
   await expect(page.locator('[data-practice="lake"]')).toBeEnabled();
+});
+
+test("Compound Q&A Flow: grades 3-5 label compound parts and interjections, all three levels", async ({ page }) => {
+  test.slow(); // plays several whole levels: extra time for slower CI machines
+  await openApp(page, { players: [player({ grade: 5 })], current: "p1" });
+  for (const level of [1, 2, 3]) {
+    await startLevel(page, "cflow", level, "flow");
+    for (let n = 0; n < 5; n++) {
+      const item = await currentItem(page);
+      expect(item.skill).toBe("cflow");
+      await answer(page);
+      await expect(page.locator("#feedback.good")).toBeVisible();
+      await page.locator("#next-btn").click();
+    }
+    await expect(page.locator("#result-title")).toHaveText("Perfect build!");
+    await page.locator("#result-town").click();
+  }
+  await expect(page.locator('.town g[data-skill="cflow"]')).toHaveCount(1);
 });

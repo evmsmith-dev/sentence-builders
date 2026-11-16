@@ -3,10 +3,14 @@
 
 import { parseTags } from "./parse.js";
 
-const NOUNS = ["SN", "SP", "CSN", "CSP", "DO", "IO", "PrN", "OCN", "OP"];
+const NOUNS = ["SN", "SP", "CSN", "CSP", "DO", "CDO", "IO", "CIO", "PrN", "CPrN", "PrP", "CPrP", "OCN", "OP", "COP"];
 const VERBS = ["V", "V-t", "LV", "HV"];
+const COMPOUND_VERBS = ["CV", "CV-t", "CLV"];
 const MODIFIERS = ["A", "Adj", "PPA", "PNA"];
-const BASELINE_ROLES = ["subject", "verb", "DO", "PrN", "PA", "OCN", "OCA", "CSN", "CSP", "CV", "C"];
+const BASELINE_ROLES = ["subject", "verb", "DO", "PrN", "PrP", "PA", "OCN", "OCA", "CSN", "CSP", "CV", "CV-t", "CLV", "CDO", "CPrN", "CPrP", "CPA"];
+// A compound complement and the kind of line it sits behind.
+const COMPLEMENTS = { DO: "DO", PrN: "PrN", PrP: "PrN", PA: "PA" };
+const COMPOUND_COMPLEMENTS = { CDO: "DO", CPrN: "PrN", CPrP: "PrN", CPA: "PA" };
 const INTENSIFIERS = ["very", "really", "so", "too", "quite", "extremely", "rather", "almost", "most", "more", "super", "incredibly"];
 const clean = (word) => word.replace(/[.?!,]+$/, "");
 
@@ -47,7 +51,7 @@ export function buildDiagram(item) {
   }
 
   // Verb: the verb with any helping verbs, or two compound verbs joined by a conjunction.
-  const compoundVerb = find(["CV"]);
+  const compoundVerb = find(COMPOUND_VERBS);
   const plainVerbs = find(VERBS);
   let verb;
   if (compoundVerb.length) {
@@ -66,23 +70,58 @@ export function buildDiagram(item) {
   const verbFor = (i) => [...verbIndexes].reverse().find((v) => v < i) ?? verbIndexes[0];
 
   const tree = { subject, verb, complement: null, objectComplement: null };
-  const comp = labels.findIndex((l) => l === "DO" || l === "PrN" || l === "PA");
+  /** Two compound parts joined by a conjunction, as a fork (each part registered as a node), or null. */
+  const fork = (indexes) => {
+    if (indexes.length !== 2) return null;
+    const conj = conjBetween(...indexes);
+    if (conj < 0) return null;
+    const f = { fork: true, parts: indexes.map((i) => node([i])), conj };
+    f.parts.forEach((n) => { nodes[n.indexes[0]] = n; });
+    return f;
+  };
+  const comp = labels.findIndex((l) => l in COMPLEMENTS);
+  const compoundComp = find(Object.keys(COMPOUND_COMPLEMENTS));
+  if (comp >= 0 && compoundComp.length) return null;
+  const forks = [subject, verb].filter((p) => p.fork);
   if (comp >= 0) {
-    if (verb.fork) return null;
-    tree.complement = { kind: labels[comp], node: node([comp]) };
+    tree.complement = { kind: COMPLEMENTS[labels[comp]], role: labels[comp], node: node([comp]) };
     nodes[comp] = tree.complement.node;
+  } else if (compoundComp.length) {
+    const f = fork(compoundComp);
+    if (!f || COMPOUND_COMPLEMENTS[labels[compoundComp[0]]] !== COMPOUND_COMPLEMENTS[labels[compoundComp[1]]]) return null;
+    tree.complement = { kind: COMPOUND_COMPLEMENTS[labels[compoundComp[0]]], node: f };
+    forks.push(f);
   }
   const oc = labels.findIndex((l) => l === "OCN" || l === "OCA");
   if (oc >= 0) {
-    if (!tree.complement || tree.complement.kind !== "DO") return null;
+    if (!tree.complement || tree.complement.kind !== "DO" || tree.complement.node.fork) return null;
     tree.objectComplement = { kind: labels[oc], node: node([oc]) };
     nodes[oc] = tree.objectComplement.node;
   }
   labels.forEach((l, i) => { if (l === "OP" || l === "IO") nodes[i] = node([i]); });
-  const conjs = [subject.conj, verb.conj].filter((c) => c !== undefined);
-  if (find(["C"]).length !== conjs.length) return null;
+  // Compound indirect objects hang together on one fork under the verb.
+  const cio = find(["CIO"]);
+  let ioFork = null;
+  if (cio.length) {
+    ioFork = fork(cio);
+    if (!ioFork) return null;
+    forks.push(ioFork);
+  }
+  // A compound object of the preposition: the two objects after one preposition.
+  const copFor = {};
+  for (const p of find(["P"])) {
+    const first = labels.findIndex((l, j) => j > p && (l === "OP" || l === "COP"));
+    if (first < 0 || labels[first] !== "COP") continue;
+    const second = labels.findIndex((l, j) => j > first && l === "COP");
+    const f = fork([first, second]);
+    if (!f) return null;
+    copFor[p] = f;
+    forks.push(f);
+  }
+  if (find(["COP"]).length !== Object.keys(copFor).length * 2) return null;
+  if (find(["C"]).length !== forks.length) return null;
 
-  const placed = new Set([...find(["SN", "SP", "CSN", "CSP", "CV", "C"]), ...plainVerbs, comp, oc].filter((i) => i >= 0));
+  const placed = new Set([...find(["SN", "SP", "CSN", "CSP", "C", "CIO", "COP", ...COMPOUND_VERBS, ...Object.keys(COMPOUND_COMPLEMENTS)]), ...plainVerbs, comp, oc].filter((i) => i >= 0));
   const attach = item.attach || {};
   const slants = []; // [target, index]: describing words, attached after their targets exist
   const phrases = [];
@@ -102,14 +141,20 @@ export function buildDiagram(item) {
       slants.push([attach[i] ?? guess, i]);
       placed.add(i);
     } else if (l === "P") {
-      const obj = labels.findIndex((t, j) => j > i && t === "OP");
-      if (obj < 0) return null;
-      phrases.push([attach[i] ?? verbFor(i), i, obj]);
+      if (copFor[i]) {
+        phrases.push([attach[i] ?? verbFor(i), i, copFor[i]]);
+      } else {
+        const obj = labels.findIndex((t, j) => j > i && t === "OP");
+        if (obj < 0) return null;
+        phrases.push([attach[i] ?? verbFor(i), i, obj]);
+        placed.add(obj);
+      }
       placed.add(i);
-      placed.add(obj);
     } else if (l === "IO") {
       phrases.push([verbFor(i), null, i]);
       placed.add(i);
+    } else if (l === "CIO" && i === cio[0]) {
+      phrases.push([verbFor(i), null, ioFork]);
     }
   }
   // Attach describing words whose target already has a place; repeat so "very" can wait for "loud".
@@ -133,7 +178,7 @@ export function buildDiagram(item) {
   phrases.sort((a, b) => (a[1] === null ? -1 : 0) - (b[1] === null ? -1 : 0));
   for (const [target, p, obj] of phrases) {
     if (!nodes[target]) return null;
-    nodes[target].mods.push({ kind: "phrase", p: p === null ? null : [p], node: nodes[obj] });
+    nodes[target].mods.push({ kind: "phrase", p: p === null ? null : [p], node: typeof obj === "object" ? obj : nodes[obj] });
   }
   if (placed.size !== words.length) return null;
 
@@ -145,30 +190,34 @@ export function buildDiagram(item) {
     slots.push({ id, indexes, text: slotText(indexes), where, role, parent });
     return id;
   };
+  // A part is a node or a fork; a fork's parts each get their own line, and the conjunction sits between them.
+  const walkPart = (part, role, parent = null) => {
+    if (!part.fork) { walk(part, "line", role, parent); return; }
+    part.parts.forEach((n) => walk(n, "line", labels[n.indexes[0]], parent));
+    part.conjSlot = addSlot([part.conj], "conj", "C", part.parts[0].slot);
+    slots[part.conjSlot].joins = part.parts.map((n) => n.slot);
+    part.slot = part.parts[0].slot;
+  };
   const walk = (n, where, role, parent = null) => {
     n.slot = addSlot(n.indexes, where, role, parent);
     for (const m of n.mods) {
       if (m.kind === "slant") walk(m.node, "slant", labels[m.node.indexes[0]], n.slot);
       else {
         m.pSlot = m.p ? addSlot(m.p, "slant", "P", n.slot) : null;
-        walk(m.node, "line", m.p ? "OP" : "IO", m.p ? m.pSlot : n.slot);
+        walkPart(m.node, m.p ? "OP" : "IO", m.p ? m.pSlot : n.slot);
       }
     }
   };
-  const walkPart = (part, role) => {
-    if (!part.fork) { walk(part, "line", role); return; }
-    part.parts.forEach((n) => walk(n, "line", labels[n.indexes[0]]));
-    part.conjSlot = addSlot([part.conj], "conj", "C", part.parts[0].slot);
-    slots[part.conjSlot].joins = part.parts.map((n) => n.slot);
-  };
   walkPart(subject, "subject");
   walkPart(verb, "verb");
-  if (tree.complement) walk(tree.complement.node, "line", tree.complement.kind);
-  if (tree.objectComplement) walk(tree.objectComplement.node, "line", tree.objectComplement.kind);
-  if (tree.complement) slots[tree.complement.node.slot].parent = verb.slot;
-  if (tree.objectComplement) slots[tree.objectComplement.node.slot].parent = tree.complement.node.slot;
-  slots.forEach((slot) => { slot.baseline = BASELINE_ROLES.includes(slot.role); });
+  const verbSlot = verb.fork ? verb.parts[0].slot : verb.slot;
+  if (tree.complement) walkPart(tree.complement.node, tree.complement.role || tree.complement.kind, verbSlot);
+  if (tree.objectComplement) walk(tree.objectComplement.node, "line", tree.objectComplement.kind, tree.complement.node.slot);
+  slots.forEach((slot) => {
+    slot.baseline = slot.role === "C" ? slot.joins.every((id) => BASELINE_ROLES.includes(slots[id].role)) : BASELINE_ROLES.includes(slot.role);
+  });
   tree.hasHelper = !verb.fork && plainVerbs.some((i) => labels[i] === "HV");
+  tree.verbText = verb.fork ? verb.parts.map((n) => slots[n.slot].text).join(" and ") : slots[verb.slot].text;
   return { tree, slots, words };
 }
 
@@ -214,7 +263,7 @@ function lineSize(diagram, n) {
       below = Math.max(below, sz.below);
     } else {
       const len = m.pSlot === null ? 40 : slantLen(diagram.slots[m.pSlot].text);
-      const obj = lineSize(diagram, m.node);
+      const obj = hangSize(diagram, m.node);
       modsW += len * COS + obj.width + 10;
       below = Math.max(below, len * SIN + obj.below);
     }
@@ -222,14 +271,23 @@ function lineSize(diagram, n) {
   return { width: Math.max(charW(text) + 2 * PAD, modsW), below };
 }
 
-/** A fork for compound parts: two branches with room between them for the top branch's hanging words. */
-function forkSize(diagram, f) {
+/**
+ * A fork for compound parts: two branches with room between them for the top branch's hanging words. On the
+ * baseline the branches spread above and below it; hanging under a word (`down`), the first branch stays level
+ * and the second drops below it.
+ */
+function forkSize(diagram, f, down = false) {
   const [a, b] = f.parts.map((n) => lineSize(diagram, n));
   const conjW = charW(diagram.slots[f.conjSlot].text) + 22;
   const inner = Math.max(a.width, b.width) + conjW;
-  const gap = Math.max(a.below + 30, 64);
-  return { width: inner + 2 * FORK, inner, up: gap / 2, below: gap / 2 + b.below, a, b, conjW };
+  const gap = Math.max(a.below + (down ? 42 : 30), 64);
+  return down
+    ? { width: inner + 2 * FORK, inner, up: 0, gap, below: gap + b.below, a, b, conjW, down }
+    : { width: inner + 2 * FORK, inner, up: gap / 2, gap, below: gap / 2 + b.below, a, b, conjW, down };
 }
+
+/** Space for something hanging under a word: a word line, or a fork when the object is compound. */
+const hangSize = (diagram, n) => (n.fork ? forkSize(diagram, n, true) : lineSize(diagram, n));
 
 /**
  * Lines to draw and boxes for each slot. Slot boxes: { id, x, y, angle (degrees), w, align } where (x, y) is where
@@ -270,16 +328,17 @@ export function layoutDiagram(diagram) {
         const ey = y + len * SIN;
         lines.push([cx, y, ex, ey]);
         if (m.pSlot !== null) boxes.push({ id: m.pSlot, x: cx, y, angle: 60, w: len, align: "start" });
-        const obj = lineSize(diagram, m.node);
-        drawLine(m.node, ex, ey, obj.width);
+        const obj = hangSize(diagram, m.node);
+        if (m.node.fork) drawFork(m.node, ex, ey, obj);
+        else drawLine(m.node, ex, ey, obj.width);
         cx = ex + obj.width + 10;
       }
     });
   }
 
   function drawFork(f, x, y0, sz) {
-    const yT = y0 - sz.up;
-    const yB = y0 + sz.up;
+    const yT = sz.down ? y0 : y0 - sz.up;
+    const yB = sz.down ? y0 + sz.gap : y0 + sz.up;
     lines.push([x, y0, x + FORK, yT], [x, y0, x + FORK, yB]);
     drawLine(f.parts[0], x + FORK, yT, sz.inner);
     drawLine(f.parts[1], x + FORK, yB, sz.inner);
@@ -287,7 +346,7 @@ export function layoutDiagram(diagram) {
     lines.push([xr, yT, xr + FORK, y0], [xr, yB, xr + FORK, y0]);
     const xd = xr - 10;
     dashes.push([xd, yT, xd, yB]);
-    boxes.push({ id: f.conjSlot, x: xd - sz.conjW / 2 + 2, y: y0 + 8, angle: 0, w: sz.conjW - 6, align: "middle" });
+    boxes.push({ id: f.conjSlot, x: xd - sz.conjW / 2 + 2, y: (yT + yB) / 2 + 8, angle: 0, w: sz.conjW - 6, align: "middle" });
   }
 
   const { tree } = diagram;
@@ -331,7 +390,7 @@ export function guideOrder(diagram) {
 export function explainSlot(diagram, slot) {
   const w = slot.text;
   const parent = diagram.slots[slot.parent]?.text;
-  const verb = diagram.tree.verb.fork ? "" : diagram.slots[diagram.tree.verb.slot].text;
+  const verb = diagram.tree.verbText;
   switch (slot.role) {
     case "subject":
       return `${w} is the simple subject, so it goes on the baseline, before the line that crosses it.`;
@@ -358,7 +417,22 @@ export function explainSlot(diagram, slot) {
     case "CSP":
       return `${w} is one part of a compound subject, so it goes on its own branch of the subject's fork.`;
     case "CV":
+    case "CV-t":
+    case "CLV":
       return `${w} is one part of a compound verb, so it goes on its own branch of the verb's fork.`;
+    case "CDO":
+      return `${w} is one part of a compound direct object: it answers "${verb} what?" It goes on its own branch of a fork after the verb.`;
+    case "CPrN":
+    case "CPrP":
+      return `${w} is one part of a compound predicate ${slot.role === "CPrP" ? "pronoun" : "noun"}: it renames the subject. It goes on its own branch of a fork after the verb.`;
+    case "PrP":
+      return `${w} is a predicate pronoun: it means the same person as the subject. It goes after the verb, behind a line that leans back toward the subject.`;
+    case "CPA":
+      return `${w} is one part of a compound predicate adjective: it describes the subject. It goes on its own branch of a fork after the verb.`;
+    case "COP":
+      return `${w} is one part of a compound object of the preposition ${parent}, so it goes on its own branch of the fork hanging from ${parent}.`;
+    case "CIO":
+      return `${w} is one part of a compound indirect object: it tells to whom or for whom. It goes on its own branch of the fork hanging under ${parent}.`;
     case "C": {
       const [a, b] = slot.joins.map((id) => diagram.slots[id].text);
       return `${w} is the conjunction joining ${a} and ${b}, so it goes beside the dashed line between the two branches.`;
@@ -367,7 +441,7 @@ export function explainSlot(diagram, slot) {
       if (diagram.slots[slot.parent].where === "slant") {
         return `${w} is an adverb that tells how ${parent}, so it goes on its own slanted line, joined to ${parent}'s line.`;
       }
-      return ["verb", "CV"].includes(diagram.slots[slot.parent].role)
+      return ["verb", "CV", "CV-t", "CLV"].includes(diagram.slots[slot.parent].role)
         ? `${w} is an adverb that tells how, when or where about ${parent}, so it goes on a slanted line under ${parent}.`
         : `${w} is an adverb that tells how ${parent}, so it goes on a slanted line under ${parent}.`;
     case "P":

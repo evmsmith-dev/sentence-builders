@@ -9,17 +9,23 @@
 
 import { isPronoun } from "./nouns.js";
 
-export const NOUN_LABELS = ["SN", "CSN", "OP", "DO", "IO", "PrN", "OCN"];
+export const NOUN_LABELS = ["SN", "CSN", "OP", "COP", "DO", "CDO", "IO", "CIO", "PrN", "CPrN", "OCN"];
 export const SUBJECT_LABELS = ["SN", "SP", "CSN", "CSP"];
-export const VERB_LABELS = ["V", "V-t", "LV", "HV", "CV"];
+export const VERB_LABELS = ["V", "V-t", "LV", "HV", "CV", "CV-t", "CLV"];
 
-/** Indexes of the words in prepositional phrases: from each P to its object (OP). */
+/**
+ * Indexes of the words in prepositional phrases: from each P to its object (OP), or through the last part of a
+ * compound object (to Mia and Leo).
+ */
 export function phraseIndexes(labels) {
   const out = [];
   labels.forEach((label, i) => {
     if (label !== "P") return;
-    const end = labels.findIndex((l, j) => j > i && l === "OP");
+    let end = labels.findIndex((l, j) => j > i && (l === "OP" || l === "COP"));
     if (end < 0) return;
+    if (labels[end] === "COP") {
+      for (let j = end + 1; j < labels.length && ["C", "COP", "A", "Adj", "PPA", "PNA"].includes(labels[j]); j++) if (labels[j] === "COP") end = j;
+    }
     for (let j = i; j <= end; j++) out.push(j);
   });
   return out;
@@ -69,7 +75,7 @@ export function markupTasks(labels, words = []) {
     const pronounSubject = labels.some((l, i) => l === "SP" || l === "CSP" || (NOUN_LABELS.includes(l) && words[i] && isPronoun(words[i])));
     tasks.push({ id: "circle", mark: "circle", mode: "multi", answer: nouns,
       prompt: pronounSubject ? "Noun check: circle every noun. Pronouns like (You), me and us aren't nouns." : "Noun check: circle every noun.",
-      hint: "Nouns are the words labeled SN, CSN, OP, DO, IO, PrN or OCN. Pronouns like he and we aren't circled." });
+      hint: `Nouns are the words labeled ${[...new Set(labels.filter((l) => NOUN_LABELS.includes(l)))].join(", ")}. Pronouns like he and we aren't circled.` });
   }
   const phrases = phraseIndexes(labels);
   if (phrases.length) {
@@ -85,7 +91,9 @@ export function markupTasks(labels, words = []) {
     // the slash goes right after the complete subject instead.
     const verbFirst = !VERB_LABELS.includes(labels[slash]);
     const word = (i) => (words[i] || "").replace(/[.?!,]+$/, "");
-    const subjectWords = labels.map((_, i) => i).filter((i) => i < slash && !front.has(i)).map(word).join(" ");
+    // An interjection (Wow,) stands apart: it's in neither the subject nor the predicate.
+    const inSentence = (i) => labels[i] !== "I";
+    const subjectWords = labels.map((_, i) => i).filter((i) => i < slash && !front.has(i) && inSentence(i)).map(word).join(" ");
     tasks.push({ id: "slash", mark: "slash", mode: "first", answer: [slash],
       prompt: verbFirst
         ? "Divide the complete subject from the complete predicate with a slash."
@@ -93,10 +101,10 @@ export function markupTasks(labels, words = []) {
       hint: verbFirst
         ? `This question starts with its verb${words.length ? `, ${word(labels.findIndex((l) => VERB_LABELS.includes(l)))}` : ""}, so the slash goes right after the complete subject${subjectWords.trim() ? `, ${subjectWords}` : ""}.`
         : "The slash goes right before the verb and its helping verb." });
-    tasks.push({ id: "subject", mark: "u1", mode: "multi", answer: all.filter((i) => i < slash && !front.has(i)),
+    tasks.push({ id: "subject", mark: "u1", mode: "multi", answer: all.filter((i) => i < slash && !front.has(i) && inSentence(i)),
       prompt: "Underline the complete subject once.",
       hint: "The complete subject is the subject and the words that describe it: the words before the slash." });
-    tasks.push({ id: "verb", mark: "u2", mode: "multi", answer: all.filter((i) => i >= slash || front.has(i)),
+    tasks.push({ id: "verb", mark: "u2", mode: "multi", answer: all.filter((i) => (i >= slash || front.has(i)) && inSentence(i)),
       prompt: front.size
         ? "Underline the complete predicate twice. This sentence has predicate words in the complete subject."
         : "Underline the complete predicate twice.",

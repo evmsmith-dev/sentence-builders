@@ -12,8 +12,7 @@ export const PRONOUNS = new Set([
 export const PLURAL_NOUNS = new Set([
   "children", "cookies", "crows", "geese", "girls", "hands", "judges", "kids", "kittens", "parents", "puppies",
   "runners", "scissors", "trees", "voters", "apples", "boys", "cats", "dogs", "players", "students", "birds",
-  "people", "mice", "feet", "teeth", "men", "women", "ducks", "dishes", "friends", "flowers", "books", "games", "horses",
-]);
+  "people", "mice", "feet", "teeth", "men", "women", "ducks", "dishes", "friends", "flowers", "books", "games", "horses", "blocks", "trucks", "papers", "grapes", "snacks", "cousins", "helpers", "aunts", "fans", "teachers", "coaches", "cards", "photos", "pancakes", "captains"]);
 
 export const SINGULAR_NOUNS = new Set([
   "ana", "ava", "bean", "biscuit", "dad", "grandma", "grandpa", "leo", "lincoln", "mia", "mom", "omar", "peanut", "sam",
@@ -22,8 +21,7 @@ export const SINGULAR_NOUNS = new Set([
   "homework", "kite", "lake", "lunch", "mammal", "mayor", "mouse", "movie", "museum", "music", "pie", "pool",
   "porch", "postcard", "president", "puppy", "rain", "room", "sister", "snow", "soup", "speech", "stick", "store",
   "story", "table", "teacher", "team", "trail", "train", "tree", "turn", "water", "whale", "winner", "yard",
-  "jada", "max", "kai", "rosa", "ben", "lily", "maya", "home", "frog", "owl", "bed", "turtle", "car", "breeze", "picture",
-]);
+  "jada", "max", "kai", "rosa", "ben", "lily", "maya", "home", "frog", "owl", "bed", "turtle", "car", "breeze", "picture", "chair", "floor", "book", "poem", "sunset", "sign", "pencil", "paper", "hug", "singer", "dancer", "package", "bat", "milk", "bread", "writer", "player"]);
 
 const clean = (word) => word.replace(/[.?!,]+$/, "");
 

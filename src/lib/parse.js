@@ -275,11 +275,14 @@ export function diagramText(item) {
   if (tree.complement) base += tree.complement.kind === "DO" ? ` | ${t(tree.complement.node)}` : ` \\ ${t(tree.complement.node)}`;
   if (tree.objectComplement) base += ` \\ ${t(tree.objectComplement.node)}`;
   const hangs = [];
-  const walk = (n) => n.mods.forEach((m) => {
-    if (m.kind === "slant") hangs.push(`${t(m.node)} under ${t(n)}`);
-    else hangs.push(`${m.pSlot === null ? "" : `${slots[m.pSlot].text} `}${t(m.node)} under ${t(n)}`);
-    walk(m.node);
-  });
+  const walk = (n) => {
+    if (n.fork) { n.parts.forEach(walk); return; }
+    n.mods.forEach((m) => {
+      if (m.kind === "slant") hangs.push(`${t(m.node)} under ${t(n)}`);
+      else hangs.push(`${m.pSlot === null ? "" : `${slots[m.pSlot].text} `}${t(m.node)} under ${t(n)}`);
+      walk(m.node);
+    });
+  };
   [tree.subject, tree.verb, tree.complement?.node, tree.objectComplement?.node].filter(Boolean)
     .flatMap((n) => (n.fork ? n.parts : [n])).forEach(walk);
   return `${base}${hangs.length ? `; ${hangs.join("; ")}` : ""}`;
@@ -352,7 +355,7 @@ export function validateItem(item) {
   }
   if (item.type === "flow" || item.type === "diagram") {
     for (const w of parseTags(item.tags)) {
-      if (["SN", "CSN", "OP", "DO", "IO", "PrN", "OCN"].includes(w.label) && !isPronoun(w.word) && !nounInfo(w.word).number) {
+      if (["SN", "CSN", "OP", "COP", "DO", "CDO", "IO", "CIO", "PrN", "CPrN", "OCN"].includes(w.label) && !isPronoun(w.word) && !nounInfo(w.word).number) {
         throw new Error(`${item.id}: add "${w.word.replace(/[.?!,]+$/, "")}" to the singular or plural noun list in src/lib/nouns.js`);
       }
     }
