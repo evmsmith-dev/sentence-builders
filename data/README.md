@@ -24,3 +24,5 @@ Tense: keep a sentence's verbs in one time frame (all past, all present, or all 
 Style: sentences under 15 words, about things students care about (pets, sports, games, science, weather; for grades 6–8, topics like school events, history, jobs and travel work well), a mix of names, no trick questions. Hints name the rule in one sentence.
 
 Q&A Flow questions must be correct English too: *who* and *what* take a singular verb ("Who is swimming?", "Who calls me Bean?"); a command's subject question uses *should* ("Who should close the door?"); a question with *did* asks in the past tense ("What ate its dinner?", "Dog ate what?").
+
+In Proofreading and Pip's homework, the **first** word in each bracket is the mistake shown on screen and the **second** is the fix: `[smiles|smiled|smiling]` shows "smiles" and fixes it to "smiled". Read each one back both ways before adding it: the shown word must be wrong in its sentence, and the fix right.
