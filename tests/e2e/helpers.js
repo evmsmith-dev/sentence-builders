@@ -1,6 +1,7 @@
 import { expect } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { markupTasks } from "../../src/lib/markup.js";
+import { nounTableQuestions } from "../../src/lib/nountable.js";
 import { buildDiagram, guideOrder } from "../../src/lib/diagram.js";
 import {
   CHECK_KINDS, paletteFor, parseBuild, parseCheck, parseFix, parseFlow, parseJoin, parseLabels, parseMark, parseMarkText,
@@ -14,6 +15,8 @@ async function flowStage(page) {
   if (m) return Number(m[1]) - 1;
   const mk = count.match(/Mark it up · (\d+)/);
   if (mk) return `markup-${Number(mk[1]) - 1}`;
+  const nt = count.match(/Noun table · (\d+)/);
+  if (nt) return `table-${Number(nt[1]) - 1}`;
   if (await page.locator("#item [data-kind-pick]").count()) return "kind";
   if (await page.locator("#item [data-pattern]").count()) return "pattern";
   return null;
@@ -207,8 +210,11 @@ export async function answer(page) {
         await page.locator(`#item [data-kind-pick="${parsed.kind}"]`).click();
       } else if (at === "pattern") {
         await page.locator(`#item [data-pattern="${parsed.pattern}"]`).click();
+      } else if (typeof at === "string" && at.startsWith("table-")) {
+        const q = nounTableQuestions(parsed.words.map((w) => w.label), parsed.words.map((w) => w.word), parsed.labels)[Number(at.slice(6))];
+        await page.locator(`#item [data-nt="${q.answer}"]`).click();
       } else if (typeof at === "string" && at.startsWith("markup-")) {
-        await markUp(page, markupTasks(parsed.words.map((w) => w.label))[Number(at.slice(7))]);
+        await markUp(page, markupTasks(parsed.words.map((w) => w.label), parsed.words.map((w) => w.word))[Number(at.slice(7))]);
       } else {
         const step = parsed.steps[at];
         const word = page.locator(`#item [data-fw="${step.index}"]`);
@@ -282,7 +288,8 @@ export async function diagramIt(page, item, { markupOnly = false } = {}) {
   const labels = item.tags.trim().split(/ +/).map((t) => t.split("|")[1]);
   // Skip the mark-up if it's already done (the diagram is showing).
   if (!(await page.locator("#item .dg-stage").isVisible())) {
-    for (const task of markupTasks(labels)) await markUp(page, task);
+    const words = item.tags.trim().split(/ +/).map((t) => t.split("|")[0]);
+    for (const task of markupTasks(labels, words)) await markUp(page, task);
   }
   if (markupOnly) return;
   const diagram = buildDiagram(item);

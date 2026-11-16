@@ -335,3 +335,23 @@ test("diagrams: compound parts fork, very hangs from the word it describes, adve
   // Not diagrammed: three compound parts, or a compound verb with a direct object.
   assert.equal(buildDiagram({ tags: "We|SP washed|CV and|C dried|CV the|A dishes.|DO" }), null);
 });
+
+test("noun table: job, singular or plural, common or proper, then the simple subject and predicate", async () => {
+  const { nounTableQuestions } = await import("../../src/lib/nountable.js");
+  const { markupTasks } = await import("../../src/lib/markup.js");
+  const { nounInfo } = await import("../../src/lib/nouns.js");
+  const split = (tags) => tags.split(" ").map((t) => t.split("|"));
+  const t = split("Grandma|SN told|V-t us|IO a|A story.|DO");
+  const qs = nounTableQuestions(t.map((x) => x[1]), t.map((x) => x[0]), ["SN", "V-t", "IO", "DO", "A"]);
+  // us is a pronoun: not in the table, and not circled in the noun check.
+  assert.deepEqual(qs.map((q) => q.id), ["job-0", "number-0", "kind-0", "job-4", "number-4", "kind-4", "simple-subject", "simple-predicate"]);
+  assert.deepEqual(qs.filter((q) => q.id !== "job-0" && q.id !== "job-4").map((q) => q.answer), ["Singular", "Proper", "Singular", "Common", "Grandma", "told"]);
+  assert.equal(qs[0].answer, "SN · subject noun");
+  assert.deepEqual(markupTasks(t.map((x) => x[1]), t.map((x) => x[0]))[0].answer, [0, 4]);
+  // The first word is capitalized anyway: only names (and family words used as names) are proper there.
+  assert.equal(nounInfo("Puppies", 0).kind, "Common");
+  assert.equal(nounInfo("Mia", 0).kind, "Proper");
+  assert.equal(nounInfo("geese.").number, "Plural");
+  const hv = split("The|A tiny|Adj mouse|SN was|HV hiding|V behind|P the|A couch!|OP");
+  assert.equal(nounTableQuestions(hv.map((x) => x[1]), hv.map((x) => x[0])).at(-1).answer, "was hiding");
+});

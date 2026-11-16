@@ -8,6 +8,7 @@
 //   lock()          no more changes
 // Types that answer on a tap call answer(correct) themselves.
 import { markupTasks, checkMarkup } from "../lib/markup.js";
+import { nounTableQuestions } from "../lib/nountable.js";
 import { buildDiagram, explainSlot, guideOrder, layoutDiagram, wrongSlots } from "../lib/diagram.js";
 import {
   CHECK_KINDS, spaceAfter, checkBuild, checkLabels, checkMark, checkSort, joinTiles, paletteFor, parseBuild, parseCheck, parseFix, parseFlow,
@@ -438,7 +439,7 @@ const PATTERN_HINT = "Look at the labels after the verb: nothing more is P1, a D
  * for a word already pointed out, just pick its label. Then the kind of sentence (and, in level 3, the pattern).
  * A miss gives a hint for that step; a second miss on the same step shows it and moves on.
  */
-function renderFlow(root, item, { hint, complete, onChange, onTap, showLabels }) {
+function renderFlow(root, item, { hint, complete, onChange, onTap, showLabels, nounTable }) {
   const parsed = parseFlow(item.markupOnly ? { ...item, steps: [] } : item);
   const stages = item.markupOnly ? [] : [...parsed.steps.map((step) => ({ ...step, kind: "step" })), { kind: "kind" }];
   if (parsed.pattern && !item.markupOnly) stages.push({ kind: "pattern" });
@@ -457,12 +458,70 @@ function renderFlow(root, item, { hint, complete, onChange, onTap, showLabels })
   const marks = {}; // word index → Set of marks drawn
   let taskMisses = 0;
 
+  // Noun table (one sentence a level, grades 4+): after the mark-up, fill in each noun's job, number and kind.
+  const table = nounTable && !item.markupOnly
+    ? nounTableQuestions(parsed.words.map((w) => w.label), parsed.words.map((w) => w.word), parsed.labels)
+    : [];
+  let tableAt = -1;
+  let tableMisses = 0;
+  const tableAnswers = {}; // question id → answer shown in the table
+  const tabling = () => tableAt >= 0 && tableAt < table.length;
+
   root.innerHTML = `<div class="flow" data-type="flow">
     <div class="flow-sentence">${parsed.words.map((w, i) =>
       `<button type="button" class="flow-word" data-fw="${i}"><span class="fw-label" aria-hidden="true"></span><span class="fw-text">${esc(w.word)}</span></button>`).join("")}</div>
+    <div class="noun-table-wrap" hidden></div>
     <div class="flow-ask"><div class="flow-ask-head"><p class="flow-count"></p>${LABELS_BUTTON}</div><p class="flow-q"></p><div class="flow-choices"></div></div>
   </div>`;
   const stage = () => stages[at];
+
+  function drawTable() {
+    const wrap = root.querySelector(".noun-table-wrap");
+    wrap.hidden = false;
+    const nouns = [...new Set(table.filter((q) => q.noun !== undefined).map((q) => q.noun))];
+    const cell = (id) => esc(tableAnswers[id] ?? "");
+    const short = (job) => (job ? job.split(" · ")[0] : "");
+    wrap.innerHTML = `<table class="noun-table"><caption>Noun table</caption>
+      <thead><tr><th scope="col">Noun</th><th scope="col">Job</th><th scope="col">Singular or plural</th><th scope="col">Common or proper</th></tr></thead>
+      <tbody>${nouns.map((i) => `<tr><th scope="row">${esc(parsed.words[i].word.replace(/[.?!,]+$/, ""))}</th>
+        <td>${esc(short(tableAnswers[`job-${i}`]))}</td><td>${cell(`number-${i}`)}</td><td>${cell(`kind-${i}`)}</td></tr>`).join("")}</tbody></table>
+      <p class="noun-simple"><span>Simple subject: <strong>${cell("simple-subject")}</strong></span><span>Simple predicate: <strong>${cell("simple-predicate")}</strong></span></p>`;
+    if (!tabling()) return;
+    const q = table[tableAt];
+    root.querySelector(".flow-count").textContent = `Noun table · ${tableAt + 1} of ${table.length}`;
+    root.querySelector(".flow-q").textContent = q.prompt;
+    root.querySelector(".flow-choices").innerHTML = shuffle(q.choices).map((c) =>
+      `<button type="button" class="choice" data-nt="${esc(c)}">${esc(c)}</button>`).join("");
+    root.querySelectorAll(".flow-word").forEach((btn) => { btn.disabled = true; btn.classList.remove("current", "picked"); });
+  }
+
+  function answerTable(choice) {
+    const q = table[tableAt];
+    if (choice !== q.answer) {
+      misses += 1;
+      tableMisses += 1;
+      if (tableMisses === 1) {
+        hint(`Not quite. ${q.hint}`);
+        root.querySelector(`[data-nt="${CSS.escape(choice)}"]`)?.setAttribute("disabled", "");
+        return;
+      }
+      revealed = true;
+      hint(`It's ${q.answer}. ${q.hint}`);
+    } else hint(null);
+    tableAnswers[q.id] = q.answer;
+    tableMisses = 0;
+    tableAt += 1;
+    if (tableAt >= table.length) {
+      done = true;
+      drawTable();
+      draw();
+      onChange();
+      complete({ tries: misses ? 2 : 1, correct: !revealed });
+      return;
+    }
+    drawTable();
+    onChange();
+  }
   const labelChips = () => parsed.labels.map((label) =>
     `<button type="button" class="label-chip" data-label="${esc(label)}"><strong>${esc(label)}</strong><small>${esc(LABELS[label].name)}</small></button>`).join("");
 
@@ -507,8 +566,15 @@ function renderFlow(root, item, { hint, complete, onChange, onTap, showLabels })
     markAt += 1;
     if (!showAnswer) hint(null);
     if (markAt >= tasks.length) {
-      done = true;
       root.querySelectorAll(".flow-word").forEach((btn) => btn.classList.remove("picked"));
+      if (table.length) {
+        tableAt = 0;
+        paintMarks();
+        drawTable();
+        onChange();
+        return;
+      }
+      done = true;
       draw();
       onChange();
       complete({ tries: misses ? 2 : 1, correct: !revealed });
@@ -617,6 +683,14 @@ function renderFlow(root, item, { hint, complete, onChange, onTap, showLabels })
       return;
     }
     if (done) return;
+    if (tabling()) {
+      const pick = event.target.closest("[data-nt]");
+      if (pick && !pick.disabled) {
+        onTap();
+        answerTable(pick.dataset.nt);
+      }
+      return;
+    }
     if (marking()) {
       const task = tasks[markAt];
       const tapped = event.target.closest("[data-fw]");
@@ -689,7 +763,8 @@ function renderFlow(root, item, { hint, complete, onChange, onTap, showLabels })
     get prompt() {
       const st = stage();
       if (marking()) return tasks[markAt].prompt;
-      if (done || !st) return tasks.length ? "Labeled and marked up!" : "Labeled!";
+      if (tabling()) return table[tableAt].prompt;
+      if (done || !st) return table.length ? "Labeled, marked up and in the table!" : tasks.length ? "Labeled and marked up!" : "Labeled!";
       if (st.kind === "kind") return "What kind of sentence is it?";
       if (st.kind === "pattern") return "Which pattern is it?";
       return st.question && phase === "word" ? st.question : "Pick its label.";

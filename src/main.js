@@ -1,6 +1,6 @@
 // Startup and screens: players, the town, worlds, levels, results, badges and settings.
 import {
-  AVATARS, AVATAR_GROUPS, HABIT_BADGES, ITEMS_PER_LEVEL, MAX_GRADE, MAX_PLAYERS, MIN_GRADE, PIP, SKILLS, STUDIO_FROM_GRADE, TIER_NAMES, WORLDS, WORLD_BADGES,
+  AVATARS, AVATAR_GROUPS, HABIT_BADGES, ITEMS_PER_LEVEL, MAX_GRADE, MAX_PLAYERS, MIN_GRADE, PIP, SKILLS, STUDIO_FROM_GRADE, NOUN_TABLE_FROM_GRADE, TIER_NAMES, WORLDS, WORLD_BADGES,
   GOLD_DAYS, LABELS, LABEL_LISTS, PATTERNS, FLOW_LABELS, FLOW_PATTERNS, WORD_LISTS, skillById, skillOpenFor, skillsInWorld, skillsInWorldFor, worldOpenFor,
 } from "./config.js";
 import { answerText, spokenText } from "./lib/parse.js";
@@ -219,6 +219,8 @@ function showItem() {
     onChange: updateCheck,
     onTap: () => sound("tap", settings().sound),
     guided: item.type === "diagram" && play.index === 0, // the first diagram of a level is walked through
+    // Shurley's noun table: on the first Q&A Flow sentence of a level, for grade 4 and up.
+    nounTable: item.type === "flow" && state.player.grade >= NOUN_TABLE_FROM_GRADE && play.items.findIndex((i) => i.type === "flow") === play.index,
   });
   $("prompt").textContent = play.ctrl.prompt;
   $("check-btn").hidden = !play.ctrl.usesCheck;

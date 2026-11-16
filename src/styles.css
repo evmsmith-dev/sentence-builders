@@ -578,3 +578,12 @@ body.theme-studio .tool-btn { border-radius: 8px; }
 .about li { margin: 6px 0; }
 .about p { margin: 8px 0; }
 .about-link { margin-right: auto; }
+
+/* Noun table (Shurley): filled in row by row under the marked-up sentence. */
+.noun-table-wrap { margin: 10px 0 4px; overflow-x: auto; }
+.noun-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+.noun-table caption { text-align: left; font-weight: 700; margin-bottom: 4px; color: var(--muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.04em; }
+.noun-table th, .noun-table td { border: 1px solid var(--border); padding: 6px 6px; text-align: left; vertical-align: top; }
+.noun-table thead th { font-size: 0.8rem; color: var(--muted); font-weight: 700; line-height: 1.2; }
+.noun-table td { min-width: 3.5em; font-weight: 600; }
+.noun-simple { display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 8px 0 0; }

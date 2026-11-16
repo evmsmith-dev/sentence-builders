@@ -600,7 +600,7 @@ test("Mark it up: wrong marks give a hint, then the answer; right marks finish t
   await page.locator("#item [data-markup-done]").click();
   await expect(page.locator('#item [data-fw="8"]')).toHaveClass(/mk-circle/);
   await expect(page.locator("#item .flow-count")).toHaveText("Mark it up · 2 of 5");
-  const tasks = markupTasks(parsed.words.map((w) => w.label));
+  const tasks = markupTasks(parsed.words.map((w) => w.label), parsed.words.map((w) => w.word));
   await markUp(page, tasks[1]); // parentheses
   // The slash waits for Done like every other mark: tapping another word moves it.
   const slash = tasks[2];
@@ -616,6 +616,22 @@ test("Mark it up: wrong marks give a hint, then the answer; right marks finish t
   await expect(page.locator('#item [data-fw="4"]')).toHaveClass(/mk-slash/);
   for (const i of [0, 1, 2, 3]) await expect(page.locator(`#item [data-fw="${i}"]`)).toHaveClass(/mk-u1/); // complete subject
   for (const i of [4, 5, 6, 7, 8]) await expect(page.locator(`#item [data-fw="${i}"]`)).toHaveClass(/mk-u2/); // complete predicate
+  // Grade 5, first flow of the level: Shurley's noun table comes next.
+  await expect(page.locator("#item .flow-count")).toHaveText("Noun table · 1 of 8");
+  await expect(page.locator("#item .flow-q")).toHaveText("What job does puppies do?");
+  await expect(page.locator("#item [data-nt]")).toHaveCount(2); // level 2 teaches two noun jobs: SN and OP
+  await page.locator('#item [data-nt="OP · object of the preposition"]').click();
+  await expect(page.locator("#feedback")).toContainText("SN means subject noun");
+  await expect(page.locator('#item [data-nt="OP · object of the preposition"]')).toBeDisabled();
+  await page.locator('#item [data-nt="SN · subject noun"]').click();
+  await expect(page.locator("#item .noun-table tbody tr").first()).toContainText("SN");
+  for (const answer of ["Plural", "Common", "OP · object of the preposition", "Singular", "Common", "puppies", "ran"]) {
+    await page.locator(`#item [data-nt="${answer}"]`).click();
+  }
+  await expect(page.locator("#item .noun-table tbody tr").nth(1)).toContainText("door");
+  await expect(page.locator("#item .noun-table tbody tr").nth(1)).toContainText("Singular");
+  await expect(page.locator("#item .noun-simple")).toContainText("Simple subject: puppies");
+  await expect(page.locator("#item .noun-simple")).toContainText("Simple predicate: ran");
   await expect(page.locator("#next-btn")).toBeVisible();
 });
 
@@ -737,4 +753,12 @@ test("About: from Settings and Who's playing?, Back returns where you were", asy
   await expect(page.locator("#about")).toBeVisible();
   await page.locator("#about-back").click();
   await expect(page.locator("#players")).toBeVisible();
+});
+
+test("noun table: only on the first Q&A Flow sentence of a level, and not for grade 3", async ({ page }) => {
+  await openApp(page, { players: [player({ grade: 3 })], current: "p1" });
+  await startLevel(page, "flow", 1, "flow");
+  await answer(page);
+  await expect(page.locator("#item .noun-table")).toHaveCount(0);
+  await expect(page.locator("#next-btn")).toBeVisible();
 });

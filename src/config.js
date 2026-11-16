@@ -15,6 +15,8 @@ export const MIN_GRADE = 3;
 export const MAX_GRADE = 8;
 /** From this grade on, the calmer Studio look is the default. */
 export const STUDIO_FROM_GRADE = 6;
+/** Shurley's noun table (job, singular or plural, common or proper) on one Q&A Flow sentence a level, from this grade. */
+export const NOUN_TABLE_FROM_GRADE = 4;
 export const MAX_PLAYERS = 4;
 
 export const WORLDS = [

@@ -7,6 +7,8 @@
 // predicate twice. "Predicate words in the complete subject" (a helping verb that starts a question, an adverb or
 // a prepositional phrase at the front) are underlined twice. The noun check (circle the nouns) comes first here.
 
+import { isPronoun } from "./nouns.js";
+
 export const NOUN_LABELS = ["SN", "CSN", "OP", "DO", "IO", "PrN", "OCN"];
 export const SUBJECT_LABELS = ["SN", "SP", "CSN", "CSP"];
 export const VERB_LABELS = ["V", "V-t", "LV", "HV", "CV"];
@@ -61,11 +63,12 @@ export function frontPredicate(labels) {
 export function markupTasks(labels, words = []) {
   const pick = (list) => labels.map((l, i) => (list.includes(l) ? i : -1)).filter((i) => i >= 0);
   const tasks = [];
-  const nouns = pick(NOUN_LABELS);
+  // A pronoun can do a noun's job (Hike made us hungry: us is the DO) but isn't a noun.
+  const nouns = pick(NOUN_LABELS).filter((i) => !words[i] || !isPronoun(words[i]));
   if (nouns.length) {
-    const pronounSubject = labels.some((l) => l === "SP" || l === "CSP");
+    const pronounSubject = labels.some((l, i) => l === "SP" || l === "CSP" || (NOUN_LABELS.includes(l) && words[i] && isPronoun(words[i])));
     tasks.push({ id: "circle", mark: "circle", mode: "multi", answer: nouns,
-      prompt: pronounSubject ? "Noun check: circle every noun. Pronouns like (You), he and we aren't nouns." : "Noun check: circle every noun.",
+      prompt: pronounSubject ? "Noun check: circle every noun. Pronouns like (You), me and us aren't nouns." : "Noun check: circle every noun.",
       hint: "Nouns are the words labeled SN, CSN, OP, DO, IO, PrN or OCN. Pronouns like he and we aren't circled." });
   }
   const phrases = phraseIndexes(labels);

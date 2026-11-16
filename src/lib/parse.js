@@ -2,6 +2,7 @@
 // Pure functions, unit-tested. The formats are described in data/README.md.
 import { FLOW_LABELS, FLOW_PATTERNS, MARK_ORDER, PALETTES, PATTERNS, SENTENCE_KINDS } from "../config.js";
 import { buildDiagram } from "./diagram.js";
+import { isPronoun, nounInfo } from "./nouns.js";
 
 const flowLabels = (item) => (FLOW_LABELS[item.skill] || FLOW_LABELS.flow)[item.level - 1];
 const flowPatterns = (item) => (FLOW_PATTERNS[item.skill] || FLOW_PATTERNS.flow)[item.level - 1];
@@ -348,6 +349,13 @@ export function validateItem(item) {
     if (choices.length > 1 && !choices.includes(item.pattern)) throw new Error(`${item.id}: needs a pattern from ${choices.join(", ")}`);
     if (choices.length === 1 && item.pattern) throw new Error(`${item.id}: patterns aren't asked at this level`);
     if (!/[.!?]$/.test(parsed.words.at(-1).word)) throw new Error(`${item.id}: the last word needs its end mark`);
+  }
+  if (item.type === "flow" || item.type === "diagram") {
+    for (const w of parseTags(item.tags)) {
+      if (["SN", "CSN", "OP", "DO", "IO", "PrN", "OCN"].includes(w.label) && !isPronoun(w.word) && !nounInfo(w.word).number) {
+        throw new Error(`${item.id}: add "${w.word.replace(/[.?!,]+$/, "")}" to the singular or plural noun list in src/lib/nouns.js`);
+      }
+    }
   }
   if (item.type === "diagram") {
     if (!buildDiagram(item)) throw new Error(`${item.id}: this sentence can't be diagrammed yet`);
