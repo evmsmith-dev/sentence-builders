@@ -17,6 +17,8 @@ export const MAX_GRADE = 8;
 export const STUDIO_FROM_GRADE = 6;
 /** Shurley's noun table (job, singular or plural, common or proper) on one Q&A Flow sentence a level, from this grade. */
 export const NOUN_TABLE_FROM_GRADE = 4;
+/** Noun table questions show a one-line reminder until a child has this many right on the first try. */
+export const NOUN_REMINDERS_UNTIL = 12;
 export const MAX_PLAYERS = 4;
 
 export const WORLDS = [
@@ -261,3 +263,17 @@ export const PIP = {
   passed: ["New building unlocked!", "The town just grew.", "Another one built."],
   notYet: "Let's build that one again. Nothing is lost.",
 };
+
+/** Kinds of nouns, for the noun table: shown in the Rule Book (Flow Factory and Word lists) and from 📘 Nouns. */
+export const NOUN_KINDS = [
+  {
+    id: "common-proper", title: "Common and proper nouns", head: ["Common", "Proper"],
+    rule: "A proper noun names one particular person, pet, place or thing, and it starts with a capital letter. A common noun is the general word, with no capital (unless it starts the sentence).",
+    pairs: [["city", "Duluth"], ["dog", "Biscuit"], ["lake", "Lake Superior"], ["my grandma", "Grandma (used as a name)"]],
+  },
+  {
+    id: "singular-plural", title: "Singular and plural nouns", head: ["Singular", "Plural"],
+    rule: "A singular noun names one. A plural noun names more than one. Most plurals add -s or -es; some change their spelling. A few, like homework, music and snow, stay singular.",
+    pairs: [["puppy", "puppies"], ["box", "boxes"], ["goose", "geese"], ["child", "children"], ["mouse", "mice"]],
+  },
+];

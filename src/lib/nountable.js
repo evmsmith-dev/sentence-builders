@@ -27,16 +27,19 @@ export function nounTableQuestions(labels, words, jobs = NOUN_LABELS) {
       id: `job-${i}`, noun: i, column: "job", prompt: `What job does ${w} do?`,
       choices: [label, ...others].map(jobName), answer: jobName(label),
       hint: `Look at the label above ${w}: ${label} means ${LABELS[label].name}.`,
+      reminder: "Its label from the Q&A Flow is its job.",
     });
     questions.push({
       id: `number-${i}`, noun: i, column: "number", prompt: `Is ${w} singular or plural?`,
       choices: ["Singular", "Plural"], answer: info.number,
       hint: "Singular means one; plural means more than one.",
+      reminder: "Singular means one. Plural means more than one, like puppies or geese.",
     });
     questions.push({
       id: `kind-${i}`, noun: i, column: "kind", prompt: `Is ${w} a common or a proper noun?`,
       choices: ["Common", "Proper"], answer: info.kind,
       hint: "A proper noun names one particular person, pet, place or thing and starts with a capital letter. A common noun doesn't.",
+      reminder: "Proper nouns name one particular person, pet, place or thing, like Mia or Duluth, and start with a capital.",
     });
   }
   if (!nouns.length) return [];
@@ -55,11 +58,13 @@ export function nounTableQuestions(labels, words, jobs = NOUN_LABELS) {
     id: "simple-subject", column: "subject", prompt: "What is the simple subject?",
     choices: [subject, ...pickOthers(subject, 2)], answer: subject,
     hint: "The simple subject is the subject noun or pronoun itself, without the words that describe it.",
+    reminder: "Just the subject noun or pronoun, without the words that describe it.",
   });
   questions.push({
     id: "simple-predicate", column: "predicate", prompt: "What is the simple predicate?",
     choices: [verb, ...pickOthers(verb, 2, true)], answer: verb,
     hint: "The simple predicate is the verb, with any helping verb.",
+    reminder: "Just the verb, with any helping verb.",
   });
   return questions;
 }

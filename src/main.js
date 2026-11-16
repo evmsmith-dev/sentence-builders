@@ -1,6 +1,6 @@
 // Startup and screens: players, the town, worlds, levels, results, badges and settings.
 import {
-  AVATARS, AVATAR_GROUPS, HABIT_BADGES, ITEMS_PER_LEVEL, MAX_GRADE, MAX_PLAYERS, MIN_GRADE, PIP, SKILLS, STUDIO_FROM_GRADE, NOUN_TABLE_FROM_GRADE, TIER_NAMES, WORLDS, WORLD_BADGES,
+  AVATARS, AVATAR_GROUPS, HABIT_BADGES, ITEMS_PER_LEVEL, MAX_GRADE, MAX_PLAYERS, MIN_GRADE, PIP, SKILLS, STUDIO_FROM_GRADE, NOUN_TABLE_FROM_GRADE, NOUN_KINDS, NOUN_REMINDERS_UNTIL, TIER_NAMES, WORLDS, WORLD_BADGES,
   GOLD_DAYS, LABELS, LABEL_LISTS, PATTERNS, FLOW_LABELS, FLOW_PATTERNS, WORD_LISTS, skillById, skillOpenFor, skillsInWorld, skillsInWorldFor, worldOpenFor,
 } from "./config.js";
 import { answerText, spokenText } from "./lib/parse.js";
@@ -215,6 +215,14 @@ function showItem() {
     answer: (right) => handleAnswer(right),
     hint: (text) => showStepHint(text),
     showLabels: (labels, patterns) => openLabelHelp(labels, patterns),
+    showNouns: () => {
+      $("nouns-body").innerHTML = nounKindsHtml(true);
+      openOverlay("nouns-overlay");
+      $("nouns-overlay").querySelector(".sheet").scrollTop = 0;
+    },
+    // Reminders under each noun table question until a child has answered NOUN_REMINDERS_UNTIL right on the first try.
+    nounReminders: (state.player.nounTableRight || 0) < NOUN_REMINDERS_UNTIL,
+    onNounTable: (right) => savePlayer({ ...state.player, nounTableRight: (state.player.nounTableRight || 0) + right }),
     complete: (result) => completeItem(result),
     onChange: updateCheck,
     onTap: () => sound("tap", settings().sound),
@@ -411,13 +419,24 @@ function labelGlossary(skill, level) {
     ${patterns.length > 1 ? `<ul class="pattern-list">${patterns.map((n) => `<li>${esc(PATTERNS[n])}</li>`).join("")}</ul>` : ""}</details>`;
 }
 
+/** Common/proper and singular/plural nouns: folding cards in the Rule Book, or open in the 📘 Nouns sheet. */
+function nounKindsHtml(open = false) {
+  return NOUN_KINDS.map((k) => {
+    const body = `<p class="tip-rule">${esc(k.rule)}</p><table class="noun-kinds"><thead><tr><th scope="col">${esc(k.head[0])}</th><th scope="col">${esc(k.head[1])}</th></tr></thead>
+      <tbody>${k.pairs.map(([a, b]) => `<tr><td>${esc(a)}</td><td>${esc(b)}</td></tr>`).join("")}</tbody></table>`;
+    return open
+      ? `<section class="noun-kind" id="nouns-${k.id}"><h3>${esc(k.title)}</h3>${body}</section>`
+      : `<details class="rule-skill noun-kind" id="nouns-${k.id}"><summary><span class="skill-name">${esc(k.title)}</span></summary><div class="rule-card">${body}</div></details>`;
+  }).join("");
+}
+
 const wordChips = (words) => `<ul class="word-chips">${words.map((w) => `<li>${esc(w)}</li>`).join("")}</ul>`;
 
 function wordListsHtml() {
   return `<p class="note rules-intro">Words to know when you look for each word's job. Tap a list to open it.</p>
     <div class="rules-grid">${WORD_LISTS.map((list) => `<details class="rule-skill word-list" id="list-${list.id}">
       <summary><span class="skill-name">${esc(list.title)}</span><span class="skill-count">${list.words.length} words</span></summary>
-      <p class="note">${esc(list.note)}</p>${wordChips(list.words)}</details>`).join("")}</div>`;
+      <p class="note">${esc(list.note)}</p>${wordChips(list.words)}</details>`).join("")}${nounKindsHtml()}</div>`;
 }
 
 /**
@@ -441,7 +460,7 @@ function renderRules(focusWorld, back) {
     const skills = skillsInWorldFor(world.id, player);
     $("rules-list").innerHTML = `<section class="rule-world" id="rules-${world.id}">
       <p class="note rules-intro">Tap a skill to see its rules. Tap 🔊 to hear one.</p>
-      <div class="rules-grid">${skills.map((skill) => {
+      <div class="rules-grid">${world.id === "flow" ? nounKindsHtml() : ""}${skills.map((skill) => {
         const open = [1, 2, 3].filter((level) => isUnlocked(player, skill.id, level)).length;
         const cards = [1, 2, 3].map((level) => {
           const key = `${skill.id}-${level}`;

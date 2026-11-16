@@ -17,6 +17,7 @@ import {
 import { FLOW_LABELS, LABELS, PATTERNS, SENTENCE_KINDS } from "../config.js";
 
 const LABELS_BUTTON = '<button type="button" class="labels-help" data-labels-help>📘 Labels</button>';
+const NOUNS_BUTTON = '<button type="button" class="labels-help" data-nouns-help>📘 Nouns</button>';
 import { shuffle } from "../lib/select.js";
 import { esc } from "./dom.js";
 
@@ -439,7 +440,7 @@ const PATTERN_HINT = "Look at the labels after the verb: nothing more is P1, a D
  * for a word already pointed out, just pick its label. Then the kind of sentence (and, in level 3, the pattern).
  * A miss gives a hint for that step; a second miss on the same step shows it and moves on.
  */
-function renderFlow(root, item, { hint, complete, onChange, onTap, showLabels, nounTable }) {
+function renderFlow(root, item, { hint, complete, onChange, onTap, showLabels, nounTable, nounReminders, showNouns, onNounTable }) {
   const parsed = parseFlow(item.markupOnly ? { ...item, steps: [] } : item);
   const stages = item.markupOnly ? [] : [...parsed.steps.map((step) => ({ ...step, kind: "step" })), { kind: "kind" }];
   if (parsed.pattern && !item.markupOnly) stages.push({ kind: "pattern" });
@@ -464,6 +465,7 @@ function renderFlow(root, item, { hint, complete, onChange, onTap, showLabels, n
     : [];
   let tableAt = -1;
   let tableMisses = 0;
+  let tableRight = 0; // right on the first try, so reminders can fade once a child knows them
   const tableAnswers = {}; // question id → answer shown in the table
   const tabling = () => tableAt >= 0 && tableAt < table.length;
 
@@ -489,9 +491,12 @@ function renderFlow(root, item, { hint, complete, onChange, onTap, showLabels, n
     if (!tabling()) return;
     const q = table[tableAt];
     root.querySelector(".flow-count").textContent = `Noun table · ${tableAt + 1} of ${table.length}`;
+    if (!root.querySelector("[data-nouns-help]")) {
+      root.querySelector("[data-labels-help]").outerHTML = NOUNS_BUTTON;
+    }
     root.querySelector(".flow-q").textContent = q.prompt;
-    root.querySelector(".flow-choices").innerHTML = shuffle(q.choices).map((c) =>
-      `<button type="button" class="choice" data-nt="${esc(c)}">${esc(c)}</button>`).join("");
+    root.querySelector(".flow-choices").innerHTML = (nounReminders ? `<p class="palette-label nt-reminder">${esc(q.reminder)}</p>` : "")
+      + shuffle(q.choices).map((c) => `<button type="button" class="choice" data-nt="${esc(c)}">${esc(c)}</button>`).join("");
     root.querySelectorAll(".flow-word").forEach((btn) => { btn.disabled = true; btn.classList.remove("current", "picked"); });
   }
 
@@ -507,12 +512,16 @@ function renderFlow(root, item, { hint, complete, onChange, onTap, showLabels, n
       }
       revealed = true;
       hint(`It's ${q.answer}. ${q.hint}`);
-    } else hint(null);
+    } else {
+      hint(null);
+      if (!tableMisses) tableRight += 1;
+    }
     tableAnswers[q.id] = q.answer;
     tableMisses = 0;
     tableAt += 1;
     if (tableAt >= table.length) {
       done = true;
+      onNounTable?.(tableRight);
       drawTable();
       draw();
       onChange();
@@ -683,6 +692,10 @@ function renderFlow(root, item, { hint, complete, onChange, onTap, showLabels, n
       return;
     }
     if (done) return;
+    if (event.target.closest("[data-nouns-help]")) {
+      showNouns?.();
+      return;
+    }
     if (tabling()) {
       const pick = event.target.closest("[data-nt]");
       if (pick && !pick.disabled) {

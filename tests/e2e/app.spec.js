@@ -619,6 +619,13 @@ test("Mark it up: wrong marks give a hint, then the answer; right marks finish t
   // Grade 5, first flow of the level: Shurley's noun table comes next.
   await expect(page.locator("#item .flow-count")).toHaveText("Noun table · 1 of 8");
   await expect(page.locator("#item .flow-q")).toHaveText("What job does puppies do?");
+  await expect(page.locator("#item .nt-reminder")).toHaveText("Its label from the Q&A Flow is its job.");
+  // 📘 Nouns explains common/proper and singular/plural without leaving the sentence.
+  await page.locator("#item [data-nouns-help]").click();
+  await expect(page.locator("#nouns-overlay")).toBeVisible();
+  await expect(page.locator("#nouns-overlay")).toContainText("Duluth");
+  await expect(page.locator("#nouns-overlay")).toContainText("geese");
+  await page.locator("#nouns-overlay [data-close]").click();
   await expect(page.locator("#item [data-nt]")).toHaveCount(2); // level 2 teaches two noun jobs: SN and OP
   await page.locator('#item [data-nt="OP · object of the preposition"]').click();
   await expect(page.locator("#feedback")).toContainText("SN means subject noun");
@@ -632,6 +639,8 @@ test("Mark it up: wrong marks give a hint, then the answer; right marks finish t
   await expect(page.locator("#item .noun-table tbody tr").nth(1)).toContainText("Singular");
   await expect(page.locator("#item .noun-simple")).toContainText("Simple subject: puppies");
   await expect(page.locator("#item .noun-simple")).toContainText("Simple predicate: ran");
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("sentenceBuilders_players")));
+  expect(saved[0].nounTableRight).toBe(7); // 8 questions, one missed first
   await expect(page.locator("#next-btn")).toBeVisible();
 });
 
@@ -761,4 +770,32 @@ test("noun table: only on the first Q&A Flow sentence of a level, and not for gr
   await answer(page);
   await expect(page.locator("#item .noun-table")).toHaveCount(0);
   await expect(page.locator("#next-btn")).toBeVisible();
+});
+
+test("noun table reminders fade once a child knows them; the Rule Book explains kinds of nouns", async ({ page }) => {
+  const { items } = JSON.parse(readFileSync("data/content.json", "utf8"));
+  const seen = Object.fromEntries(items.filter((i) => i.skill === "flow" && i.level === 2 && i.id !== "flow-2-01").map((i) => [i.id, { seen: 1, misses: 0, last: 1 }]));
+  const p = player({ grade: 5, items: seen });
+  p.nounTableRight = 12;
+  await openApp(page, { players: [p], current: "p1" });
+  await page.locator("#rules-btn").click();
+  await page.locator('[data-rules-tab="flow"]').click();
+  await page.locator("#nouns-common-proper summary").click();
+  await expect(page.locator("#nouns-common-proper")).toContainText("Lake Superior");
+  await page.locator('[data-rules-tab="lists"]').click();
+  await expect(page.locator("#nouns-singular-plural")).toHaveCount(1);
+  await page.locator("#rules-back").click();
+  await startLevel(page, "flow", 2, "flow");
+  const item = await currentItem(page);
+  const parsed = parseFlow(item);
+  for (const step of parsed.steps) {
+    const w = page.locator(`#item [data-fw="${step.index}"]`);
+    if (await w.isEnabled()) await w.click();
+    await page.locator(`#item [data-label="${step.label}"]`).click();
+  }
+  await page.locator(`#item [data-kind-pick="${parsed.kind}"]`).click();
+  await page.locator(`#item [data-pattern="${parsed.pattern}"]`).click();
+  for (const task of markupTasks(parsed.words.map((w) => w.label), parsed.words.map((w) => w.word))) await markUp(page, task);
+  await expect(page.locator("#item .flow-count")).toHaveText("Noun table · 1 of 8");
+  await expect(page.locator("#item .nt-reminder")).toHaveCount(0);
 });

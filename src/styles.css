@@ -587,3 +587,10 @@ body.theme-studio .tool-btn { border-radius: 8px; }
 .noun-table thead th { font-size: 0.8rem; color: var(--muted); font-weight: 700; line-height: 1.2; }
 .noun-table td { min-width: 3.5em; font-weight: 600; }
 .noun-simple { display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 8px 0 0; }
+
+.nt-reminder { margin: 0 0 8px; }
+.noun-kinds { width: 100%; max-width: 420px; border-collapse: collapse; margin: 8px 0 4px; }
+.noun-kinds th, .noun-kinds td { border: 1px solid var(--border); padding: 6px 10px; text-align: left; }
+.noun-kinds th { font-size: 0.85rem; color: var(--muted); }
+.noun-kind h3 { margin: 14px 0 4px; font-size: 1.1rem; }
+details.noun-kind > .rule-card { margin-top: 8px; }
