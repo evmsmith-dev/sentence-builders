@@ -1047,3 +1047,20 @@ test("compounds: either part first is right, in a Q&A Flow and in Build from lab
     await page.locator("#result-town").click();
   }
 });
+
+test("Rule Book: tabs use the places' names, skills come before reference, and search finds rules and labels", async ({ page }) => {
+  await openApp(page, { players: [player({ grade: 5 })], current: "p1" });
+  await page.locator("#rules-btn").click();
+  await expect(page.locator('[data-rules-tab="port"]')).toContainText("Punctuation Port");
+  await page.locator('[data-rules-tab="works"]').click();
+  await expect(page.locator(".rules-group").first()).toHaveText("Skills");
+  await expect(page.locator(".rules-group").nth(1)).toContainText("spelling patterns");
+  await page.locator("#rules-search").fill("semicolon");
+  await expect(page.locator(".search-hit").first()).toContainText("Semicolons");
+  await page.locator("#rules-search").fill("CDO");
+  await expect(page.locator(".search-hit").first()).toContainText("compound direct object");
+  await page.locator("#rules-search").fill("zzzz");
+  await expect(page.locator("#rules-list")).toContainText("Nothing matches");
+  await page.locator("#rules-search").fill("");
+  await expect(page.locator('[data-rules-tab="works"]')).toHaveAttribute("aria-selected", "true");
+});

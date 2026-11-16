@@ -614,11 +614,56 @@ function spellingHtml() {
 
 const wordChips = (words) => `<ul class="word-chips">${words.map((w) => `<li>${esc(w)}</li>`).join("")}</ul>`;
 
+const groupHead = (title) => `<h3 class="rules-group">${esc(title)}</h3>`;
+
+/** Every reference card, in groups: word lists, kinds of nouns, and spelling patterns. */
 function wordListsHtml() {
-  return `<p class="note rules-intro">Words to know when you look for each word's job. Tap a list to open it.</p>
-    <div class="rules-grid">${WORD_LISTS.map((list) => `<details class="rule-skill word-list" id="list-${list.id}">
+  return `<p class="note rules-intro">Lists and patterns to look things up. Tap one to open it.</p>
+    ${groupHead("Word lists")}<div class="rules-grid">${WORD_LISTS.map((list) => `<details class="rule-skill word-list" id="list-${list.id}">
       <summary><span class="skill-name">${esc(list.title)}</span><span class="skill-count">${list.words.length} words</span></summary>
-      <p class="note">${esc(list.note)}</p>${wordChips(list.words)}</details>`).join("")}${nounKindsHtml()}${spellingHtml()}</div>`;
+      <p class="note">${esc(list.note)}</p>${wordChips(list.words)}</details>`).join("")}</div>
+    ${groupHead("Kinds of nouns")}<div class="rules-grid">${nounKindsHtml()}</div>
+    ${groupHead("Spelling patterns")}<div class="rules-grid">${spellingHtml()}</div>`;
+}
+
+/* ---------- Rule Book search ---------- */
+
+/** Everything the Rule Book can find: unlocked rules, word lists, noun and spelling cards, and Q&A Flow labels. */
+function ruleEntries(player) {
+  const out = [];
+  for (const world of WORLDS.filter((w) => worldOpenFor(w, player))) {
+    for (const skill of skillsInWorldFor(world.id, player)) {
+      [1, 2, 3].forEach((level) => {
+        const tip = state.content.tips[`${skill.id}-${level}`];
+        if (!tip || !isUnlocked(player, skill.id, level)) return;
+        out.push({ where: `${world.emoji} ${world.name} · ${skill.name} · Level ${level}`, title: tip.title,
+          text: `${tip.rule} ${tip.example}`, body: `<p class="tip-rule">${esc(tip.rule)}</p><p class="tip-example">${esc(tip.example)}</p>` });
+      });
+    }
+  }
+  for (const list of WORD_LISTS) out.push({ where: "🔤 Word lists", title: list.title, text: `${list.note} ${list.words.join(" ")}`, body: `<p class="note">${esc(list.note)}</p>${wordChips(list.words)}` });
+  for (const k of NOUN_KINDS) out.push({ where: "🔤 Kinds of nouns", title: k.title, text: `${k.rule} ${k.pairs.flat().join(" ")}`, body: `<p class="tip-rule">${esc(k.rule)}</p>` });
+  for (const r of SPELLING_RULES) {
+    const rows = r.rows ? r.rows.map((row) => row.join(": ")).join(" · ") : r.list.map((pair) => pair.join(" → ")).join(", ");
+    out.push({ where: "🔤 Spelling patterns", title: r.title, text: `${r.note} ${rows}`, body: `<p class="note">${esc(r.note)}</p><p class="tip-example">${esc(rows)}</p>` });
+  }
+  for (const [code, label] of Object.entries(LABELS)) {
+    out.push({ where: "🏭 Q&A Flow labels", title: `${code} · ${label.name}`, text: `${code} ${label.name} ${label.hint} ${label.find}`, body: `<p class="tip-rule">${esc(label.hint)}</p><p class="tip-example">${esc(label.find)}</p>` });
+  }
+  return out;
+}
+
+/** Search results: every entry whose title or text has all the words typed, titles first. */
+function renderRuleSearch(query) {
+  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+  const hit = (s) => words.every((w) => s.toLowerCase().includes(w));
+  const found = ruleEntries(state.player).filter((e) => hit(`${e.title} ${e.text}`))
+    .sort((a, b) => hit(b.title) - hit(a.title)).slice(0, 25);
+  $("rules-tabs").querySelectorAll(".rules-tab").forEach((t) => t.classList.remove("active"));
+  $("rules-list").innerHTML = found.length
+    ? `<p class="note rules-intro">${found.length === 25 ? "The first 25 matches" : `${found.length} match${found.length === 1 ? "" : "es"}`} for “${esc(query)}”.</p>
+      <div class="rules-grid">${found.map((e) => `<article class="rule-card search-hit"><p class="eyebrow">${esc(e.where)}</p><h4>${esc(e.title)}</h4>${e.body}</article>`).join("")}</div>`
+    : `<p class="note rules-intro">Nothing matches “${esc(query)}”. Try one word, like comma, plural or verb.</p>`;
 }
 
 /**
@@ -630,7 +675,9 @@ function renderRules(focusWorld, back) {
   const player = state.player;
   if (back) state.rulesBack = back;
   const worlds = WORLDS.filter((w) => worldOpenFor(w, player));
-  const tabs = [...worlds.map((w) => ({ id: w.id, label: w.tab || w.name, emoji: w.emoji })), { id: "lists", label: "Word lists", emoji: "🔤" }];
+  // Tabs use the places' names, as on the island map.
+  const tabs = [...worlds.map((w) => ({ id: w.id, label: w.name, emoji: w.emoji })), { id: "lists", label: "Word lists", emoji: "🔤" }];
+  $("rules-search").value = "";
   const tab = tabs.some((t) => t.id === focusWorld) ? focusWorld : tabs.some((t) => t.id === state.rulesTab) ? state.rulesTab : tabs[0].id;
   state.rulesTab = tab;
   $("rules-tabs").innerHTML = tabs.map((t) => `<button type="button" class="rules-tab${t.id === tab ? " active" : ""}" role="tab"
@@ -642,7 +689,7 @@ function renderRules(focusWorld, back) {
     const skills = skillsInWorldFor(world.id, player);
     $("rules-list").innerHTML = `<section class="rule-world" id="rules-${world.id}">
       <p class="note rules-intro">Tap a skill to see its rules. Tap 🔊 to hear one.</p>
-      <div class="rules-grid">${world.id === "flow" ? nounKindsHtml() : ""}${world.id === "works" ? spellingHtml() : ""}${skills.map((skill) => {
+      ${groupHead("Skills")}<div class="rules-grid">${skills.map((skill) => {
         const open = [1, 2, 3].filter((level) => isUnlocked(player, skill.id, level)).length;
         const cards = [1, 2, 3].map((level) => {
           const key = `${skill.id}-${level}`;
@@ -657,7 +704,9 @@ function renderRules(focusWorld, back) {
         }).join("");
         return `<details class="rule-skill" style="--skill:${skill.color}" data-rule-skill="${skill.id}">
           <summary><span class="skill-name">${esc(skill.name)}</span><span class="skill-count">${open} of 3 open</span></summary>${cards}</details>`;
-      }).join("")}</div></section>`;
+      }).join("")}</div>
+      ${world.id === "flow" ? `${groupHead("Reference")}<div class="rules-grid">${nounKindsHtml()}</div>` : ""}
+      ${world.id === "works" ? `${groupHead("Reference: spelling patterns")}<div class="rules-grid">${spellingHtml()}</div>` : ""}</section>`;
   }
   showScreen("rules");
 }
@@ -1299,6 +1348,11 @@ function wire() {
     if (!btn) return;
     const tip = state.content.tips[btn.dataset.sayRule];
     say(`${tip.title}. ${tip.rule} For example: ${tip.example}`);
+  });
+  $("rules-search").addEventListener("input", (event) => {
+    const q = event.target.value.trim();
+    if (q.length >= 2) renderRuleSearch(q);
+    else if (!q) renderRules(state.rulesTab);
   });
   $("rules-tabs").addEventListener("click", (event) => {
     const btn = event.target.closest("[data-rules-tab]");

@@ -756,3 +756,12 @@ details.spell-card > .rule-card { margin-top: 8px; }
 .summary-meter { height: 10px; margin: 10px 0 6px; border-radius: 5px; background: var(--primary-soft); overflow: hidden; }
 .summary-meter > span { display: block; height: 100%; border-radius: 5px; background: var(--primary); }
 .summary-line { margin: 0; }
+
+/* ==================== Rule Book: groups and search ==================== */
+.rules-group { margin: 16px 2px 8px; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+.rules-search { display: block; margin-bottom: 8px; }
+.rules-search input { width: 100%; min-height: 44px; padding: 8px 12px; border-radius: 12px; border: 2px solid var(--border); background: var(--card);
+  color: inherit; font: inherit; font-size: 1rem; }
+.rules-search input:focus { outline: none; border-color: var(--primary); }
+.search-hit h4 { margin: 2px 0 6px; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
