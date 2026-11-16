@@ -337,7 +337,7 @@ span.proof-word.shown { background: var(--shown-soft); color: var(--shown); font
   background: var(--primary-dark); color: #fff; box-shadow: var(--shadow); max-width: 560px; margin: 0 auto;
 }
 #update-banner p { margin: 0; flex: 1; }
-#update-banner button { min-height: 44px; padding: 6px 14px; border-radius: 12px; border: 0; font-weight: 600; }
+#update-banner button { min-height: 44px; padding: 6px 16px; border-radius: 12px; border: 0; font-weight: 700; background: #fff; color: var(--primary-dark); }
 #update-banner .secondary { background: transparent; color: #fff; border: 2px solid rgba(255, 255, 255, 0.5); }
 .load-error { padding: 24px; font-size: 1.2rem; }
 
