@@ -702,11 +702,12 @@ function renderFlow(root, item, { hint, complete, onChange, onTap, showLabels, n
       showLabels(parsed.labels, parsed.patternChoices);
       return;
     }
-    if (done) return;
+    // The Nouns reminder works any time, even after the sentence is finished, like Labels.
     if (event.target.closest("[data-nouns-help]")) {
       showNouns?.();
       return;
     }
+    if (done) return;
     if (tabling()) {
       const pick = event.target.closest("[data-nt]");
       if (pick && !pick.disabled) {

@@ -816,6 +816,11 @@ test("noun table reminders fade once a child knows them; the Rule Book explains 
   for (const task of markupTasks(parsed.words.map((w) => w.label), parsed.words.map((w) => w.word))) await markUp(page, task);
   await expect(page.locator("#item .flow-count")).toHaveText("Noun table · 1 of 8");
   await expect(page.locator("#item .nt-reminder")).toHaveCount(0);
+  // Finish the table; 📘 Nouns still opens the reminder after the sentence is done.
+  await answer(page);
+  await expect(page.locator("#next-btn")).toBeVisible();
+  await page.locator("#item [data-nouns-help]").click();
+  await expect(page.locator("#nouns-overlay")).toBeVisible();
 });
 
 test("bricks: a level pays bricks, the new building rises, and the Build screen spends them", async ({ page }) => {
