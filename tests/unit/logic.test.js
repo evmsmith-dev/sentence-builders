@@ -250,7 +250,7 @@ test("proofread: mistakes, choices and the fixed paragraph", async () => {
   assert.equal(parsed.answerText, "At the museum we saw fossils, rocks, and gems. The guide answered all of our questions.");
 });
 
-test("the Editing Desk opens at grade 6", async () => {
+test("Revision Ridge opens at grade 6", async () => {
   const { WORLDS, worldOpenFor } = await import("../../src/config.js");
   const desk = WORLDS.find((w) => w.id === "desk");
   assert.equal(worldOpenFor(desk, { grade: 5 }), false);

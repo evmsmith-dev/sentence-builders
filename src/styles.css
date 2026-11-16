@@ -701,3 +701,9 @@ details.spell-card > .rule-card { margin-top: 8px; }
 .build-area { flex: none; min-height: 44px; padding: 6px 12px; border-radius: 999px; border: 2px solid #d9cbbd; background: var(--card, #fff);
   color: inherit; font: inherit; font-weight: 600; cursor: pointer; }
 .build-area[aria-selected="true"] { background: #c0612b; border-color: #c0612b; color: #fff; }
+@media (prefers-reduced-motion: no-preference) {
+  .town-map .pip-map { animation: pip-bob 1.6s ease-in-out infinite alternate; }
+  .town-map .smoke { animation: smoke 2.4s ease-in-out infinite alternate; }
+}
+@keyframes pip-bob { from { transform: translateY(0); } to { transform: translateY(-5px); } }
+@keyframes smoke { from { transform: translateY(0); opacity: 1; } to { transform: translateY(-4px); opacity: 0.4; } }

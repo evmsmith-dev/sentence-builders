@@ -282,7 +282,7 @@ test("Q&A Flow: a miss gives a step hint; a second miss shows that step and move
   await expect(page.locator("#feedback.good")).toContainText("A hint helped");
 });
 
-test("Editing Desk: closed below grade 6, open for a 7th grader with grades 6-7 unlocked", async ({ page }) => {
+test("Revision Ridge: closed below grade 6, open for a 7th grader with grades 6-7 unlocked", async ({ page }) => {
   await openApp(page, { players: [player({ grade: 4 }), player({ id: "p2", name: "Max", avatar: "🐯", grade: 7 })], current: "p1" });
   await expect(page.locator('[data-world="desk"]')).toBeDisabled();
   await expect(page.locator('[data-world="desk"]')).toContainText("Grade 6+");
@@ -300,7 +300,7 @@ test("Editing Desk: closed below grade 6, open for a 7th grader with grades 6-7 
   await expect(page.locator("#skill-list .coming-soon")).toHaveCount(0);
 });
 
-test("Editing Desk: play every skill, including hyphens, dashes, parentheses and ellipses", async ({ page }) => {
+test("Revision Ridge: play every skill, including hyphens, dashes, parentheses and ellipses", async ({ page }) => {
   test.setTimeout(120000);
   await openApp(page, { players: [player({ grade: 8 })], current: "p1" });
   const levels = [["case", 1, 8], ["case", 3, 8], ["proofread", 1, 5], ["proofread", 3, 5],
@@ -422,7 +422,7 @@ test("Rule Book: tabs for each world, folding skills, locked rules by title, lab
   await page.locator("#rules-btn").click();
   await expect(page.locator("#rules")).toBeVisible();
   await expect(page.locator('[data-rules-tab="port"]')).toHaveAttribute("aria-selected", "true");
-  await expect(page.locator('[data-rules-tab="desk"]')).toHaveCount(0); // no Editing Desk for a 4th grader
+  await expect(page.locator('[data-rules-tab="desk"]')).toHaveCount(0); // no Revision Ridge for a 4th grader
   // Skills start folded; tapping one shows its rules.
   await expect(page.locator('[data-rule-skill="commas"] .tip-example').first()).toBeHidden();
   await page.locator('[data-rule-skill="commas"] > summary').click();
@@ -810,7 +810,7 @@ test("bricks: a level pays bricks, the new building rises, and the Build screen 
   await expect(page.locator("#result-bricks")).toContainText("+35 🧱 bricks");
   await page.locator("#result-town").click();
   await expect(page.locator("#town .rise")).toHaveCount(1);
-  await expect(page.locator("#build-btn")).toContainText("Build your town · 35 bricks");
+  await expect(page.locator("#build-btn")).toContainText("Build on the island · 35 bricks");
   await expect(page.locator("#build-btn")).toContainText("You can build");
   await page.locator("#build-btn").click();
   await expect(page.locator("#build")).toBeVisible();
@@ -887,7 +887,7 @@ test("Rule Book: word endings (-ed, plurals, will, -s/-ing, irregular verbs) in 
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
 });
 
-test("Capital letters: a Punctuation Port skill, and the town wraps a fourth skill onto its own street", async ({ page }) => {
+test("Capital letters: a Punctuation Port skill, with its own spot on the port's path", async ({ page }) => {
   await openApp(page, { players: [player({ grade: 5 })], current: "p1" });
   await expect(page.locator('.town g[data-skill="capitals"]')).toHaveCount(1);
   await startLevel(page, "capitals", 3);
@@ -909,7 +909,7 @@ test("town map: tap a region to zoom in, tap a lot for its levels, and decorate 
   const ava = player({ levels: { "commas-1": { best: 8, stars: 3, plays: 1 } } });
   await openApp(page, { players: [{ ...ava, bricks: 30 }], current: "p1" });
   await expect(page.locator("#map-panel")).toContainText("Tap a part of town");
-  await expect(page.locator('.map-chip[data-map-area="desk"]')).toContainText("Editing Desk"); // locked for grade 4
+  await expect(page.locator('.map-chip[data-map-area="desk"]')).toContainText("Revision Ridge"); // locked for grade 4
   // Tap Punctuation Port's region: the map zooms in and the panel shows its skills.
   await page.locator("#town").scrollIntoViewIfNeeded();
   const port = await page.locator('g.district[data-area="port"]').boundingBox();

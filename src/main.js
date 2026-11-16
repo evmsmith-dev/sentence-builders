@@ -175,7 +175,7 @@ function skillCardHtml(skill) {
         <span class="level-num">Level ${level}</span><span class="level-grade">Grade ${skill.grades[level - 1]}</span>
         <span class="level-stars" aria-hidden="true">${open ? starText : "🔒"}</span></button>`;
     }).join("");
-    const gold = tier === 3 ? "Gold! Lighthouse built." : isPassed(player, skill.id, 3) ? `Gold: 7+ on level 3 on ${GOLD_DAYS} days (${goldDays}/${GOLD_DAYS})` : "";
+    const gold = tier === 3 ? "Gold! A gold flag flies on its top building." : isPassed(player, skill.id, 3) ? `Gold: 7+ on level 3 on ${GOLD_DAYS} days (${goldDays}/${GOLD_DAYS})` : "";
     return `<section class="skill-card" style="--skill:${skill.color}">
       <div class="skill-head"><h2>${esc(skill.name)}</h2>
         <span class="tier${tier ? "" : " none"}">${skill.badge.emoji} ${tier ? TIER_NAMES[tier - 1] : "No badge yet"}</span></div>
@@ -621,7 +621,7 @@ function buildCardHtml(player) {
     bar = `<span class="build-bar" aria-hidden="true"><span style="width:${Math.round((bricks / next.cost) * 100)}%"></span></span>`;
   }
   return `<span class="homework-emoji" aria-hidden="true">🧱</span>
-    <span><strong>Build your town · ${bricks} brick${bricks === 1 ? "" : "s"}</strong><span>${esc(line)}</span>${bar}</span>
+    <span><strong>Build on the island · ${bricks} brick${bricks === 1 ? "" : "s"}</strong><span>${esc(line)}</span>${bar}</span>
     ${canBuild.length ? '<span class="build-ready">Build</span>' : ""}`;
 }
 
@@ -761,7 +761,7 @@ function initBuildDragging() {
 
 /* ==================== Badges ==================== */
 
-/** Badge ids this player can work toward (no Editing Desk badges for a 4th grader). */
+/** Badge ids this player can work toward (no Revision Ridge badges for a 4th grader). */
 function visibleBadgeIds(player) {
   return new Set([
     ...visibleSkills(player).map((sk) => sk.badge.id),

@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="sea" cx=".5" cy=".38" r=".75"><stop offset="0" stop-color="#7cc4f2"/><stop offset="1" stop-color="#2a6fb3"/></radialGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#sea)"/>
+  <g transform="translate(256 262) scale(.82) translate(-262 -250)">
+  <path d="M70 120q20-8 40 0t40 0M380 96q20-8 40 0t40 0M60 420q20-8 40 0t40 0M370 440q20-8 40 0t40 0" stroke="#fff" stroke-opacity=".45" stroke-width="6" fill="none" stroke-linecap="round"/>
+  <!-- island: shadow, cliffs, beach, grass -->
+  <ellipse cx="262" cy="372" rx="196" ry="70" fill="#174d80" opacity=".45"/>
+  <ellipse cx="256" cy="356" rx="196" ry="72" fill="#7a5434"/>
+  <ellipse cx="256" cy="340" rx="196" ry="72" fill="#a57a52"/>
+  <ellipse cx="256" cy="326" rx="196" ry="70" fill="#f3e2ae"/>
+  <ellipse cx="256" cy="322" rx="178" ry="60" fill="#8fd16f"/>
+  <path d="M120 330 C180 360 300 362 390 326" stroke="#e9e3d4" stroke-width="16" fill="none" stroke-linecap="round"/>
+  <path d="M120 330 C180 360 300 362 390 326" stroke="#fff" stroke-width="3" fill="none" stroke-dasharray="8 10" stroke-linecap="round"/>
+  <!-- a finished cottage -->
+  <path d="M112 318h52l14-8v-52l-14 8z" fill="#c7563f"/>
+  <rect x="112" y="266" width="52" height="52" fill="#ef7b5c"/>
+  <path d="M138 228l14-8 32 38-14 8z" fill="#7a2f22"/>
+  <path d="M104 266L138 228L172 266z" fill="#a23b2b"/>
+  <rect x="131" y="294" width="14" height="24" rx="6" fill="#5a3a22"/>
+  <rect x="118" y="276" width="11" height="11" rx="2" fill="#fff6c8"/><rect x="148" y="276" width="11" height="11" rx="2" fill="#fff6c8"/>
+  <!-- the building going up, with scaffolding -->
+  <path d="M260 318l16-9v-96l-16 9z" fill="#3a63b8"/>
+  <rect x="196" y="222" width="64" height="96" fill="#5b8def"/>
+  <path d="M196 222l16-9h64l-16 9z" fill="#8fb2f5"/>
+  <g fill="#fff6c8"><rect x="206" y="236" width="12" height="12" rx="2"/><rect x="238" y="236" width="12" height="12" rx="2"/><rect x="206" y="266" width="12" height="12" rx="2"/><rect x="238" y="266" width="12" height="12" rx="2"/></g>
+  <rect x="219" y="292" width="18" height="26" rx="7" fill="#2b3f73"/>
+  <g stroke="#f2a900" stroke-width="5" stroke-linecap="round"><path d="M188 318V206M268 318V206M188 252h80M188 206h80M188 206l80 46"/></g>
+  <!-- the crane, lifting a letter block -->
+  <g stroke="#f2b400" stroke-width="7" stroke-linecap="round" fill="none">
+    <path d="M330 318V104M352 318V104M330 140l22 24M352 164l-22 24M330 188l22 24M352 212l-22 24M330 236l22 24M352 260l-22 24"/>
+    <path d="M200 104H410M200 104l130-30M410 104l-58-30"/>
+  </g>
+  <rect x="396" y="104" width="22" height="26" rx="3" fill="#5d5f66"/>
+  <rect x="320" y="92" width="44" height="26" rx="5" fill="#e85d4a"/>
+  <path d="M232 104v42" stroke="#3d3f45" stroke-width="3"/>
+  <path d="M260 154l12-7v40l-12 7z" fill="#c98b1a"/>
+  <rect x="210" y="154" width="50" height="40" rx="5" fill="#ffc531"/>
+  <path d="M210 154l12-7h50l-12 7z" fill="#ffe08a"/>
+  <text x="235" y="185" text-anchor="middle" font-family="DejaVu Sans, Arial, sans-serif" font-weight="700" font-size="27" fill="#1d2b4f">Aa</text>
+  <!-- Pip in his hard hat -->
+  <g transform="translate(350 236) scale(1.45)">
+    <ellipse cx="32" cy="62" rx="18" ry="4.5" fill="#000" opacity=".2"/>
+    <rect x="12" y="22" width="40" height="30" rx="9" fill="#5b8def"/>
+    <rect x="18" y="29" width="28" height="15" rx="6" fill="#e9f1ff"/>
+    <circle cx="26" cy="36" r="3.2" fill="#1d2b4f"/><circle cx="38" cy="36" r="3.2" fill="#1d2b4f"/>
+    <path d="M27 41.5q5 3 10 0" stroke="#1d2b4f" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M10 22q22-20 44 0z" fill="#ffc531"/><rect x="8" y="20" width="48" height="5" rx="2.5" fill="#f2a900"/>
+    <rect x="21" y="52" width="6" height="7" rx="2" fill="#3c6bc9"/><rect x="37" y="52" width="6" height="7" rx="2" fill="#3c6bc9"/>
+  </g>
+  </g>
+</svg>

@@ -27,7 +27,7 @@ export const WORLDS = [
   { id: "studio", tab: "Sentences", name: "Sentence Studio", emoji: "🎨", ready: true, blurb: "Fragments, run-ons, compound and complex sentences" },
   { id: "flow", tab: "Q&A Flow", name: "Flow Factory", emoji: "🏭", ready: true, blurb: "Label every word with the Q&A Flow, then mark it up (and diagram it, from grade 5)" },
   {
-    id: "desk", tab: "Editing", name: "Editing Desk", emoji: "📝", ready: true, minGrade: 6,
+    id: "desk", tab: "Revision", name: "Revision Ridge", emoji: "📝", ready: true, minGrade: 6,
     blurb: "Grades 6–8: pronouns, punctuation, sentence types, modifiers and proofreading",
   },
 ];
@@ -229,7 +229,7 @@ export const MARK_ORDER = [",", ".", "?", "!", '"', "'", ":", ";", "-", "—", "
 /** Skills a player can see: some (like Advanced Q&A Flow) wait until grade 6. */
 export const skillOpenFor = (skill, player) => !skill.minGrade || (player?.grade || 0) >= skill.minGrade;
 
-/** Worlds a player can open: the Editing Desk waits until grade 6. */
+/** Worlds a player can open: Revision Ridge waits until grade 6. */
 export const worldOpenFor = (world, player) => world.ready && (!world.minGrade || (player?.grade || 0) >= world.minGrade);
 
 export const skillById = (id) => SKILLS.find((skill) => skill.id === id);
@@ -244,7 +244,7 @@ export const WORLD_BADGES = [
   { id: "port-champion", world: "port", name: "Port Champion", emoji: "🏆", how: "Get every Punctuation Port skill to Silver." },
   { id: "works-wizard", world: "works", name: "Works Wizard", emoji: "🧙", how: "Get every Word Works skill to Silver." },
   { id: "studio-star", world: "studio", name: "Studio Star", emoji: "⭐", how: "Get every Sentence Studio skill to Silver." },
-  { id: "chief-editor", world: "desk", name: "Chief Editor", emoji: "🖋️", how: "Get every Editing Desk skill to Silver." },
+  { id: "chief-editor", world: "desk", name: "Chief Editor", emoji: "🖋️", how: "Get every Revision Ridge skill to Silver." },
 ];
 export const HABIT_BADGES = [
   { id: "first-brick", name: "First Brick", emoji: "🧱", how: "Finish your first level.", goal: 1, measure: "levelsPassed" },
@@ -265,7 +265,7 @@ export const PIP = {
   secondTry: ["Fixed it. Good recovery.", "That's it this time.", "Good fix."],
   hint: "Not quite. Here's a tip:",
   shown: "Here's how it goes. This one will come back later.",
-  passed: ["New building unlocked!", "The town just grew.", "Another one built."],
+  passed: ["New building unlocked!", "The island just grew.", "Another one built."],
   notYet: "Let's build that one again. Nothing is lost.",
 };
 
