@@ -283,22 +283,34 @@ test("hyphens and dashes join words without spaces; parentheses and ellipses spa
 });
 
 test("Mark it up: Shurley Skill Check tasks come from the labels", async () => {
-  const { markupTasks, checkMarkup, predicateStart } = await import("../../src/lib/markup.js");
-  const labels = ["The", "Adj", "SN", "V", "Adv", "P", "A", "OP"].map((l) => (l === "The" ? "A" : l));
-  const tasks = markupTasks(labels, "D");
+  const { markupTasks, checkMarkup, slashIndex, frontPredicate } = await import("../../src/lib/markup.js");
+  // The two small puppies / ran quickly (to the door).
+  const labels = ["A", "Adj", "Adj", "SN", "V", "Adv", "P", "A", "OP"];
+  const tasks = markupTasks(labels);
   assert.deepEqual(tasks.map((t) => t.id), ["circle", "parens", "slash", "subject", "verb"]);
-  assert.deepEqual(tasks[0].answer, [2, 7]);
-  assert.deepEqual(tasks[1].answer, [5, 6, 7]);
-  assert.deepEqual(tasks[2].answer, [3]);
-  assert.equal(checkMarkup(tasks[0], [7, 2]), true);
-  assert.equal(checkMarkup(tasks[0], [2]), false);
-  // Questions: no slash. Helping verbs are underlined with the verb. (You) is not a noun.
-  const q = markupTasks(["HV", "A", "SN", "V-t", "PPA", "DO"], "Int");
-  assert.deepEqual(q.map((t) => t.id), ["circle", "subject", "verb"]);
-  assert.deepEqual(q[2].answer, [0, 3]);
-  const cmd = markupTasks(["SP", "V-t", "A", "DO"], "Imp");
+  assert.deepEqual(tasks[0].answer, [3, 8]);
+  assert.deepEqual(tasks[1].answer, [6, 7, 8]);
+  assert.deepEqual(tasks[2].answer, [4]); // slash right before the verb
+  assert.deepEqual(tasks[3].answer, [0, 1, 2, 3]); // complete subject once
+  assert.deepEqual(tasks[4].answer, [4, 5, 6, 7, 8]); // complete predicate twice
+  assert.equal(checkMarkup(tasks[0], [8, 3]), true);
+  assert.equal(checkMarkup(tasks[0], [3]), false);
+  // The children / are swimming: the slash goes before the helping verb.
+  assert.equal(slashIndex(["A", "SN", "HV", "V", "P", "A", "OP"]), 2);
+  // Predicate words in the complete subject are underlined twice: Yesterday the puppies / played.
+  assert.deepEqual(frontPredicate(["Adv", "A", "SN", "V"]), [0]);
+  // (During the day) the kitten / slept.
+  assert.deepEqual(frontPredicate(["P", "A", "OP", "A", "SN", "V"]), [0, 1, 2]);
+  // Questions get the slash too: Can your sister / swim? Is the pool / open?
+  const q = markupTasks(["HV", "PPA", "SN", "V"]);
+  assert.deepEqual(q.find((t) => t.id === "slash").answer, [3]);
+  assert.deepEqual(q.find((t) => t.id === "verb").answer, [0, 3]);
+  assert.match(q.find((t) => t.id === "verb").prompt, /predicate words in the complete subject/);
+  assert.deepEqual(markupTasks(["LV", "A", "SN", "PA"]).find((t) => t.id === "slash").answer, [3]);
+  // (You) / Shut the gate: (You) isn't a noun.
+  const cmd = markupTasks(["SP", "V-t", "A", "DO"]);
   assert.deepEqual(cmd[0].answer, [3]);
-  assert.equal(predicateStart(["SP", "V-t", "A", "DO"], "Imp"), 1);
+  assert.deepEqual(cmd.find((t) => t.id === "slash").answer, [1]);
 });
 
 test("diagrams: compound parts fork, very hangs from the word it describes, adverb pairs tell about the verb", async () => {

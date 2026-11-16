@@ -199,7 +199,7 @@ export const FLOW_LABELS = {
   flow: LEVEL_LABELS, flow2: [ALL_GRADE5, WITH_COMPLEMENTS, WITH_COMPOUNDS], diagram: [LEVEL_LABELS[1], ALL_GRADE5, WITH_COMPOUNDS],
 };
 export const FLOW_PATTERNS = {
-  flow: [[1], [1], [1, 2, 3, 4, 5]],
+  flow: [[1, 2], [1, 2], [1, 2, 3, 4, 5]], // levels 1–2: is it Pattern 1 (no direct object) or Pattern 2?
   flow2: [[1, 2, 3, 4, 5], [1, 2, 3, 4, 5, 6, 7], [1, 2, 3, 4, 5, 6, 7]],
   diagram: [[1], [1, 2, 4, 5], [1, 2, 3, 4, 5, 6, 7]],
 };

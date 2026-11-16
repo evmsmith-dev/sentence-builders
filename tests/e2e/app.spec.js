@@ -589,6 +589,8 @@ test("Mark it up: wrong marks give a hint, then the answer; right marks finish t
     await page.locator(`#item [data-label="${step.label}"]`).click();
   }
   await page.locator(`#item [data-kind-pick="${parsed.kind}"]`).click();
+  await expect(page.locator("#item .flow-q")).toHaveText("Which pattern is it?");
+  await page.locator('#item [data-pattern="1"]').click();
   await expect(page.locator("#item .flow-count")).toHaveText("Mark it up · 1 of 5");
   await expect(page.locator("#item .flow-q")).toHaveText("Noun check: circle every noun.");
   // Circle only one of the two nouns: a hint, then a second miss shows the answer and moves on.
@@ -612,7 +614,8 @@ test("Mark it up: wrong marks give a hint, then the answer; right marks finish t
   for (const task of tasks.slice(3)) await markUp(page, task);
   await expect(page.locator('#item [data-fw="6"]')).toHaveClass(/mk-po/);
   await expect(page.locator('#item [data-fw="4"]')).toHaveClass(/mk-slash/);
-  await expect(page.locator('#item [data-fw="4"]')).toHaveClass(/mk-u2/);
+  for (const i of [0, 1, 2, 3]) await expect(page.locator(`#item [data-fw="${i}"]`)).toHaveClass(/mk-u1/); // complete subject
+  for (const i of [4, 5, 6, 7, 8]) await expect(page.locator(`#item [data-fw="${i}"]`)).toHaveClass(/mk-u2/); // complete predicate
   await expect(page.locator("#next-btn")).toBeVisible();
 });
 
