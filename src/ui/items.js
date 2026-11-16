@@ -451,7 +451,7 @@ function renderFlow(root, item, { hint, complete, onChange, onTap, showLabels })
   let revealed = false;
   let done = false;
   // Mark it up (Shurley Skill Check) runs after the last question.
-  const tasks = item.noMarkup ? [] : markupTasks(parsed.words.map((w) => w.label), parsed.kind);
+  const tasks = item.noMarkup ? [] : markupTasks(parsed.words.map((w) => w.label), parsed.words.map((w) => w.word));
   let markAt = -1;
   let picked = new Set();
   const marks = {}; // word index → Set of marks drawn
@@ -533,7 +533,10 @@ function renderFlow(root, item, { hint, complete, onChange, onTap, showLabels })
       return;
     }
     revealed = true;
-    hint(`Here's that one: ${task.answer.map((i) => parsed.words[i].word.replace(/[.!?]$/, "")).join(", ")}.`);
+    const shown = task.answer.map((i) => parsed.words[i].word.replace(/[.!?,]$/, ""));
+    hint(task.mode === "first"
+      ? `The slash goes right before ${shown[0]}. ${task.hint}`
+      : `Here's that one: ${shown.join(", ")}.`);
     finishTask(true);
   }
 

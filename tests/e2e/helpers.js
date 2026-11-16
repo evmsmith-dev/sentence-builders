@@ -208,7 +208,7 @@ export async function answer(page) {
       } else if (at === "pattern") {
         await page.locator(`#item [data-pattern="${parsed.pattern}"]`).click();
       } else if (typeof at === "string" && at.startsWith("markup-")) {
-        await markUp(page, markupTasks(parsed.words.map((w) => w.label), parsed.kind)[Number(at.slice(7))]);
+        await markUp(page, markupTasks(parsed.words.map((w) => w.label))[Number(at.slice(7))]);
       } else {
         const step = parsed.steps[at];
         const word = page.locator(`#item [data-fw="${step.index}"]`);
@@ -282,7 +282,7 @@ export async function diagramIt(page, item, { markupOnly = false } = {}) {
   const labels = item.tags.trim().split(/ +/).map((t) => t.split("|")[1]);
   // Skip the mark-up if it's already done (the diagram is showing).
   if (!(await page.locator("#item .dg-stage").isVisible())) {
-    for (const task of markupTasks(labels, item.kind)) await markUp(page, task);
+    for (const task of markupTasks(labels)) await markUp(page, task);
   }
   if (markupOnly) return;
   const diagram = buildDiagram(item);

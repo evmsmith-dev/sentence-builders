@@ -600,7 +600,7 @@ test("Mark it up: wrong marks give a hint, then the answer; right marks finish t
   await page.locator("#item [data-markup-done]").click();
   await expect(page.locator('#item [data-fw="8"]')).toHaveClass(/mk-circle/);
   await expect(page.locator("#item .flow-count")).toHaveText("Mark it up · 2 of 5");
-  const tasks = markupTasks(parsed.words.map((w) => w.label), parsed.kind);
+  const tasks = markupTasks(parsed.words.map((w) => w.label));
   await markUp(page, tasks[1]); // parentheses
   // The slash waits for Done like every other mark: tapping another word moves it.
   const slash = tasks[2];

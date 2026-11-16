@@ -58,7 +58,7 @@ export function frontPredicate(labels) {
  * The marking tasks for one sentence, in order.
  * mode "multi": tap every right word, then Done. mode "first": tap one word (tap another to move it), then Done.
  */
-export function markupTasks(labels) {
+export function markupTasks(labels, words = []) {
   const pick = (list) => labels.map((l, i) => (list.includes(l) ? i : -1)).filter((i) => i >= 0);
   const tasks = [];
   const nouns = pick(NOUN_LABELS);
@@ -78,9 +78,18 @@ export function markupTasks(labels) {
   if (slash >= 0) {
     const front = new Set(frontPredicate(labels));
     const all = labels.map((_, i) => i);
+    // In a question that starts with its verb and has no verb after the subject ("Are the cookies / warm?"),
+    // the slash goes right after the complete subject instead.
+    const verbFirst = !VERB_LABELS.includes(labels[slash]);
+    const word = (i) => (words[i] || "").replace(/[.?!,]+$/, "");
+    const subjectWords = labels.map((_, i) => i).filter((i) => i < slash && !front.has(i)).map(word).join(" ");
     tasks.push({ id: "slash", mark: "slash", mode: "first", answer: [slash],
-      prompt: "Go back to the verb: divide the complete subject from the complete predicate with a slash.",
-      hint: "The slash goes right before the verb and its helping verb." });
+      prompt: verbFirst
+        ? "Divide the complete subject from the complete predicate with a slash."
+        : "Go back to the verb: divide the complete subject from the complete predicate with a slash.",
+      hint: verbFirst
+        ? `This question starts with its verb${words.length ? `, ${word(labels.findIndex((l) => VERB_LABELS.includes(l)))}` : ""}, so the slash goes right after the complete subject${subjectWords.trim() ? `, ${subjectWords}` : ""}.`
+        : "The slash goes right before the verb and its helping verb." });
     tasks.push({ id: "subject", mark: "u1", mode: "multi", answer: all.filter((i) => i < slash && !front.has(i)),
       prompt: "Underline the complete subject once.",
       hint: "The complete subject is the subject and the words that describe it: the words before the slash." });

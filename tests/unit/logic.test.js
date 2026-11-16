@@ -306,7 +306,10 @@ test("Mark it up: Shurley Skill Check tasks come from the labels", async () => {
   assert.deepEqual(q.find((t) => t.id === "slash").answer, [3]);
   assert.deepEqual(q.find((t) => t.id === "verb").answer, [0, 3]);
   assert.match(q.find((t) => t.id === "verb").prompt, /predicate words in the complete subject/);
-  assert.deepEqual(markupTasks(["LV", "A", "SN", "PA"]).find((t) => t.id === "slash").answer, [3]);
+  const lv = markupTasks(["LV", "A", "SN", "PA"], ["Are", "the", "cookies", "warm?"]).find((t) => t.id === "slash");
+  assert.deepEqual(lv.answer, [3]);
+  assert.equal(lv.prompt, "Divide the complete subject from the complete predicate with a slash.");
+  assert.equal(lv.hint, "This question starts with its verb, Are, so the slash goes right after the complete subject, the cookies.");
   // (You) / Shut the gate: (You) isn't a noun.
   const cmd = markupTasks(["SP", "V-t", "A", "DO"]);
   assert.deepEqual(cmd[0].answer, [3]);
