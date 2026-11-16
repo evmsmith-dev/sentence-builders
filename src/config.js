@@ -315,7 +315,62 @@ export const DECOR = [
   { id: "whale", name: "Whale", emoji: "🐳", cost: 130, zone: "water", x: 110 },
   { id: "ferris", name: "Ferris wheel", emoji: "🎡", cost: 160, zone: "square", row: "back", x: 165 },
   { id: "ufo", name: "Friendly UFO", emoji: "🛸", cost: 200, zone: "sky", x: 250 },
+  // Themed decorations: each can only be built in its own district (area). Everything above goes anywhere.
+  { id: "shell", area: "port", name: "Seashell", emoji: "🐚", cost: 8, zone: "square", row: "front", x: 120 },
+  { id: "anchor", area: "port", name: "Anchor", emoji: "⚓", cost: 12, zone: "square", row: "front", x: 40 },
+  { id: "lifebuoy", area: "port", name: "Life ring", emoji: "🛟", cost: 15, zone: "square", row: "back", x: 300 },
+  { id: "crab", area: "port", name: "Crab", emoji: "🦀", cost: 20, zone: "square", row: "front", x: 200, walk: true },
+  { id: "speedboat", area: "port", name: "Speedboat", emoji: "🚤", cost: 45, zone: "water", x: 80 },
+  { id: "seal", area: "port", name: "Seal", emoji: "🦭", cost: 60, zone: "water", x: 250 },
+  { id: "octopus", area: "port", name: "Octopus", emoji: "🐙", cost: 90, zone: "water", x: 170 },
+  { id: "wrench", area: "works", name: "Giant wrench", emoji: "🔧", cost: 8, zone: "square", row: "front", x: 40 },
+  { id: "toolbox", area: "works", name: "Toolbox", emoji: "🧰", cost: 12, zone: "square", row: "front", x: 120 },
+  { id: "gear", area: "works", name: "Big gear", emoji: "⚙️", cost: 18, zone: "square", row: "back", x: 300 },
+  { id: "tractor", area: "works", name: "Tractor", emoji: "🚜", cost: 45, zone: "square", row: "front", x: 230, walk: true },
+  { id: "crane", area: "works", name: "Crane", emoji: "🏗️", cost: 70, zone: "square", row: "back", x: 70 },
+  { id: "robot", area: "works", name: "Robot helper", emoji: "🤖", cost: 90, zone: "square", row: "front", x: 170, walk: true },
+  { id: "train", area: "works", name: "Steam train", emoji: "🚂", cost: 120, zone: "square", row: "back", x: 190 },
+  { id: "palette", area: "studio", name: "Paint palette", emoji: "🎨", cost: 8, zone: "square", row: "front", x: 40 },
+  { id: "mic", area: "studio", name: "Microphone", emoji: "🎤", cost: 12, zone: "square", row: "front", x: 120 },
+  { id: "masks", area: "studio", name: "Theater masks", emoji: "🎭", cost: 18, zone: "square", row: "back", x: 300 },
+  { id: "painting", area: "studio", name: "Painting", emoji: "🖼️", cost: 25, zone: "square", row: "back", x: 70 },
+  { id: "piano", area: "studio", name: "Piano", emoji: "🎹", cost: 45, zone: "square", row: "front", x: 230 },
+  { id: "violin", area: "studio", name: "Violin", emoji: "🎻", cost: 60, zone: "square", row: "front", x: 300 },
+  { id: "circus", area: "studio", name: "Circus tent", emoji: "🎪", cost: 120, zone: "square", row: "back", x: 180 },
+  { id: "bolt", area: "flow", name: "Bolt", emoji: "🔩", cost: 8, zone: "square", row: "front", x: 40 },
+  { id: "cone", area: "flow", name: "Road barrier", emoji: "🚧", cost: 10, zone: "square", row: "front", x: 300 },
+  { id: "crates", area: "flow", name: "Crates", emoji: "📦", cost: 12, zone: "square", row: "front", x: 120 },
+  { id: "barrel", area: "flow", name: "Oil barrel", emoji: "🛢️", cost: 18, zone: "square", row: "back", x: 60 },
+  { id: "battery", area: "flow", name: "Battery", emoji: "🔋", cost: 30, zone: "square", row: "back", x: 300 },
+  { id: "factory", area: "flow", name: "Factory", emoji: "🏭", cost: 90, zone: "square", row: "back", x: 180 },
+  { id: "rocket", area: "flow", name: "Rocket", emoji: "🚀", cost: 150, zone: "sky", x: 250 },
+  { id: "newspaper", area: "desk", name: "Newspaper", emoji: "📰", cost: 8, zone: "square", row: "front", x: 40 },
+  { id: "coffee", area: "desk", name: "Coffee", emoji: "☕", cost: 10, zone: "square", row: "front", x: 120 },
+  { id: "pen", area: "desk", name: "Fountain pen", emoji: "🖋️", cost: 12, zone: "square", row: "front", x: 300 },
+  { id: "books", area: "desk", name: "Stack of books", emoji: "📚", cost: 18, zone: "square", row: "back", x: 70 },
+  { id: "radio", area: "desk", name: "Radio", emoji: "📻", cost: 30, zone: "square", row: "front", x: 230 },
+  { id: "laptop", area: "desk", name: "Laptop", emoji: "💻", cost: 45, zone: "square", row: "back", x: 300 },
+  { id: "library", area: "desk", name: "Library", emoji: "🏛️", cost: 120, zone: "square", row: "back", x: 180 },
 ];
+
+/**
+ * The town map's districts: the Town Square, then one per world, each with its own street and decorations.
+ * Colors: the park strip (ground), the street's grass (street) and the bottom band (water).
+ */
+export const DISTRICTS = [
+  { id: "square", name: "Town Square", emoji: "⛲", ground: "#a5d6a7", street: "#9fd38a", water: "#6fb6e8" },
+  { id: "port", world: "port", ground: "#ecd9a4", street: "#e2cc8e", water: "#4f9fd9" },
+  { id: "works", world: "works", ground: "#cfd3c4", street: "#b9c2a4", water: "#7fb3d6" },
+  { id: "studio", world: "studio", ground: "#f2cfdc", street: "#e9b8cb", water: "#86b9e6" },
+  { id: "flow", world: "flow", ground: "#d6cdea", street: "#c3b6e0", water: "#7aa9dd" },
+  { id: "desk", world: "desk", ground: "#e3d7bd", street: "#d4c49f", water: "#6fa7cf" },
+].map((d) => {
+  const world = WORLDS.find((w) => w.id === d.world);
+  return world ? { ...d, name: world.name, emoji: world.emoji } : d;
+});
+
+/** Decorations that can be built in a district: everyday ones, plus that district's themed ones. */
+export const decorFor = (area) => DECOR.filter((d) => !d.area || d.area === area);
 
 /**
  * How words change their endings: shown in the Rule Book (Word Works and Word lists). rows: [when, do this, examples].

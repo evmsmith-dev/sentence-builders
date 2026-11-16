@@ -889,7 +889,7 @@ test("Rule Book: word endings (-ed, plurals, will, -s/-ing, irregular verbs) in 
 
 test("Capital letters: a Punctuation Port skill, and the town wraps a fourth skill onto its own street", async ({ page }) => {
   await openApp(page, { players: [player({ grade: 5 })], current: "p1" });
-  await expect(page.locator('.town [data-skill="capitals"]')).toHaveCount(1);
+  await expect(page.locator('.town g[data-skill="capitals"]')).toHaveCount(1);
   await startLevel(page, "capitals", 3);
   for (let n = 0; n < 8; n++) {
     await answer(page);
@@ -899,9 +899,41 @@ test("Capital letters: a Punctuation Port skill, and the town wraps a fourth ski
   await page.locator("#result-town").click();
   // Every building lot fits on screen: nothing runs off the right edge of the town.
   const overflow = await page.evaluate(() => {
-    const svg = document.querySelector(".town");
-    const width = svg.viewBox.baseVal.width;
-    return [...svg.querySelectorAll("[data-skill] rect")].some((r) => r.getBBox().x + r.getBBox().width > width + 0.5);
+    // Each district's town plot is 360 wide; its lots are drawn in the plot's own units.
+    return [...document.querySelectorAll(".town g.district [data-skill] rect")].some((r) => r.getBBox().x + r.getBBox().width > 360.5);
   });
   expect(overflow).toBe(false);
+});
+
+test("town map: tap a region to zoom in, tap a lot for its levels, and decorate that district", async ({ page }) => {
+  const ava = player({ levels: { "commas-1": { best: 8, stars: 3, plays: 1 } } });
+  await openApp(page, { players: [{ ...ava, bricks: 30 }], current: "p1" });
+  await expect(page.locator("#map-panel")).toContainText("Tap a part of town");
+  await expect(page.locator('.map-chip[data-map-area="desk"]')).toContainText("Editing Desk"); // locked for grade 4
+  // Tap Punctuation Port's region: the map zooms in and the panel shows its skills.
+  await page.locator("#town").scrollIntoViewIfNeeded();
+  const port = await page.locator('g.district[data-area="port"]').boundingBox();
+  await page.mouse.click(port.x + port.width / 2, port.y + 20);
+  await expect(page.locator(".town-map")).toHaveClass(/zoomed/);
+  await expect(page.locator("#map-panel")).toContainText("Punctuation Port");
+  await expect(page.locator("#map-panel")).toContainText("1/12 built");
+  // Tap the empty lot for commas level 2: its level card opens; a level opens the Tip Card.
+  const lot = await page.locator('.lot-hit[data-skill="commas"][data-level="2"]').boundingBox();
+  await page.mouse.click(lot.x + lot.width / 2, lot.y + lot.height - 12);
+  await expect(page.locator("#skill-overlay")).toBeVisible();
+  await page.locator('#skill-overlay .level-btn[data-level="2"]').click();
+  await expect(page.locator("#skill-overlay")).toBeHidden();
+  await expect(page.locator("#tip-overlay")).toBeVisible();
+  await page.locator("#tip-close").click();
+  // Decorate here: the Build screen opens on the port, with its own decorations.
+  await page.locator("[data-decorate=port]").click();
+  await expect(page.locator('[data-build-area="port"]')).toHaveAttribute("aria-selected", "true");
+  await page.locator('[data-buy="anchor"]').click();
+  await expect(page.locator('[data-buy="anchor"]')).toHaveText("Build another");
+  await page.locator('[data-build-area="square"]').click();
+  await expect(page.locator('[data-buy="anchor"]')).toHaveCount(0); // anchors belong to the port
+  await page.locator("#build-back").click();
+  await expect(page.locator('g.district[data-area="port"] .decor title')).toHaveText("Anchor");
+  await page.locator("#map-fit").click();
+  await expect(page.locator(".town-map")).not.toHaveClass(/zoomed/);
 });

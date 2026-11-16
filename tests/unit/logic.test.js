@@ -393,3 +393,19 @@ test("bricks: earned per sentence, star and first pass; decorations cost bricks 
   assert.equal(hw.right, 1);
   assert.deepEqual(hw.player.levels, p.levels); // doesn't count toward levels
 });
+
+test("town districts: themed decorations stay in their district; old saves move to the Town Square", async () => {
+  const { buyDecor, normalizePlayer } = await import("../../src/lib/progress.js");
+  const { DECOR, decorFor } = await import("../../src/config.js");
+  const p = { ...newPlayer({ id: "p", name: "A", avatar: "🦊", grade: 4, now: 0 }), bricks: 200 };
+  assert.equal(buyDecor(p, "anchor", "works"), null); // the anchor belongs to Punctuation Port
+  const port = buyDecor(p, "anchor", "port");
+  assert.equal(port.player.decor[0].area, "port");
+  assert.equal(buyDecor(p, "oak", "desk").player.decor[0].area, "desk"); // everyday decorations go anywhere
+  assert.equal(buyDecor(p, "oak").player.decor[0].area, "square");
+  assert.ok(decorFor("port").some((d) => d.id === "anchor") && !decorFor("works").some((d) => d.id === "anchor"));
+  for (const area of ["port", "works", "studio", "flow", "desk"]) assert.ok(DECOR.filter((d) => d.area === area).length >= 6, area);
+  const old = normalizePlayer({ ...p, decor: [{ uid: "d1", id: "oak", x: 30, y: 100 }] });
+  assert.equal(old.decor[0].area, "square");
+  assert.equal(old.decor[0].x, 30); // exactly where it was
+});

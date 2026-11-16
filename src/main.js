@@ -1,6 +1,6 @@
 // Startup and screens: players, the town, worlds, levels, results, badges and settings.
 import {
-  AVATARS, AVATAR_GROUPS, HABIT_BADGES, ITEMS_PER_LEVEL, MAX_GRADE, MAX_PLAYERS, MIN_GRADE, PIP, DECOR, HOMEWORK_PER_ROUND, clampSpot, SKILLS, SPELLING_RULES, STUDIO_FROM_GRADE, NOUN_TABLE_FROM_GRADE, NOUN_KINDS, NOUN_REMINDERS_UNTIL, TIER_NAMES, WORLDS, WORLD_BADGES,
+  AVATARS, AVATAR_GROUPS, HABIT_BADGES, ITEMS_PER_LEVEL, MAX_GRADE, MAX_PLAYERS, MIN_GRADE, PIP, DECOR, decorFor, HOMEWORK_PER_ROUND, clampSpot, SKILLS, SPELLING_RULES, STUDIO_FROM_GRADE, NOUN_TABLE_FROM_GRADE, NOUN_KINDS, NOUN_REMINDERS_UNTIL, TIER_NAMES, WORLDS, WORLD_BADGES,
   GOLD_DAYS, LABELS, LABEL_LISTS, PATTERNS, FLOW_LABELS, FLOW_PATTERNS, WORD_LISTS, skillById, skillOpenFor, skillsInWorld, skillsInWorldFor, worldOpenFor,
 } from "./config.js";
 import { answerText, spokenText } from "./lib/parse.js";
@@ -10,7 +10,8 @@ import { recordHomework, buyDecor, moveDecor, removeDecor,
   passedKeys, recordLevel, skillTier, weekSummary,
 } from "./lib/progress.js";
 import { loadCurrentId, loadPlayers, saveCurrentId, savePlayers } from "./storage.js";
-import { parkSvg, pipSays, townSvg } from "./ui/art.js";
+import { districtSkills, mapDistricts, mapLayout, parkSvg, pipSays, townSvg } from "./ui/art.js";
+import { createTownMap } from "./ui/townmap.js";
 import { $, closeOverlay, esc, initBackButton, openOverlay, pick, showScreen, topOverlay } from "./ui/dom.js";
 import { renderItem } from "./ui/items.js";
 import { buzz, canSay, celebrate, say, sound, stopSaying } from "./ui/feel.js";
@@ -23,6 +24,9 @@ const state = {
   newAvatar: AVATARS[0],
   play: null, // the level being played
   sessionStart: null, // when this stretch of play began, for the break reminder
+  map: null, // the town map's pan and zoom
+  mapArea: null, // the district the map is zoomed in to (null: the whole town)
+  buildArea: "square", // the district the Build screen decorates
 };
 
 const settings = () => state.player?.settings || { sound: true, pip: true, autoRead: false };
@@ -87,6 +91,7 @@ function drawAvatars() {
 }
 
 function choosePlayer(id) {
+  state.mapArea = null; // each player's map starts on the whole town
   state.player = state.players.find((p) => p.id === id) || null;
   saveCurrentId(state.player?.id || null);
   if (state.player) renderHome();
@@ -116,11 +121,14 @@ function renderHome() {
     ? `Hi ${player.name}! Next up: ${next.skill.name}, level ${next.level}.`
     : `Every building is up, ${player.name}. Go for Gold: score 7 or more on a level 3, on two different days.`;
   $("pip-home").innerHTML = pipSays(greeting, settings().pip);
-  $("town").innerHTML = townSvg(player, { rising: state.rising });
+  // A building that just went up: the map opens on its district so the rise is seen.
+  const risingSkill = state.rising && skillById(state.rising.replace(/-\d$/, ""));
+  if (risingSkill) state.mapArea = risingSkill.world;
+  const open = mapDistricts(player).some((d) => d.id === state.mapArea);
+  state.map.show(townSvg(player, { rising: state.rising }), mapLayout(player), open ? state.mapArea : null);
   if (state.rising) {
-    // Bring the new building into view so its rise is seen, then forget it.
-    const built = $("town").querySelector(".rise");
-    if (built && !matchMedia("(prefers-reduced-motion: reduce)").matches) setTimeout(() => built.scrollIntoView({ block: "center", behavior: "smooth" }), 150);
+    const card = $("town").closest(".town-card");
+    if (!matchMedia("(prefers-reduced-motion: reduce)").matches) setTimeout(() => card.scrollIntoView({ block: "center", behavior: "smooth" }), 150);
     state.rising = null;
   }
   const earned = Object.entries(currentBadges(player)).filter(([id, tier]) => tier && visibleBadgeIds(player).has(id)).length;
@@ -148,8 +156,15 @@ function renderWorld(worldId) {
   const world = WORLDS.find((w) => w.id === worldId);
   const player = state.player;
   $("world-title").textContent = `${world.emoji} ${world.name}`;
-  $("skill-list").innerHTML = skillsInWorldFor(worldId, player).map((skill) => {
-    const tier = skillTier(player, skill.id);
+  $("skill-list").innerHTML = skillsInWorldFor(worldId, player).map((skill) => skillCardHtml(skill)).join("")
+    + (world.comingSoon ? `<p class="note coming-soon">${esc(world.comingSoon)}</p>` : "");
+  showScreen("world");
+}
+
+/** One skill's card: badge, benchmarks and its three level buttons (on the world screen and from the town map). */
+function skillCardHtml(skill) {
+  const player = state.player;
+  const tier = skillTier(player, skill.id);
     const goldDays = (player.goldDays[skill.id] || []).length;
     const levels = [1, 2, 3].map((level) => {
       const open = isUnlocked(player, skill.id, level);
@@ -168,8 +183,6 @@ function renderWorld(worldId) {
       <div class="levels">${levels}</div>
       ${gold ? `<p class="gold-note">${esc(gold)}</p>` : ""}
     </section>`;
-  }).join("") + (world.comingSoon ? `<p class="note coming-soon">${esc(world.comingSoon)}</p>` : "");
-  showScreen("world");
 }
 
 /* ==================== Tip Card ==================== */
@@ -551,12 +564,50 @@ function renderRules(focusWorld, back) {
   showScreen("rules");
 }
 
+/* ==================== The town map ==================== */
+
+/** Under the map: the districts to jump to, or (zoomed in) that district's skills and its decorating. */
+function drawMapPanel() {
+  const player = state.player;
+  if (!player) return;
+  const districts = mapDistricts(player);
+  const here = districts.find((d) => d.id === state.mapArea);
+  if (!here) {
+    $("map-panel").innerHTML = `<p class="map-hint">Tap a part of town to zoom in. Drag to look around.</p>
+      <div class="map-chips">${districts.map((d) => `<button type="button" class="map-chip${d.locked ? " locked" : ""}" data-map-area="${d.id}">
+        <span aria-hidden="true">${d.locked ? "🔒" : d.emoji}</span> ${esc(d.name)}</button>`).join("")}</div>`;
+    return;
+  }
+  const decorate = `<button type="button" class="secondary" data-decorate="${here.id}">🧱 Decorate here</button>`;
+  const whole = '<button type="button" class="link" data-map-fit>See the whole town</button>';
+  if (here.locked) {
+    const world = WORLDS.find((w) => w.id === here.world);
+    $("map-panel").innerHTML = `<h3 class="map-title">🔒 ${esc(here.name)}</h3>
+      <p class="map-hint">This part of town opens in grade ${world.minGrade}. ${esc(world.blurb)}.</p><div class="map-actions">${whole}</div>`;
+    return;
+  }
+  const skills = districtSkills(here, player);
+  const built = skills.reduce((n, s) => n + [1, 2, 3].filter((l) => isPassed(player, s.id, l)).length, 0);
+  $("map-panel").innerHTML = `<h3 class="map-title"><span aria-hidden="true">${here.emoji}</span> ${esc(here.name)}${skills.length ? ` <small>${built}/${skills.length * 3} built</small>` : ""}</h3>
+    ${skills.length
+      ? `<p class="map-hint">Tap a building or an empty lot to pick a level.</p>
+        <div class="map-chips">${skills.map((s) => `<button type="button" class="map-chip" data-skill-sheet="${s.id}" style="--skill:${s.color}">${esc(s.name)}</button>`).join("")}</div>`
+      : '<p class="map-hint">The middle of town: decorate it with your bricks.</p>'}
+    <div class="map-actions">${decorate}${here.world ? `<button type="button" class="link" data-open-world="${here.world}">All levels here</button>` : ""}${whole}</div>`;
+}
+
+/** A skill's level card, from tapping its buildings on the map. */
+function openSkillSheet(skillId) {
+  $("skill-sheet").innerHTML = skillCardHtml(skillById(skillId));
+  openOverlay("skill-overlay");
+}
+
 /* ==================== Build: town decorations ==================== */
 
 /** The home screen's Build card: bricks, and what they can build now or next. */
 function buildCardHtml(player) {
   const bricks = player.bricks || 0;
-  const left = DECOR; // anything can be built again
+  const left = decorFor(buildAreaFor(player, state.mapArea)); // anything can be built again
   const canBuild = left.filter((d) => d.cost <= bricks);
   const next = left.find((d) => d.cost > bricks);
   let line;
@@ -574,14 +625,24 @@ function buildCardHtml(player) {
     ${canBuild.length ? '<span class="build-ready">Build</span>' : ""}`;
 }
 
+/** A district that can be decorated now: the one asked for if it's open, else the Town Square. */
+function buildAreaFor(player, area) {
+  return mapDistricts(player).some((d) => d.id === area && !d.locked) ? area : "square";
+}
+
 function renderBuild(fresh = null) {
   const player = state.player;
   const bricks = player.bricks || 0;
-  if (!player.decor.some((p) => p.uid === state.buildSelected)) state.buildSelected = null;
+  const area = (state.buildArea = buildAreaFor(player, state.buildArea));
+  if (!player.decor.some((p) => p.uid === state.buildSelected && p.area === area)) state.buildSelected = null;
+  $("build-areas").innerHTML = mapDistricts(player).filter((d) => !d.locked).map((d) => `<button type="button" role="tab" class="build-area"
+    aria-selected="${d.id === area}" data-build-area="${d.id}"><span aria-hidden="true">${d.emoji}</span> ${esc(d.name)}</button>`).join("");
   $("build-bricks").innerHTML = `You have <strong>🧱 ${bricks}</strong> brick${bricks === 1 ? "" : "s"}.`;
   drawBuildScene(fresh);
-  $("build-list").innerHTML = DECOR.map((d) => {
-    const count = player.decor.filter((p) => p.id === d.id).length;
+  // This district's own decorations first, then the everyday ones that go anywhere.
+  const catalog = decorFor(area).sort((a, b) => Boolean(b.area) - Boolean(a.area));
+  $("build-list").innerHTML = catalog.map((d) => {
+    const count = player.decor.filter((p) => p.id === d.id && p.area === area).length;
     const short = d.cost - bricks;
     return `<li class="build-item"><span class="build-emoji" aria-hidden="true">${d.emoji}</span>
       <span class="build-name">${esc(d.name)}<small>🧱 ${d.cost}${count ? ` · you have ${count}` : ""}</small></span>
@@ -596,16 +657,16 @@ function drawBuildScene(fresh = null) {
   const player = state.player;
   const selected = player.decor.find((p) => p.uid === state.buildSelected);
   const item = selected && DECOR.find((d) => d.id === selected.id);
-  $("build-town").innerHTML = parkSvg(player, { fresh, selected: state.buildSelected })
+  $("build-town").innerHTML = parkSvg(player, { area: state.buildArea, fresh, selected: state.buildSelected })
     + (item
       ? `<div class="build-selected"><span><span aria-hidden="true">${item.emoji}</span> ${esc(item.name)}: drag it anywhere.</span>
           <span class="build-selected-actions"><button type="button" class="secondary" data-put-away="${selected.uid}">Put away (+${item.cost} 🧱)</button>
           <button type="button" class="link" data-deselect>Done</button></span></div>`
-      : `<p class="build-hint">${player.decor.length ? "Drag anything to move it. Tap one to put it away." : "Build something, then drag it where you want it."}</p>`);
+      : `<p class="build-hint">${player.decor.some((p) => p.area === state.buildArea) ? "Drag anything to move it. Tap one to put it away." : "Build something, then drag it where you want it."}</p>`);
 }
 
 function buyDecoration(id) {
-  const out = buyDecor(state.player, id);
+  const out = buyDecor(state.player, id, state.buildArea);
   if (!out) return;
   savePlayer(out.player);
   sound("done", settings().sound);
@@ -648,6 +709,9 @@ function initBuildDragging() {
     const spot = clampSpot(drag.x0 + dx, drag.y0 + dy);
     drag.el.setAttribute("x", spot.x);
     drag.el.setAttribute("y", spot.y);
+    const shadow = drag.svg.querySelector(`[data-shadow="${drag.uid}"]`);
+    shadow?.setAttribute("cx", spot.x + 3);
+    shadow?.setAttribute("cy", spot.y - 1);
   });
   const finish = () => {
     if (!drag) return;
@@ -936,6 +1000,7 @@ function wire() {
     if (buy) return buyDecoration(buy.dataset.buy);
     if (target.closest("#homework-btn")) return startHomework();
     if (target.closest("#build-btn")) {
+      state.buildArea = buildAreaFor(state.player, state.mapArea);
       renderBuild();
       window.scrollTo(0, 0);
       return;
@@ -967,10 +1032,31 @@ function wire() {
       drawAvatars();
       return;
     }
-    const world = target.closest("[data-world]");
-    if (world) return renderWorld(world.dataset.world);
+    const buildArea = target.closest("[data-build-area]");
+    if (buildArea) {
+      state.buildArea = buildArea.dataset.buildArea;
+      state.buildSelected = null;
+      return renderBuild();
+    }
+    const decorate = target.closest("[data-decorate]");
+    if (decorate) {
+      state.buildArea = decorate.dataset.decorate;
+      renderBuild();
+      window.scrollTo(0, 0);
+      return;
+    }
+    const mapArea = target.closest("[data-map-area]");
+    if (mapArea) return state.map.focus(mapArea.dataset.mapArea);
+    if (target.closest("[data-map-fit]")) return state.map.fit();
+    const sheet = target.closest("[data-skill-sheet]");
+    if (sheet) return openSkillSheet(sheet.dataset.skillSheet);
+    const world = target.closest("[data-world], [data-open-world]");
+    if (world) return renderWorld(world.dataset.world || world.dataset.openWorld);
     const levelBtn = target.closest(".level-btn");
-    if (levelBtn) return openTip(levelBtn.dataset.skill, Number(levelBtn.dataset.level));
+    if (levelBtn) {
+      closeOverlay("skill-overlay"); // the level card from the map gives way to the Tip Card
+      return openTip(levelBtn.dataset.skill, Number(levelBtn.dataset.level));
+    }
   });
 
   $("player-form").addEventListener("submit", (event) => {
@@ -988,6 +1074,13 @@ function wire() {
   // About goes back where it came from: Settings (over the town) or Who's playing?
   $("build-back").addEventListener("click", () => renderHome());
   initBuildDragging();
+  state.map = createTownMap($("town"), { zIn: $("map-in"), zOut: $("map-out"), zFit: $("map-fit") }, {
+    onArea: (area) => {
+      state.mapArea = area;
+      drawMapPanel();
+    },
+    onLot: openSkillSheet,
+  });
   $("about-back").addEventListener("click", () => {
     if (state.aboutFrom === "settings" && state.player) {
       renderHome();

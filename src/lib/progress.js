@@ -23,7 +23,7 @@ export function newPlayer({ id, name, avatar, grade, now }) {
     time: {}, // date: milliseconds spent in levels that day
     badges: {}, // badge id: highest tier earned (kept even if data is later trimmed)
     bricks: 0, // spent on town decorations
-    decor: [], // decorations placed in the town: { uid, id, x, y } in SCENE units
+    decor: [], // decorations placed in the town: { uid, id, area, x, y } in SCENE units (area: a district id)
   };
 }
 
@@ -39,6 +39,8 @@ export function normalizePlayer(player) {
       return item ? { uid: `d${k + 1}`, id: d, ...defaultSpot(item) } : null;
     }).filter(Boolean);
   }
+  // Saves from before the town map: everything was in what is now the Town Square.
+  if (out.decor.some((d) => !d.area)) out.decor = out.decor.map((d) => (d.area ? d : { ...d, area: "square" }));
   return out;
 }
 
@@ -178,14 +180,14 @@ export function bricksFor(results, stars, firstPass) {
  * Builds another decoration if the player has the bricks; returns { player, uid } or null. It appears at its
  * zone's spot, nudged over a little for each copy already there so copies don't stack exactly.
  */
-export function buyDecor(player, id) {
+export function buyDecor(player, id, area = "square") {
   const item = DECOR.find((d) => d.id === id);
   const next = normalizePlayer(player);
-  if (!item || next.bricks < item.cost) return null;
-  const copies = next.decor.filter((d) => d.id === id).length;
+  if (!item || next.bricks < item.cost || (item.area && item.area !== area)) return null;
+  const copies = next.decor.filter((d) => d.id === id && d.area === area).length;
   const spot = defaultSpot(item);
   const uid = `d${Math.max(0, ...next.decor.map((d) => Number(String(d.uid).slice(1)) || 0)) + 1}`;
-  const placed = { uid, id, ...clampSpot(spot.x + ((copies * 26) % 120) * (spot.x > 180 ? -1 : 1), spot.y) };
+  const placed = { uid, id, area, ...clampSpot(spot.x + ((copies * 26) % 120) * (spot.x > 180 ? -1 : 1), spot.y) };
   return { player: { ...next, bricks: next.bricks - item.cost, decor: [...next.decor, placed] }, uid };
 }
 

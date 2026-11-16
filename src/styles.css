@@ -666,3 +666,38 @@ details.spell-card > .rule-card { margin-top: 8px; }
 .build-selected { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 10px; margin: 6px 2px 0; font-weight: 600; }
 .build-selected-actions { display: flex; gap: 8px; align-items: center; }
 .build-selected-actions button { min-height: 44px; padding: 6px 12px; }
+
+/* ==================== The town map ==================== */
+.map-wrap { position: relative; }
+.town-view { height: min(64vh, 600px, 112vw); min-height: 300px; border-radius: 12px; overflow: hidden; background: #6fb6e8;
+  touch-action: none; -webkit-user-select: none; user-select: none; cursor: grab; }
+.town-view:active { cursor: grabbing; }
+.town-view .town-map { width: 100%; height: 100%; border-radius: 0; }
+.town-map .district-name { font-family: "Fredoka", system-ui, sans-serif; }
+.town-map .district { cursor: zoom-in; }
+.town-map .region-label { transition: opacity 0.2s; }
+.town-map.zoomed .region-label { opacity: 0; }
+.town-map .district-sign { transition: opacity 0.2s; }
+.town-map:not(.zoomed) .district-sign { opacity: 0; }
+.town-map .region.district:hover { filter: brightness(1.04); }
+.town-map.zoomed .district .lot-hit { cursor: pointer; }
+@media (hover: hover) { .town-map.zoomed .district .lot-hit:hover { fill: rgba(255, 255, 255, 0.22); } }
+.map-zoom { position: absolute; right: 8px; top: 8px; display: flex; flex-direction: column; gap: 6px; }
+.map-zoom button { width: 44px; height: 44px; border-radius: 12px; border: 0; background: rgba(255, 255, 255, 0.94);
+  color: #1d2b4f; font: 700 1.35rem/1 system-ui, sans-serif; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18); cursor: pointer; }
+.map-zoom button:disabled { opacity: 0.45; cursor: default; }
+.map-panel { margin-top: 10px; }
+.map-title { margin: 0 0 4px; font-size: 1.15rem; }
+.map-title small { font-weight: 600; color: var(--muted); font-size: 0.9rem; }
+.map-hint { margin: 0 0 8px; color: var(--muted); }
+.map-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.map-chip { min-height: 44px; padding: 6px 14px; border-radius: 999px; border: 2px solid var(--skill, #c9d4e8); background: var(--card, #fff);
+  color: inherit; font: inherit; font-weight: 600; cursor: pointer; }
+.map-chip.locked { opacity: 0.7; }
+.map-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-top: 10px; }
+.map-actions button { min-height: 44px; }
+.skill-sheet .skill-card { margin: 0 0 8px; box-shadow: none; }
+.build-areas { display: flex; gap: 6px; overflow-x: auto; padding: 2px 2px 8px; scrollbar-width: thin; }
+.build-area { flex: none; min-height: 44px; padding: 6px 12px; border-radius: 999px; border: 2px solid #d9cbbd; background: var(--card, #fff);
+  color: inherit; font: inherit; font-weight: 600; cursor: pointer; }
+.build-area[aria-selected="true"] { background: #c0612b; border-color: #c0612b; color: #fff; }

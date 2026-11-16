@@ -69,7 +69,15 @@
     <button type="button" id="build-btn" class="build-card"></button>
     <section class="card town-card" aria-labelledby="town-title">
       <h2 id="town-title">Your town</h2>
-      <div id="town"></div>
+      <div class="map-wrap">
+        <div id="town" class="town-view"></div>
+        <div class="map-zoom" role="group" aria-label="Zoom the map">
+          <button type="button" id="map-in" aria-label="Zoom in">+</button>
+          <button type="button" id="map-out" aria-label="Zoom out">−</button>
+          <button type="button" id="map-fit" aria-label="Show the whole town">⤢</button>
+        </div>
+      </div>
+      <div id="map-panel" class="map-panel" aria-live="polite"></div>
     </section>
     <h2 class="section-title">Worlds</h2>
     <div id="world-list" class="world-list"></div>
@@ -142,6 +150,7 @@
       <button type="button" id="build-back" class="back" aria-label="Back">←</button>
       <h1 class="screen-title">🧱 Build your town</h1>
     </header>
+    <div id="build-areas" class="build-areas" role="tablist" aria-label="Which part of town"></div>
     <p id="build-bricks" class="build-bricks" aria-live="polite"></p>
     <div id="build-town" class="card town-card"></div>
     <p class="note">Earn bricks for every sentence you get right, for stars, and for passing a level for the first time. Bricks only buy decorations.</p>
@@ -175,6 +184,13 @@
   </main>
 
   <!-- ==================== Overlays ==================== -->
+  <div id="skill-overlay" class="overlay" hidden>
+    <div class="sheet skill-sheet" role="dialog" aria-modal="true" aria-label="Levels">
+      <div id="skill-sheet"></div>
+      <button type="button" class="link" data-close>Close</button>
+    </div>
+  </div>
+
   <div id="tip-overlay" class="overlay" hidden>
     <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="tip-title">
       <p id="tip-level" class="eyebrow"></p>
