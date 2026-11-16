@@ -908,45 +908,82 @@ function renderBadges() {
 
 /* ==================== Progress (open to everyone) ==================== */
 
-function renderParent() {
-  const now = Date.now();
+/** A player's full progress: this week, every skill's levels and badge, and the sentences missed most. */
+function playerDetailHtml(p, now) {
   const itemById = (id) => state.content.items.find((item) => item.id === id);
-  const players = [...state.players].sort((a, b) => (b.id === state.player?.id) - (a.id === state.player?.id));
-  $("parent-players").innerHTML = players.length ? players.map((p) => {
-    const week = weekSummary(p, now);
-    const badges = Object.values(currentBadges(p)).filter(Boolean).length;
-    const last = p.days.length ? [...p.days].sort().at(-1) : null;
-    const worlds = WORLDS.filter((w) => worldOpenFor(w, p)).map((world) => {
-      const rows = skillsInWorldFor(world.id, p).map((skill) => {
-        const tier = skillTier(p, skill.id);
-        const cells = [1, 2, 3].map((level) => {
-          const stars = levelStars(p, skill.id, level);
-          const open = isUnlocked(p, skill.id, level);
-          return `<td>${stars ? `<span class="stars-mini" aria-label="${stars} stars">${"★".repeat(stars)}</span>` : open ? '<span class="muted">open</span>' : '<span class="muted" aria-label="locked">🔒</span>'}</td>`;
-        }).join("");
-        return `<tr><th scope="row">${esc(skill.name)}</th>${cells}<td>${tier ? TIER_NAMES[tier - 1] : "—"}</td></tr>`;
+  const week = weekSummary(p, now);
+  const badges = Object.values(currentBadges(p)).filter(Boolean).length;
+  const last = p.days.length ? [...p.days].sort().at(-1) : null;
+  const worlds = WORLDS.filter((w) => worldOpenFor(w, p)).map((world) => {
+    const rows = skillsInWorldFor(world.id, p).map((skill) => {
+      const tier = skillTier(p, skill.id);
+      const cells = [1, 2, 3].map((level) => {
+        const stars = levelStars(p, skill.id, level);
+        const open = isUnlocked(p, skill.id, level);
+        return `<td>${stars ? `<span class="stars-mini" aria-label="${stars} stars">${"★".repeat(stars)}</span>` : open ? '<span class="muted">open</span>' : '<span class="muted" aria-label="locked">🔒</span>'}</td>`;
       }).join("");
-      return `<h4>${world.emoji} ${esc(world.name)}</h4><table class="progress-table"><thead><tr><th scope="col">Skill</th><th scope="col">Level 1</th><th scope="col">Level 2</th><th scope="col">Level 3</th><th scope="col">Badge</th></tr></thead><tbody>${rows}</tbody></table>`;
+      return `<tr><th scope="row">${esc(skill.name)}</th>${cells}<td>${tier ? TIER_NAMES[tier - 1] : "—"}</td></tr>`;
     }).join("");
-    const missed = mostMissed(p).map(({ id, misses }) => {
-      const item = itemById(id);
-      if (!item) return "";
-      return `<li><span class="missed-skill">${esc(skillById(item.skill)?.name || item.skill)}, level ${item.level} · missed ${misses}×</span>${esc(answerText(item))}</li>`;
-    }).join("");
-    return `<section class="card parent-card" data-parent-player="${esc(p.id)}">
-      <h3><span aria-hidden="true">${p.avatar}</span> ${esc(p.name)} <span class="muted">· Grade ${p.grade}</span></h3>
-      <div class="parent-stats">
-        <div><strong>${week.minutes}</strong><span>minutes this week</span></div>
-        <div><strong>${week.daysPlayed}</strong><span>days played this week</span></div>
-        <div><strong>${passedKeys(p).length}</strong><span>levels passed</span></div>
-        <div><strong>${badges}</strong><span>badges</span></div>
-      </div>
-      <p class="note">${last ? `Last played ${last === localDate(now) ? "today" : last}.` : "Hasn't played yet."}</p>
-      ${worlds}
-      <h4>Sentences missed most</h4>
-      ${missed ? `<ol class="missed-list">${missed}</ol>` : '<p class="note">None yet.</p>'}
-    </section>`;
-  }).join("") : '<p class="note">No players yet.</p>';
+    return `<h4>${world.emoji} ${esc(world.name)}</h4><table class="progress-table"><thead><tr><th scope="col">Skill</th><th scope="col">Level 1</th><th scope="col">Level 2</th><th scope="col">Level 3</th><th scope="col">Badge</th></tr></thead><tbody>${rows}</tbody></table>`;
+  }).join("");
+  const missed = mostMissed(p).map(({ id, misses }) => {
+    const item = itemById(id);
+    if (!item) return "";
+    return `<li><span class="missed-skill">${esc(skillById(item.skill)?.name || item.skill)}, level ${item.level} · missed ${misses}×</span>${esc(answerText(item))}</li>`;
+  }).join("");
+  return `<section class="card parent-card" data-parent-player="${esc(p.id)}">
+    <h3><span aria-hidden="true">${p.avatar}</span> ${esc(p.name)} <span class="muted">· Grade ${p.grade}</span></h3>
+    <div class="parent-stats">
+      <div><strong>${week.minutes}</strong><span>minutes this week</span></div>
+      <div><strong>${week.daysPlayed}</strong><span>days played this week</span></div>
+      <div><strong>${passedKeys(p).length}</strong><span>levels passed</span></div>
+      <div><strong>${badges}</strong><span>badges</span></div>
+    </div>
+    <p class="note">${last ? `Last played ${last === localDate(now) ? "today" : last}.` : "Hasn't played yet."}</p>
+    ${worlds}
+    <h4>Sentences missed most</h4>
+    ${missed ? `<ol class="missed-list">${missed}</ol>` : '<p class="note">None yet.</p>'}
+  </section>`;
+}
+
+/** Everyone on this device at a glance: buildings built, levels, badges and this week. No details. */
+function playerSummaryHtml(p, now, isMe) {
+  const skills = visibleSkills(p);
+  const total = skills.length * 3;
+  const built = skills.reduce((n, s) => n + [1, 2, 3].filter((l) => isPassed(p, s.id, l)).length, 0);
+  const week = weekSummary(p, now);
+  const badges = Object.values(currentBadges(p)).filter(Boolean).length;
+  const last = p.days.length ? [...p.days].sort().at(-1) : null;
+  return `<article class="card summary-card${isMe ? " me" : ""}" data-summary-player="${esc(p.id)}">
+    <div class="summary-head"><span class="summary-avatar" aria-hidden="true">${p.avatar}</span>
+      <span><strong>${esc(p.name)}${isMe ? " (you)" : ""}</strong><span class="muted">Grade ${p.grade} · ${last ? `last played ${last === localDate(now) ? "today" : last}` : "hasn't played yet"}</span></span></div>
+    <div class="summary-meter" role="img" aria-label="${built} of ${total} buildings built"><span style="width:${total ? Math.round((built / total) * 100) : 0}%"></span></div>
+    <p class="summary-line"><strong>${built}</strong> of ${total} buildings · 🏅 ${badges} badge${badges === 1 ? "" : "s"} · ${week.minutes} min this week</p>
+  </article>`;
+}
+
+/**
+ * Progress, like Bible Trivia and World Geography: "Me" has the current player's full details; "Everyone"
+ * (2+ players) has a short summary card each. From Who's playing (no one picked) it shows Everyone.
+ */
+function renderParent(tab = state.progressTab || "me") {
+  const now = Date.now();
+  const me = document.body.dataset.screen === "players" || !state.player ? null
+    : state.players.find((p) => p.id === state.player.id) || null;
+  if (document.body.dataset.screen !== "parent") state.progressMe = me;
+  const current = document.body.dataset.screen === "parent" ? state.progressMe : me;
+  const many = state.players.length > 1;
+  const view = !current ? "everyone" : many ? tab : "me";
+  state.progressTab = view;
+  const tabs = current && many ? `<div class="progress-tabs" role="tablist" aria-label="Whose progress">
+      <button type="button" role="tab" class="progress-tab" data-progress-tab="me" aria-selected="${view === "me"}">Me</button>
+      <button type="button" role="tab" class="progress-tab" data-progress-tab="everyone" aria-selected="${view === "everyone"}">Everyone</button></div>` : "";
+  const players = [...state.players].sort((a, b) => (b.id === current?.id) - (a.id === current?.id));
+  const body = !state.players.length ? '<p class="note">No players yet.</p>'
+    : view === "me" ? playerDetailHtml(current, now)
+    : `${players.map((p) => playerSummaryHtml(p, now, p.id === current?.id)).join("")}
+      <p class="note">${current ? "Each player sees their own details under Me." : "Pick a player on Who's playing to see their full progress."}</p>`;
+  $("parent-players").innerHTML = tabs + body;
   showScreen("parent");
 }
 
@@ -1143,8 +1180,11 @@ function wire() {
     }
     if (target.closest("[data-progress]")) {
       closeOverlay("settings-overlay");
+      state.progressTab = "me";
       return renderParent();
     }
+    const progressTab = target.closest("[data-progress-tab]");
+    if (progressTab) return renderParent(progressTab.dataset.progressTab);
     const playerBtn = target.closest("[data-player]");
     if (playerBtn) return choosePlayer(playerBtn.dataset.player);
     const editBtn = target.closest("[data-edit-player]");

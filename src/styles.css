@@ -741,3 +741,17 @@ details.spell-card > .rule-card { margin-top: 8px; }
 .feedback.hint, .feedback.shown { display: flex; gap: 10px; align-items: flex-start; }
 .feedback-pip { flex: none; margin-top: 8px; }
 .about-pip { margin-top: 12px; }
+
+/* ==================== Progress: Me and Everyone ==================== */
+.progress-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 4px 0 12px; }
+.progress-tab { min-height: 44px; border-radius: 12px; border: 2px solid var(--border); background: var(--card); color: inherit; font: inherit; font-weight: 700; cursor: pointer; }
+.progress-tab[aria-selected="true"] { background: var(--primary); border-color: var(--primary); color: #fff; }
+.summary-card { margin-bottom: 10px; }
+.summary-card.me { border: 2px solid var(--primary); }
+.summary-head { display: flex; align-items: center; gap: 10px; }
+.summary-head > span:last-child { display: flex; flex-direction: column; }
+.summary-head strong { font-size: 1.15rem; }
+.summary-avatar { font-size: 2rem; }
+.summary-meter { height: 10px; margin: 10px 0 6px; border-radius: 5px; background: var(--primary-soft); overflow: hidden; }
+.summary-meter > span { display: block; height: 100%; border-radius: 5px; background: var(--primary); }
+.summary-line { margin: 0; }

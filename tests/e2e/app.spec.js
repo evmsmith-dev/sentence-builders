@@ -173,12 +173,17 @@ test("Progress: open to everyone from the home screen; break reminder and backup
   await page.locator("#settings-overlay [data-close]").click();
   await page.locator("#home [data-progress]").click();
   await expect(page.locator("#parent .screen-title")).toHaveText("📊 Progress");
-  await expect(page.locator("[data-parent-player]").first()).toHaveAttribute("data-parent-player", "p2"); // current player first
-  await expect(page.locator("#parent")).toBeVisible();
-  const avaCard = page.locator('[data-parent-player="p1"]');
-  await expect(avaCard).toContainText("Ava");
-  await expect(avaCard.locator(".missed-list")).toContainText("We packed apples, grapes, and crackers.");
+  // Me: only the current player's full details.
+  await expect(page.locator("[data-parent-player]")).toHaveCount(1);
   await expect(page.locator('[data-parent-player="p2"]')).toContainText("Max");
+  // Everyone: a short summary for each player, the current one first and marked; no one else's details.
+  await page.locator('[data-progress-tab="everyone"]').click();
+  await expect(page.locator("[data-parent-player]")).toHaveCount(0);
+  await expect(page.locator("[data-summary-player]").first()).toContainText("Max (you)");
+  await expect(page.locator('[data-summary-player="p1"]')).toContainText("1 of 33 buildings");
+  await expect(page.locator(".missed-list")).toHaveCount(0);
+  await page.locator('[data-progress-tab="me"]').click();
+  await expect(page.locator('[data-parent-player="p2"] .progress-table').first()).toBeVisible();
 
   await expect(page.locator("#parent [data-break], #parent #backup-save")).toHaveCount(0);
 
