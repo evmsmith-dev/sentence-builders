@@ -492,9 +492,11 @@ function renderFlow(root, item, { hint, complete, onChange, onTap, showLabels })
     paintMarks();
     root.querySelector(".flow-count").textContent = `Mark it up · ${markAt + 1} of ${tasks.length}`;
     root.querySelector(".flow-q").textContent = task.prompt;
-    root.querySelector(".flow-choices").innerHTML = task.mode === "multi"
-      ? `<p class="palette-label">Tap the words, then tap Done. Tap a word again to undo.</p><button type="button" class="btn primary markup-done" data-markup-done>Done</button>`
-      : '<p class="palette-label">Tap the word in the sentence.</p>';
+    const how = task.mode === "multi"
+      ? "Tap the words, then tap Done. Tap a word again to undo."
+      : "Tap the word, then tap Done. Tap another word to move the slash.";
+    root.querySelector(".flow-choices").innerHTML =
+      `<p class="palette-label">${how}</p><button type="button" class="btn primary markup-done" data-markup-done>Done</button>`;
   }
 
   function finishTask(showAnswer) {
@@ -618,12 +620,9 @@ function renderFlow(root, item, { hint, complete, onChange, onTap, showLabels })
       if (tapped) {
         onTap();
         const i = Number(tapped.dataset.fw);
-        if (task.mode === "first") {
-          picked = new Set([i]);
-          tryTask();
-          return;
-        }
-        if (picked.has(i)) picked.delete(i); else picked.add(i);
+        if (task.mode === "first") picked = picked.has(i) ? new Set() : new Set([i]); // one slash: tapping moves it
+        else if (picked.has(i)) picked.delete(i);
+        else picked.add(i);
         drawMarkup();
         onChange();
       } else if (event.target.closest("[data-markup-done]")) {

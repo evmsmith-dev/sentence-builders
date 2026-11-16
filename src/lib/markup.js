@@ -34,8 +34,9 @@ export function markupTasks(labels, kind) {
   const tasks = [];
   const nouns = pick(NOUN_LABELS);
   if (nouns.length) {
+    const pronounSubject = labels.some((l) => l === "SP" || l === "CSP");
     tasks.push({ id: "circle", mark: "circle", mode: "multi", answer: nouns,
-      prompt: "Noun check: circle every noun.",
+      prompt: pronounSubject ? "Noun check: circle every noun. Pronouns like (You), he and we aren't nouns." : "Noun check: circle every noun.",
       hint: "Nouns are the words labeled SN, CSN, OP, DO, IO, PrN or OCN. Pronouns like he and we aren't circled." });
   }
   const phrases = phraseIndexes(labels);

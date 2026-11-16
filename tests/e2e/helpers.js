@@ -274,7 +274,7 @@ export async function answer(page) {
 export async function markUp(page, task) {
   for (const btn of await page.locator("#item .flow-word.picked").all()) await btn.click();
   for (const i of task.answer) await page.locator(`#item [data-fw="${i}"]`).click();
-  if (task.mode === "multi") await page.locator("#item [data-markup-done]").click();
+  await page.locator("#item [data-markup-done]").click();
 }
 
 /** Mark up a diagram item's sentence, then put every word on its line and check. */
