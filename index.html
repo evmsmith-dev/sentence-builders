@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Sentence Builders</title>
-  <meta name="description" content="Fix sentences, build a town. A grammar and punctuation game for grades 3–8 that works offline.">
+  <meta name="description" content="Fix sentences, build Grammar Island. A grammar and punctuation game for grades 3–8 that works offline.">
   <meta name="theme-color" content="#1f4e8c">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -22,7 +22,7 @@
   <!-- ==================== Who's playing ==================== -->
   <main id="players" class="screen" hidden>
     <header class="top">
-      <h1 class="brand"><span aria-hidden="true">🏗️</span> Sentence Builders</h1>
+      <h1 class="brand"><img class="brand-logo" src="icons/icon-96.png" alt="" width="44" height="44"> Sentence Builders</h1>
     </header>
     <h2 class="screen-title">Who's playing?</h2>
     <div id="player-list" class="player-list"></div>
@@ -53,7 +53,7 @@
   <main id="home" class="screen" hidden>
     <header class="top">
       <button type="button" id="who-btn" class="who" aria-label="Switch player"></button>
-      <h1 class="brand small"><span aria-hidden="true">🏗️</span> Sentence Builders</h1>
+      <h1 class="brand small"><img class="brand-logo" src="icons/icon-96.png" alt="" width="30" height="30"> Sentence Builders</h1>
       <button type="button" id="settings-btn" class="icon-btn" aria-label="Settings">⚙️</button>
     </header>
     <div id="pip-home" class="pip-row"></div>
@@ -74,7 +74,7 @@
         <div class="map-zoom" role="group" aria-label="Zoom the map">
           <button type="button" id="map-in" aria-label="Zoom in">+</button>
           <button type="button" id="map-out" aria-label="Zoom out">−</button>
-          <button type="button" id="map-fit" aria-label="Show the whole town">⤢</button>
+          <button type="button" id="map-fit" aria-label="Show the whole island">⤢</button>
         </div>
       </div>
       <div id="map-panel" class="map-panel" aria-live="polite"></div>
@@ -86,7 +86,7 @@
   <!-- ==================== A world: skills and levels ==================== -->
   <main id="world" class="screen" hidden>
     <header class="top">
-      <button type="button" class="back" data-go="home" aria-label="Back to town">←</button>
+      <button type="button" class="back" data-go="home" aria-label="Back to the island">←</button>
       <h1 id="world-title" class="screen-title"></h1>
       <button type="button" id="world-rules" class="icon-btn" aria-label="Rule Book for this world">📘</button>
     </header>
@@ -116,7 +116,7 @@
   <!-- ==================== Badges ==================== -->
   <main id="badges" class="screen" hidden>
     <header class="top">
-      <button type="button" class="back" data-go="home" aria-label="Back to town">←</button>
+      <button type="button" class="back" data-go="home" aria-label="Back to the island">←</button>
       <h1 class="screen-title">Badges</h1>
     </header>
     <div id="badge-list" class="badge-list"></div>
@@ -150,7 +150,7 @@
       <button type="button" id="build-back" class="back" aria-label="Back">←</button>
       <h1 class="screen-title">🧱 Build on Grammar Island</h1>
     </header>
-    <div id="build-areas" class="build-areas" role="tablist" aria-label="Which part of town"></div>
+    <div id="build-areas" class="build-areas" role="tablist" aria-label="Which part of the island"></div>
     <p id="build-bricks" class="build-bricks" aria-live="polite"></p>
     <div id="build-town" class="card town-card"></div>
     <p class="note">Earn bricks for every sentence you get right, for stars, and for passing a level for the first time. Bricks only buy decorations.</p>

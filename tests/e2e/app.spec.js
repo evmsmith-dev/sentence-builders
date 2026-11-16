@@ -912,8 +912,12 @@ test("Capital letters: a Punctuation Port skill, with its own spot on the port's
 test("town map: tap a region to zoom in, tap a lot for its levels, and decorate that district", async ({ page }) => {
   const ava = player({ levels: { "commas-1": { best: 8, stars: 3, plays: 1 } } });
   await openApp(page, { players: [{ ...ava, bricks: 30 }], current: "p1" });
-  await expect(page.locator("#map-panel")).toContainText("Tap a part of town");
-  await expect(page.locator('.map-chip[data-map-area="desk"]')).toContainText("Revision Ridge"); // locked for grade 4
+  await expect(page.locator("#map-panel")).toContainText("Tap a place on the island");
+  await expect(page.locator(".map-chip")).toHaveCount(0); // the Worlds list names the places; no second list
+  // Pip's Play button goes straight to the next level's Tip Card.
+  await page.locator("[data-next-up]").click();
+  await expect(page.locator("#tip-level")).toContainText("Commas and colons · Level 2");
+  await page.locator("#tip-close").click();
   // Tap Punctuation Port's region: the map zooms in and the panel shows its skills.
   await page.locator("#town").scrollIntoViewIfNeeded();
   const port = await page.locator('g.district[data-area="port"]').boundingBox();
@@ -940,4 +944,11 @@ test("town map: tap a region to zoom in, tap a lot for its levels, and decorate 
   await expect(page.locator('g.district[data-area="port"] .decor title')).toHaveText("Anchor");
   await page.locator("#map-fit").click();
   await expect(page.locator(".town-map")).not.toHaveClass(/zoomed/);
+  // Grammar Peaks can be visited too.
+  const peaks = await page.locator('.region[data-area="peaks"]').boundingBox();
+  await page.mouse.click(peaks.x + peaks.width / 2, peaks.y + peaks.height * 0.4);
+  await expect(page.locator(".town-map")).toHaveClass(/zoomed/);
+  await expect(page.locator("#map-panel")).toContainText("Grammar Peaks");
+  await page.locator("[data-map-fit]").click();
+  await expect(page.locator("#map-panel")).toContainText("Tap a place on the island");
 });

@@ -15,9 +15,9 @@ export function pipSvg(size = 56) {
 }
 
 /** Pip with a speech bubble. Empty when the player turned Pip off. */
-export function pipSays(text, on = true) {
+export function pipSays(text, on = true, action = "") {
   if (!on || !text) return "";
-  return `${pipSvg()}<p class="bubble">${esc(text)}</p>`;
+  return `${pipSvg()}<p class="bubble">${esc(text)}${action ? ` ${action}` : ""}</p>`;
 }
 
 const D = 7; // depth of side walls: drawn back and up to the right, so everything looks solid
@@ -316,7 +316,7 @@ function districtSvg(player, district, { fresh, rising }) {
   const entry = ENTRY[district.id];
   const signX = entry?.side === "top" && entry.x < 180 ? 350 - nameW : 10;
   const sign = district.id === "square" && !placed.length
-    ? `<text x="180" y="${park + 42}" text-anchor="middle" class="park-sign">Town park: build here with 🧱 bricks</text>` : "";
+    ? `<text x="180" y="${park + 42}" text-anchor="middle" class="park-sign">Town Square: build here with 🧱 bricks</text>` : "";
   return `${base}<g clip-path="url(#${clip})">
     <path d="${outline}" fill="${theme.top}"/>
     <g class="district-sign"><rect x="${signX}" y="14" width="${nameW}" height="38" rx="19" fill="#fff" opacity=".92"/>
@@ -512,6 +512,7 @@ export function mapLayout(player) {
     const room = d.id === "square" ? SCENE.height : SLOT_H;
     areas[d.id] = { x, y: y + Math.round((room - h) / 2), w: 360, h };
   }
+  areas.peaks = { x: 470, y: 110, w: 360, h: 450 }; // Grammar Peaks: nothing to build, but it can be visited
   return { width: MAP_W, height: MAP_H, areas, districts };
 }
 
@@ -529,12 +530,12 @@ export function townSvg(player, { fresh = null, rising = null } = {}) {
   const regions = Object.entries(REGIONS).filter(([id]) => id === "peaks" || layout.areas[id]).map(([id, r]) => {
     const d = layout.districts.find((x) => x.id === id);
     const fill = d?.locked ? "#c9ced6" : LAND[id];
-    return `<path class="region${d ? " district" : ""}" ${d ? `data-area="${id}"` : ""} d="${regionPath(r.poly)}" fill="${fill}"/>`;
+    return `<path class="region district" data-area="${id}" d="${regionPath(r.poly)}" fill="${fill}"/>`;
   }).join("");
   const borders = Object.values(REGIONS).map((r) => `<path d="${regionPath(r.poly)}"/>`).join("");
   const curves = roadCurves(player, layout.areas, layout.districts);
   const roadPts = curves.map(sampleCurve);
-  const boxes = Object.values(layout.areas);
+  const boxes = layout.districts.map((d) => layout.areas[d.id]);
   const plots = layout.districts.map((d) => {
     const b = layout.areas[d.id];
     return `<g class="district${d.locked ? " locked" : ""}" data-area="${d.id}" transform="translate(${b.x} ${b.y})">${districtSvg(player, d, { fresh, rising })}</g>`;

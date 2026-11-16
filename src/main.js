@@ -25,7 +25,7 @@ const state = {
   play: null, // the level being played
   sessionStart: null, // when this stretch of play began, for the break reminder
   map: null, // the town map's pan and zoom
-  mapArea: null, // the district the map is zoomed in to (null: the whole town)
+  mapArea: null, // the district the map is zoomed in to (null: the whole island)
   buildArea: "square", // the district the Build screen decorates
 };
 
@@ -91,7 +91,7 @@ function drawAvatars() {
 }
 
 function choosePlayer(id) {
-  state.mapArea = null; // each player's map starts on the whole town
+  state.mapArea = null; // each player's map starts on the whole island
   state.player = state.players.find((p) => p.id === id) || null;
   saveCurrentId(state.player?.id || null);
   if (state.player) renderHome();
@@ -120,11 +120,15 @@ function renderHome() {
   const greeting = next
     ? `Hi ${player.name}! Next up: ${next.skill.name}, level ${next.level}.`
     : `Every building is up, ${player.name}. Go for Gold: score 7 or more on a level 3, on two different days.`;
-  $("pip-home").innerHTML = pipSays(greeting, settings().pip);
+  // The next level is one tap away: a Play button in Pip's bubble (or on its own when Pip is off).
+  const play = next ? `<button type="button" class="primary next-play" data-next-up="${next.skill.id}-${next.level}">▶ Play</button>` : "";
+  $("pip-home").innerHTML = settings().pip
+    ? pipSays(greeting, true, play)
+    : next ? `<p class="next-line">Next up: ${esc(next.skill.name)}, level ${next.level}. ${play}</p>` : "";
   // A building that just went up: the map opens on its district so the rise is seen.
   const risingSkill = state.rising && skillById(state.rising.replace(/-\d$/, ""));
   if (risingSkill) state.mapArea = risingSkill.world;
-  const open = mapDistricts(player).some((d) => d.id === state.mapArea);
+  const open = state.mapArea === "peaks" || mapDistricts(player).some((d) => d.id === state.mapArea);
   state.map.show(townSvg(player, { rising: state.rising }), mapLayout(player), open ? state.mapArea : null);
   if (state.rising) {
     const card = $("town").closest(".town-card");
@@ -572,18 +576,23 @@ function drawMapPanel() {
   if (!player) return;
   const districts = mapDistricts(player);
   const here = districts.find((d) => d.id === state.mapArea);
+  if (state.mapArea === "peaks") {
+    $("map-panel").innerHTML = `<h3 class="map-title"><span aria-hidden="true">⛰️</span> Grammar Peaks</h3>
+      <p class="map-hint">The tallest spot on Grammar Island, with a lake below. Nothing gets built up here: the buildings go up in the places around it.</p>
+      <div class="map-actions"><button type="button" class="link" data-map-fit>See the whole island</button></div>`;
+    return;
+  }
   if (!here) {
-    $("map-panel").innerHTML = `<p class="map-hint">Tap a part of town to zoom in. Drag to look around.</p>
-      <div class="map-chips">${districts.map((d) => `<button type="button" class="map-chip${d.locked ? " locked" : ""}" data-map-area="${d.id}">
-        <span aria-hidden="true">${d.locked ? "🔒" : d.emoji}</span> ${esc(d.name)}</button>`).join("")}</div>`;
+    // The Worlds list below already names every place, so the whole-island view just says how to explore.
+    $("map-panel").innerHTML = '<p class="map-hint">Tap a place on the island to zoom in. Drag to look around.</p>';
     return;
   }
   const decorate = `<button type="button" class="secondary" data-decorate="${here.id}">🧱 Decorate here</button>`;
-  const whole = '<button type="button" class="link" data-map-fit>See the whole town</button>';
+  const whole = '<button type="button" class="link" data-map-fit>See the whole island</button>';
   if (here.locked) {
     const world = WORLDS.find((w) => w.id === here.world);
     $("map-panel").innerHTML = `<h3 class="map-title">🔒 ${esc(here.name)}</h3>
-      <p class="map-hint">This part of town opens in grade ${world.minGrade}. ${esc(world.blurb)}.</p><div class="map-actions">${whole}</div>`;
+      <p class="map-hint">This part of the island opens in grade ${world.minGrade}. ${esc(world.blurb)}.</p><div class="map-actions">${whole}</div>`;
     return;
   }
   const skills = districtSkills(here, player);
@@ -592,7 +601,7 @@ function drawMapPanel() {
     ${skills.length
       ? `<p class="map-hint">Tap a building or an empty lot to pick a level.</p>
         <div class="map-chips">${skills.map((s) => `<button type="button" class="map-chip" data-skill-sheet="${s.id}" style="--skill:${s.color}">${esc(s.name)}</button>`).join("")}</div>`
-      : '<p class="map-hint">The middle of town: decorate it with your bricks.</p>'}
+      : '<p class="map-hint">The middle of the island: decorate it with your bricks.</p>'}
     <div class="map-actions">${decorate}${here.world ? `<button type="button" class="link" data-open-world="${here.world}">All levels here</button>` : ""}${whole}</div>`;
 }
 
@@ -612,7 +621,7 @@ function buildCardHtml(player) {
   const next = left.find((d) => d.cost > bricks);
   let line;
   let bar = "";
-  if (!left.length) line = "Every decoration is built. What a town!";
+  if (!left.length) line = "Every decoration is built. What an island!";
   else if (canBuild.length) {
     const best = canBuild[canBuild.length - 1];
     line = canBuild.length === 1 ? `You can build the ${best.emoji} ${best.name.toLowerCase()}!` : `You can build ${canBuild.length} things, like the ${best.emoji} ${best.name.toLowerCase()}!`;
@@ -999,6 +1008,11 @@ function wire() {
     const buy = target.closest("[data-buy]");
     if (buy) return buyDecoration(buy.dataset.buy);
     if (target.closest("#homework-btn")) return startHomework();
+    const nextUpBtn = target.closest("[data-next-up]");
+    if (nextUpBtn) {
+      const [skillId, level] = nextUpBtn.dataset.nextUp.split(/-(?=\d$)/);
+      return openTip(skillId, Number(level));
+    }
     if (target.closest("#build-btn")) {
       state.buildArea = buildAreaFor(state.player, state.mapArea);
       renderBuild();
@@ -1045,8 +1059,6 @@ function wire() {
       window.scrollTo(0, 0);
       return;
     }
-    const mapArea = target.closest("[data-map-area]");
-    if (mapArea) return state.map.focus(mapArea.dataset.mapArea);
     if (target.closest("[data-map-fit]")) return state.map.fit();
     const sheet = target.closest("[data-skill-sheet]");
     if (sheet) return openSkillSheet(sheet.dataset.skillSheet);

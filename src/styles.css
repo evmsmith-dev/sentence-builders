@@ -707,3 +707,9 @@ details.spell-card > .rule-card { margin-top: 8px; }
 }
 @keyframes pip-bob { from { transform: translateY(0); } to { transform: translateY(-5px); } }
 @keyframes smoke { from { transform: translateY(0); opacity: 1; } to { transform: translateY(-4px); opacity: 0.4; } }
+
+.brand { display: flex; align-items: center; gap: 8px; }
+.brand.small { justify-content: center; }
+.brand-logo { border-radius: 22%; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18); flex: none; }
+.next-play { display: inline-flex; margin-left: 4px; min-height: 40px; padding: 4px 14px; border-radius: 999px; font-size: 0.95rem; vertical-align: middle; }
+.next-line { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-weight: 600; }
