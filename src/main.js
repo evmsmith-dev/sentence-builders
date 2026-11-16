@@ -1,7 +1,7 @@
 // Startup and screens: players, the town, worlds, levels, results, badges and settings.
 import {
   AVATARS, AVATAR_GROUPS, HABIT_BADGES, ITEMS_PER_LEVEL, MAX_GRADE, MAX_PLAYERS, MIN_GRADE, PIP, PIP_INTRO, DECOR, decorFor, HOMEWORK_PER_ROUND, PRACTICE_PER_ROUND, PRACTICE_GOAL, clampSpot, SKILLS, SPELLING_RULES, STUDIO_FROM_GRADE, NOUN_TABLE_FROM_GRADE, NOUN_KINDS, NOUN_REMINDERS_UNTIL, TIER_NAMES, WORLDS, WORLD_BADGES,
-  GOLD_DAYS, LABELS, LABEL_LISTS, PATTERNS, FLOW_LABELS, FLOW_PATTERNS, WORD_LISTS, skillById, skillOpenFor, skillsInWorld, skillsInWorldFor, worldOpenFor,
+  GOLD_DAYS, LABELS, LABEL_LISTS, PATTERNS, FLOW_LABELS, FLOW_PATTERNS, WORD_LISTS, WORD_PARTS, skillById, skillOpenFor, skillsInWorld, skillsInWorldFor, worldOpenFor,
 } from "./config.js";
 import { answerText, spokenText } from "./lib/parse.js";
 import { pickLevelItems, pickSpellingItems, pickSummitItems } from "./lib/select.js";
@@ -282,8 +282,10 @@ function finishPractice() {
   const play = state.play;
   const now = Date.now();
   const summit = play.mode === "summit";
+  const badgesBefore = currentBadges(state.player);
   const out = recordPractice(state.player, { kind: play.mode, results: play.results, now, durationMs: now - play.startedAt });
   savePlayer(out.player);
+  const newBadges = HABIT_BADGES.filter((b) => currentBadges(out.player)[b.id] && !badgesBefore[b.id]);
   $("progress-fill").style.width = "100%";
   $("result-stars").innerHTML = "";
   $("result-title").textContent = summit ? (out.reached ? "You reached the summit!" : "Almost to the top") : (out.reached ? "A new boat on the lake!" : "Nice paddling");
@@ -295,7 +297,7 @@ function finishPractice() {
     ? (summit ? `Flag number ${out.player.summits} is flying on Grammar Peaks. You remembered your rules!` : `Boat number ${out.player.lakeWins} is out on the lake. Great spelling!`)
     : `${goal} Look at the ones below, then try again.`;
   $("result-pip").innerHTML = pipSays(line, true);
-  $("result-badges").innerHTML = "";
+  $("result-badges").innerHTML = newBadges.map((b) => `<p class="new-badge"><span aria-hidden="true">${b.emoji}</span> New badge: <strong>${esc(b.name)}</strong></p>`).join("");
   $("result-review").innerHTML = reviewHtml(play);
   state.resultNext = { practice: play.mode };
   $("result-next").textContent = summit ? "Climb again" : "Another round";
@@ -614,15 +616,26 @@ function spellingHtml() {
 
 const wordChips = (words) => `<ul class="word-chips">${words.map((w) => `<li>${esc(w)}</li>`).join("")}</ul>`;
 
+// Reference cards have one home, the Reference tab; a place's tab links there for the ones its skills use.
+const REFERENCE_FOR = { works: "Word parts (prefixes, suffixes, roots) and spelling patterns", flow: "Kinds of nouns and the word lists for each label" };
+
+/** Prefixes, suffixes and roots, each with what it means and an example. */
+function wordPartsHtml() {
+  return WORD_PARTS.map((list) => `<details class="rule-skill word-list" id="parts-${list.id}">
+    <summary><span class="skill-name">${esc(list.title)}</span><span class="skill-count">${list.words.length}</span></summary>
+    <p class="note">${esc(list.note)}</p>${wordChips(list.words)}</details>`).join("");
+}
+
 const groupHead = (title) => `<h3 class="rules-group">${esc(title)}</h3>`;
 
 /** Every reference card, in groups: word lists, kinds of nouns, and spelling patterns. */
 function wordListsHtml() {
-  return `<p class="note rules-intro">Lists and patterns to look things up. Tap one to open it.</p>
+  return `<p class="note rules-intro">Everything to look things up, in one place. Tap one to open it.</p>
     ${groupHead("Word lists")}<div class="rules-grid">${WORD_LISTS.map((list) => `<details class="rule-skill word-list" id="list-${list.id}">
       <summary><span class="skill-name">${esc(list.title)}</span><span class="skill-count">${list.words.length} words</span></summary>
       <p class="note">${esc(list.note)}</p>${wordChips(list.words)}</details>`).join("")}</div>
     ${groupHead("Kinds of nouns")}<div class="rules-grid">${nounKindsHtml()}</div>
+    ${groupHead("Word parts")}<div class="rules-grid">${wordPartsHtml()}</div>
     ${groupHead("Spelling patterns")}<div class="rules-grid">${spellingHtml()}</div>`;
 }
 
@@ -641,11 +654,12 @@ function ruleEntries(player) {
       });
     }
   }
-  for (const list of WORD_LISTS) out.push({ where: "🔤 Word lists", title: list.title, text: `${list.note} ${list.words.join(" ")}`, body: `<p class="note">${esc(list.note)}</p>${wordChips(list.words)}` });
-  for (const k of NOUN_KINDS) out.push({ where: "🔤 Kinds of nouns", title: k.title, text: `${k.rule} ${k.pairs.flat().join(" ")}`, body: `<p class="tip-rule">${esc(k.rule)}</p>` });
+  for (const list of WORD_LISTS) out.push({ where: "📚 Reference · Word lists", title: list.title, text: `${list.note} ${list.words.join(" ")}`, body: `<p class="note">${esc(list.note)}</p>${wordChips(list.words)}` });
+  for (const list of WORD_PARTS) out.push({ where: "📚 Reference · Word parts", title: list.title, text: `${list.note} ${list.words.join(" ")}`, body: `<p class="note">${esc(list.note)}</p>${wordChips(list.words)}` });
+  for (const k of NOUN_KINDS) out.push({ where: "📚 Reference · Kinds of nouns", title: k.title, text: `${k.rule} ${k.pairs.flat().join(" ")}`, body: `<p class="tip-rule">${esc(k.rule)}</p>` });
   for (const r of SPELLING_RULES) {
     const rows = r.rows ? r.rows.map((row) => row.join(": ")).join(" · ") : r.list.map((pair) => pair.join(" → ")).join(", ");
-    out.push({ where: "🔤 Spelling patterns", title: r.title, text: `${r.note} ${rows}`, body: `<p class="note">${esc(r.note)}</p><p class="tip-example">${esc(rows)}</p>` });
+    out.push({ where: "📚 Reference · Spelling patterns", title: r.title, text: `${r.note} ${rows}`, body: `<p class="note">${esc(r.note)}</p><p class="tip-example">${esc(rows)}</p>` });
   }
   for (const [code, label] of Object.entries(LABELS)) {
     out.push({ where: "🏭 Q&A Flow labels", title: `${code} · ${label.name}`, text: `${code} ${label.name} ${label.hint} ${label.find}`, body: `<p class="tip-rule">${esc(label.hint)}</p><p class="tip-example">${esc(label.find)}</p>` });
@@ -667,7 +681,7 @@ function renderRuleSearch(query) {
 }
 
 /**
- * The Rule Book: one tab per open world plus Word lists, pinned at the top and wrapping (no sideways
+ * The Rule Book: one tab per open world plus Reference, pinned at the top and wrapping (no sideways
  * scrolling). A tab shows one world; each skill folds to a one-line header until it's tapped.
  * Unlocked rules show their rule, example and read-aloud; locked ones show only their title.
  */
@@ -676,7 +690,7 @@ function renderRules(focusWorld, back) {
   if (back) state.rulesBack = back;
   const worlds = WORLDS.filter((w) => worldOpenFor(w, player));
   // Tabs use the places' names, as on the island map.
-  const tabs = [...worlds.map((w) => ({ id: w.id, label: w.name, emoji: w.emoji })), { id: "lists", label: "Word lists", emoji: "🔤" }];
+  const tabs = [...worlds.map((w) => ({ id: w.id, label: w.name, emoji: w.emoji })), { id: "lists", label: "Reference", emoji: "📚" }];
   $("rules-search").value = "";
   const tab = tabs.some((t) => t.id === focusWorld) ? focusWorld : tabs.some((t) => t.id === state.rulesTab) ? state.rulesTab : tabs[0].id;
   state.rulesTab = tab;
@@ -705,8 +719,8 @@ function renderRules(focusWorld, back) {
         return `<details class="rule-skill" style="--skill:${skill.color}" data-rule-skill="${skill.id}">
           <summary><span class="skill-name">${esc(skill.name)}</span><span class="skill-count">${open} of 3 open</span></summary>${cards}</details>`;
       }).join("")}</div>
-      ${world.id === "flow" ? `${groupHead("Reference")}<div class="rules-grid">${nounKindsHtml()}</div>` : ""}
-      ${world.id === "works" ? `${groupHead("Reference: spelling patterns")}<div class="rules-grid">${spellingHtml()}</div>` : ""}</section>`;
+      ${REFERENCE_FOR[world.id] ? `<p class="note rules-ref-link">${esc(REFERENCE_FOR[world.id])} are in
+        <button type="button" class="link" data-rules-link="lists">📚 Reference</button>.</p>` : ""}</section>`;
   }
   showScreen("rules");
 }
@@ -1344,6 +1358,12 @@ function wire() {
     else renderHome();
   });
   $("rules-list").addEventListener("click", (event) => {
+    const toTab = event.target.closest("[data-rules-link]");
+    if (toTab) {
+      renderRules(toTab.dataset.rulesLink);
+      window.scrollTo(0, 0);
+      return;
+    }
     const btn = event.target.closest("[data-say-rule]");
     if (!btn) return;
     const tip = state.content.tips[btn.dataset.sayRule];

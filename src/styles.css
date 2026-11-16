@@ -765,3 +765,5 @@ details.spell-card > .rule-card { margin-top: 8px; }
 .rules-search input:focus { outline: none; border-color: var(--primary); }
 .search-hit h4 { margin: 2px 0 6px; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.rules-ref-link { margin: 14px 4px 0; }
+.rules-ref-link .link { font: inherit; font-weight: 700; padding: 0; min-height: 0; }

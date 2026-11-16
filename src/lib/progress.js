@@ -1,7 +1,7 @@
 // A player's progress: what's unlocked, recording a finished level, stars, mastery and badges.
 // Pure functions on plain data, so they're easy to test and save.
 import {
-  BRICKS, DECOR, GOLD_DAYS, GOLD_POINTS, PRACTICE_GOAL, clampSpot, defaultSpot, HABIT_BADGES, POINTS, SKILLS, STAR_THRESHOLDS, WORLD_BADGES, skillById, skillsInWorld,
+  BRICKS, DECOR, GOLD_DAYS, GOLD_POINTS, PRACTICE_GOAL, clampSpot, defaultSpot, HABIT_BADGES, POINTS, SKILLS, STAR_THRESHOLDS, WORLD_BADGES, skillById, skillOpenFor, skillsInWorld,
 } from "../config.js";
 
 export const levelKey = (skill, level) => `${skill}-${level}`;
@@ -103,6 +103,8 @@ export function habitValue(player, measure) {
   if (measure === "levelsPassed") return passedKeys(player).length;
   if (measure === "daysPlayed") return player.days.length;
   if (measure === "secondTryWins") return player.secondTryWins;
+  if (measure === "summits") return player.summits || 0;
+  if (measure === "lakeWins") return player.lakeWins || 0;
   return 0;
 }
 
@@ -111,7 +113,8 @@ export function currentBadges(player) {
   const out = {};
   for (const skill of SKILLS) out[skill.badge.id] = skillTier(player, skill.id);
   for (const badge of WORLD_BADGES) {
-    const skills = skillsInWorld(badge.world);
+    // Only the skills open at this player's grade (no diagramming needed for a 4th grader's Factory Foreman).
+    const skills = skillsInWorld(badge.world).filter((skill) => skillOpenFor(skill, player));
     out[badge.id] = skills.length && skills.every((skill) => skillTier(player, skill.id) >= 2) ? 1 : 0;
   }
   for (const badge of HABIT_BADGES) out[badge.id] = habitValue(player, badge.measure) >= badge.goal ? 1 : 0;
@@ -242,6 +245,8 @@ export function recordPractice(player, { kind, results, now, durationMs = 0 }) {
     if (kind === "summit") next.summits += 1;
     else next.lakeWins += 1;
   }
+  // Keep badges earned here (Summit Climber, Spelling Sailor), as a level does.
+  for (const [id, tier] of Object.entries(currentBadges(next))) if (tier > (next.badges[id] || 0)) next.badges[id] = tier;
   return { player: next, bricks, right, reached };
 }
 

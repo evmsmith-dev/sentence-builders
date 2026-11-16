@@ -23,8 +23,8 @@ export const MAX_PLAYERS = 4;
 
 export const WORLDS = [
   { id: "port", tab: "Punctuation", name: "Punctuation Port", emoji: "⚓", ready: true, blurb: "Commas, colons, quotation marks and apostrophes" },
-  { id: "works", tab: "Word Works", name: "Word Works", emoji: "⚙️", ready: true, blurb: "Verb tenses, agreement and pronouns" },
-  { id: "studio", tab: "Sentences", name: "Sentence Studio", emoji: "🎨", ready: true, blurb: "Fragments, run-ons, compound and complex sentences" },
+  { id: "works", tab: "Word Works", name: "Word Works", emoji: "⚙️", ready: true, blurb: "Verb tenses, agreement, pronouns, word parts and word choice" },
+  { id: "studio", tab: "Sentences", name: "Sentence Studio", emoji: "🎨", ready: true, blurb: "Fragments, run-ons, compound and complex sentences, and figurative language" },
   { id: "flow", tab: "Q&A Flow", name: "Flow Factory", emoji: "🏭", ready: true, blurb: "Label every word with the Q&A Flow, then mark it up (and diagram it, from grade 5)" },
   {
     id: "desk", tab: "Revision", name: "Revision Ridge", emoji: "📝", ready: true, minGrade: 6,
@@ -70,6 +70,18 @@ export const SKILLS = [
     badge: { id: "pronoun-pro", name: "Pronoun Pro", emoji: "🪞" },
   },
   {
+    // Word study: prefixes and suffixes (many from Old English), then Latin roots, then Greek roots.
+    id: "wordparts", world: "works", name: "Word Parts", short: "Word Parts", color: "#5d7f1f",
+    grades: [3, 5, 6], benchmarks: "MN 3.1.1.1 (prefixes and suffixes), 4.2.1.2, 4.1.8.2, 5.2.1.2 and 6.2.1.2 (word origins: Anglo-Saxon, Latin and French, Greek)",
+    badge: { id: "root-detective", name: "Root Detective", emoji: "🔍" },
+  },
+  {
+    // Choosing words: formal or informal, connotation, then precise words.
+    id: "wordchoice", world: "works", name: "Word Choice", short: "Word Choice", color: "#b5651d",
+    grades: [4, 5, 6], benchmarks: "MN 3.2.3.2 and 4.2.3.2 (formal and informal), 5.1.8.1 (connotation), 6.2.3.2 (denotation, connotation, precise words)",
+    badge: { id: "word-picker", name: "Word Picker", emoji: "🎯" },
+  },
+  {
     id: "fragments", world: "studio", name: "Fragments and run-ons", short: "Fragments", color: "#e2681f",
     grades: [3, 4, 5], benchmarks: "MN grammar in 3.2.1.1, 4.2.1.1, 5.2.1.1; 5.2.3.2",
     badge: { id: "sentence-doctor", name: "Sentence Doctor", emoji: "🩺" },
@@ -83,6 +95,12 @@ export const SKILLS = [
     id: "complex", world: "studio", name: "Complex sentences", short: "Complex", color: "#795548",
     grades: [4, 4, 5], benchmarks: "MN 4.2.1.1, 4.2.1.3",
     badge: { id: "master-architect", name: "Master Architect", emoji: "📐" },
+  },
+  {
+    // Similes and literal or figurative, then metaphors and idioms, then personification and hyperbole.
+    id: "figurative", world: "studio", name: "Figurative Language", short: "Figurative", color: "#c2185b",
+    grades: [3, 4, 5], benchmarks: "MN 3.1.8.1, 4.1.8.1 (literal and figurative language), 5.2.6.1 (figurative language, hyperbole, personification)",
+    badge: { id: "word-artist", name: "Word Artist", emoji: "🖌️" },
   },
   {
     id: "flow", world: "flow", name: "Q&A Flow", short: "Q&A Flow", color: "#6d4c9f",
@@ -172,6 +190,18 @@ export const WORD_LISTS = [
   { id: "joining", title: "Joining words for compound sentences", note: "With a comma, they join two complete sentences.", words: ["for", "and", "nor", "but", "or", "yet", "so"] },
   { id: "starting", title: "Joining words for complex sentences", note: "They start a part that can't stand alone: because it rained.", words: ["after", "although", "as", "because", "before", "even though", "if", "since", "though", "unless", "until", "when", "whenever", "where", "while"] },
   { id: "relative", title: "Relative pronouns", note: "They start a part that tells more about a noun: the girl who won.", words: ["who", "whom", "whose", "which", "that"] },
+];
+
+/** Word parts for the Rule Book (Word Works and Word lists), with what each part means. */
+export const WORD_PARTS = [
+  { id: "prefixes", title: "Prefixes", note: "A prefix goes before a base word and changes its meaning.",
+    words: ["un- (not): unhappy", "re- (again): reread", "pre- (before): preheat", "dis- (opposite): dislike", "mis- (wrongly): misspell", "non- (not): nonstop", "over- (too much): overcook", "sub- (under): subway"] },
+  { id: "suffixes", title: "Suffixes", note: "A suffix goes after a base word and changes its meaning or job.",
+    words: ["-ful (full of): helpful", "-less (without): fearless", "-er (one who): teacher", "-ly (in a way): softly", "-able (can be): washable", "-ness (being): kindness", "-ment (act of): movement", "-ist (one who): artist"] },
+  { id: "latin-roots", title: "Latin roots", note: "Roots from Latin build many English words. Words from French often keep their spelling: chef, ballet, unique.",
+    words: ["port (carry): portable", "rupt (break): erupt", "struct (build): construct", "dict (say): predict", "spect (look): inspect", "ject (throw): eject", "scrib, script (write): describe", "aud (hear): audience", "vis, vid (see): video", "tract (pull): tractor"] },
+  { id: "greek-roots", title: "Greek roots", note: "Many science and math words come from Greek roots.",
+    words: ["graph (write): autograph", "phon (sound): microphone", "bio (life): biology", "geo (earth): geography", "tele (far): telescope", "micro (small): microscope", "scope (look at): periscope", "auto (self): automatic", "therm (heat): thermometer", "photo (light): photograph", "meter (measure): speedometer", "logy (study of): geology"] },
 ];
 // Which word list goes with which label in the Labels reminder.
 export const LABEL_LISTS = { A: "articles", P: "prepositions", HV: "helping", LV: "linking", SP: "subject-pronouns", CSP: "subject-pronouns", PPA: "possessive", C: "joining" };
@@ -273,12 +303,15 @@ export const WORLD_BADGES = [
   { id: "port-champion", world: "port", name: "Port Champion", emoji: "🏆", how: "Get every Punctuation Port skill to Silver." },
   { id: "works-wizard", world: "works", name: "Works Wizard", emoji: "🧙", how: "Get every Word Works skill to Silver." },
   { id: "studio-star", world: "studio", name: "Studio Star", emoji: "⭐", how: "Get every Sentence Studio skill to Silver." },
+  { id: "factory-foreman", world: "flow", name: "Factory Foreman", emoji: "🏭", how: "Get every Flow Factory skill to Silver." },
   { id: "chief-editor", world: "desk", name: "Chief Editor", emoji: "🖋️", how: "Get every Revision Ridge skill to Silver." },
 ];
 export const HABIT_BADGES = [
   { id: "first-brick", name: "First Brick", emoji: "🧱", how: "Finish your first level.", goal: 1, measure: "levelsPassed" },
   { id: "builders-week", name: "Builder's Week", emoji: "📅", how: "Play on 5 different days.", goal: 5, measure: "daysPlayed" },
   { id: "fix-it-pro", name: "Fix-It Pro", emoji: "🔧", how: "Get 25 items right on your second try.", goal: 25, measure: "secondTryWins" },
+  { id: "summit-climber", name: "Summit Climber", emoji: "🚩", how: "Plant 5 flags on Grammar Peaks with Summit Reviews.", goal: 5, measure: "summits" },
+  { id: "spelling-sailor", name: "Spelling Sailor", emoji: "⛵", how: "Float 5 boats on Spelling Lake.", goal: 5, measure: "lakeWins" },
 ];
 
 // Avatars in two groups; players in grade 6+ see the second group first.
