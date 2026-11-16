@@ -810,7 +810,8 @@ test("bricks: a level pays bricks, the new building rises, and the Build screen 
   await expect(page.locator("#result-bricks")).toContainText("+35 🧱 bricks");
   await page.locator("#result-town").click();
   await expect(page.locator("#town .rise")).toHaveCount(1);
-  await expect(page.locator("#build-btn")).toContainText("Build · 35");
+  await expect(page.locator("#build-btn")).toContainText("Build your town · 35 bricks");
+  await expect(page.locator("#build-btn")).toContainText("You can build");
   await page.locator("#build-btn").click();
   await expect(page.locator("#build")).toBeVisible();
   await expect(page.locator('[data-buy="ferris"]')).toBeDisabled();

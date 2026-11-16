@@ -560,7 +560,7 @@ body.theme-studio .bubble::before, body.theme-studio .bubble::after { display: n
 }
 
 /* Rule Book, Badges and Progress: one row above the town, three equal buttons on every screen. */
-.home-tools { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 4px 0 12px; }
+.home-tools { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 4px 0 12px; }
 .tool-btn {
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 64px;
   padding: 6px 4px; border-radius: var(--radius); border: 2px solid var(--border); background: var(--card);
@@ -639,3 +639,14 @@ details.noun-kind > .rule-card { margin-top: 8px; }
 }
 @keyframes rise { from { transform: scaleY(0); } 60% { transform: scaleY(1.08); } to { transform: scaleY(1); } }
 @keyframes star-pop { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+.build-card {
+  display: flex; align-items: center; gap: 12px; width: 100%; margin: 0 0 12px; padding: 10px 14px; text-align: left;
+  border-radius: var(--radius); border: 2px solid #c98b5a; background: #fff6ee; color: var(--text); box-shadow: var(--shadow);
+}
+.build-card > span:nth-child(2) { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.build-card strong { color: #8d4e1f; font-size: 1.05rem; }
+.build-bar { display: block; height: 8px; margin-top: 4px; border-radius: 4px; background: #f0dccb; overflow: hidden; }
+.build-bar > span { display: block; height: 100%; background: #c98b5a; border-radius: 4px; }
+.build-ready { padding: 8px 14px; border-radius: 10px; background: #c0612b; color: #fff; font-weight: 700; }
+body.theme-studio .build-card { background: var(--card); }

@@ -127,7 +127,7 @@ function renderHome() {
   const shown = visibleBadgeIds(player);
   const total = shown.size;
   $("badges-btn").innerHTML = `<span class="tool-emoji" aria-hidden="true">🏅</span><span>Badges ${earned}/${total}</span>`;
-  $("build-btn").innerHTML = `<span class="tool-emoji" aria-hidden="true">🧱</span><span>Build · ${player.bricks || 0}</span>`;
+  $("build-btn").innerHTML = buildCardHtml(player);
   $("world-list").innerHTML = WORLDS.map((world) => {
     const skills = skillsInWorldFor(world.id, player);
     const built = skills.reduce((n, s) => n + [1, 2, 3].filter((l) => isPassed(player, s.id, l)).length, 0);
@@ -539,6 +539,27 @@ function renderRules(focusWorld, back) {
 }
 
 /* ==================== Build: town decorations ==================== */
+
+/** The home screen's Build card: bricks, and what they can build now or next. */
+function buildCardHtml(player) {
+  const bricks = player.bricks || 0;
+  const left = DECOR.filter((d) => !player.decor.includes(d.id));
+  const canBuild = left.filter((d) => d.cost <= bricks);
+  const next = left.find((d) => d.cost > bricks);
+  let line;
+  let bar = "";
+  if (!left.length) line = "Every decoration is built. What a town!";
+  else if (canBuild.length) {
+    const best = canBuild[canBuild.length - 1];
+    line = canBuild.length === 1 ? `You can build the ${best.emoji} ${best.name.toLowerCase()}!` : `You can build ${canBuild.length} things, like the ${best.emoji} ${best.name.toLowerCase()}!`;
+  } else {
+    line = `${next.cost - bricks} more for the ${next.emoji} ${next.name.toLowerCase()}.`;
+    bar = `<span class="build-bar" aria-hidden="true"><span style="width:${Math.round((bricks / next.cost) * 100)}%"></span></span>`;
+  }
+  return `<span class="homework-emoji" aria-hidden="true">🧱</span>
+    <span><strong>Build your town · ${bricks} brick${bricks === 1 ? "" : "s"}</strong><span>${esc(line)}</span>${bar}</span>
+    ${canBuild.length ? '<span class="build-ready">Build</span>' : ""}`;
+}
 
 function renderBuild(fresh = null) {
   const player = state.player;
