@@ -29,7 +29,7 @@ Verb tenses, agreement, pronouns, word parts and word choice.
 
 ### 🎨 Sentence Studio
 
-Fragments, run-ons, compound and complex sentences, and figurative language.
+Fragments, run-ons, compound and complex sentences, figurative language and revising.
 
 | Skill | Level 1 | Level 2 | Level 3 |
 | --- | --- | --- | --- |
@@ -37,15 +37,17 @@ Fragments, run-ons, compound and complex sentences, and figurative language.
 | Compound sentences | Joining with and, but, so (gr 3) | Pick the best joining word (gr 4) | Semicolons (gr 5) |
 | Complex sentences | Joining with because, when, if (gr 4) | More joining words (gr 4) | Commas in complex sentences (gr 5) |
 | Figurative Language | Literal or figurative? Similes (gr 3) | Metaphors and idioms (gr 4) | Personification and hyperbole (gr 5) |
+| Revising Sentences | Synonyms and antonyms (gr 3) | Revise with a new word (gr 4) | Add detail or cut extra words (gr 5) |
 
 ### 🏭 Flow Factory
 
-Label every word with the Q&A Flow, then mark it up (and diagram it, from grade 5).
+Label every word with the Q&A Flow and the parts of speech, then mark it up (and diagram it, from grade 5).
 
 | Skill | Level 1 | Level 2 | Level 3 |
 | --- | --- | --- | --- |
 | Q&A Flow | The Q&A Flow (gr 3) | Prepositions and possessives (gr 4) | Objects and patterns (gr 5) |
 | Compound Q&A Flow | Compound subjects, verbs and objects (gr 3) | Compound direct objects (gr 4) | Every compound part (gr 5) |
+| Parts of Speech | Nouns, verbs, adjectives and adverbs (gr 3) | All eight parts of speech (gr 4) | Same word, different job (gr 5) |
 | Advanced Q&A Flow (grade 6+) | Questions and commands (gr 6) | Object complements (gr 7) | All seven patterns (gr 8) |
 | Sentence Diagramming (grade 5+) | Diagram the subject and verb (gr 5) | Diagram phrases and complements (gr 6) | Indirect objects, compounds, object complements, questions and commands (gr 7) |
 
@@ -61,9 +63,11 @@ Grades 6–8: pronouns, punctuation, sentence types, modifiers and proofreading.
 | Sentence types | Simple, compound, complex (gr 6) | Compound-complex sentences (gr 7) | Sentence variety (gr 8) |
 | Modifiers and voice | Commas between adjectives (gr 6) | Misplaced and dangling modifiers (gr 7) | Active voice, passive voice and moods (gr 8) |
 
-Flow Factory levels are 5 items: 3 Q&A Flows, then 2 Build-from-labels sentences, which must be right for Gold. In a flow, players answer one question at a time (tap the word, then pick its label), and a **📘 Labels** button opens a reminder of every label at that level (name, meaning, how to find it) at no cost; a miss gives a hint for that step, and a second miss shows that step and moves on. Labels and question order follow Shurley English Levels 3–8 as commonly taught; the sentences are original. Advanced Q&A Flow only appears for players in grade 6 or higher. **Compound Q&A Flow** (grades 3–5) teaches Shurley's compound parts by grade, following Shurley's Level 3–5 label lists: level 1 compound subjects (CSN, CSP), verbs (CV), objects of the preposition (COP), the conjunction (C) and interjections (I); level 2 adds compound direct objects (CDO) and transitive verbs (CV-t); level 3 adds compound indirect objects (CIO), predicate nouns (CPrN), predicate adjectives (CPA), linking verbs (CLV), adjectives (CAdj), adverbs (CAdv) and predicate pronouns (PrP, CPrP). Advanced Q&A Flow level 3 uses every label. In the mark-up, compound nouns are circled, a prepositional phrase runs through its last compound object, and an interjection is in neither the subject nor the predicate. Diagrams (level 3) fork any compound: subjects, verbs (including a compound verb sharing one direct object), direct objects, predicate nouns, pronouns and adjectives on the baseline, and compound objects of a preposition or compound indirect objects where they hang; compound adjectives, adverbs and interjections aren't diagrammed yet.
+Flow Factory levels are 5 items: 3 Q&A Flows, then 2 Build-from-labels sentences, which must be right for Gold. In a flow, players answer one question at a time (tap the word, then pick its label), and a **📘 Labels** button opens a reminder of every label at that level (name, meaning, how to find it) at no cost; a miss gives a hint for that step, and a second miss shows that step and moves on. Labels and question order follow Shurley English Levels 3–8 as commonly taught; the sentences are original. Advanced Q&A Flow only appears for players in grade 6 or higher. Grades 3–5 Q&A Flow levels include commands with the understood subject (You), questions, sentences with not (an adverb) and inverted word order (Down the hill rolled the ball): in an inverted sentence the subject comes last, so its mark-up is the noun check and parentheses, without a slash. **Parts of Speech** (grades 3–5) asks the test-style question (what part of speech is this word here?): nouns, verbs, adjectives and adverbs; then all eight; then the same word doing different jobs. **Compound Q&A Flow** (grades 3–5) teaches Shurley's compound parts by grade, following Shurley's Level 3–5 label lists: level 1 compound subjects (CSN, CSP), verbs (CV), objects of the preposition (COP), the conjunction (C) and interjections (I); level 2 adds compound direct objects (CDO) and transitive verbs (CV-t); level 3 adds compound indirect objects (CIO), predicate nouns (CPrN), predicate adjectives (CPA), linking verbs (CLV), adjectives (CAdj), adverbs (CAdv) and predicate pronouns (PrP, CPrP). Advanced Q&A Flow level 3 uses every label. In the mark-up, compound nouns are circled, a prepositional phrase runs through its last compound object, and an interjection is in neither the subject nor the predicate. Diagrams (level 3) fork any compound: subjects, verbs (including a compound verb sharing one direct object), direct objects, predicate nouns, pronouns and adjectives on the baseline, and compound objects of a preposition or compound indirect objects where they hang; compound adjectives, adverbs and interjections aren't diagrammed yet.
 
 Revision Ridge opens for players in grade 6 or higher. Minnesota's grade 6–8 benchmarks (6.2.1.1, 7.2.1.1, 8.2.1.1) ask for correct punctuation, capitalization and grammar in edited writing, so its skills follow the usual middle-school sequence. Proofreading levels are 5 paragraphs: tap a mistake, pick the fix.
+
+**Revising Sentences** (Sentence Studio, grades 3–5): synonyms and antonyms; revising with a synonym, an antonym or a word change; then adding detail or deleting extra words.
 
 Word study and style (added to cover more of the 2020 Minnesota benchmarks): **Word Parts** (prefixes and suffixes, many from Old English; Latin roots; Greek roots: 3.1.1.1, 4.2.1.2, 5.2.1.2, 6.2.1.2), **Word Choice** (formal and informal; connotation; precise words: 4.2.3.2, 5.1.8.1, 6.2.3.2) and **Figurative Language** (similes; metaphors and idioms; personification and hyperbole: 3.1.8.1, 4.1.8.1, 5.2.6.1). Agreement level 1 includes collective nouns (team, class, flock: 3.2.1.3), and pronoun case level 2 includes intensive pronouns (I made it myself: 7.2.1.3). The Rule Book's word-part cards (`WORD_PARTS`) list common prefixes, suffixes and roots with their meanings.
 
@@ -143,3 +147,7 @@ Grades 6+ get the calmer **Studio** look by default (system font, slate and indi
 ## App icon
 
 `icons/icon.svg` is the source: Grammar Island with a crane lifting an "Aa" block onto a building, and Pip in his hard hat, kept inside the center circle so it survives round masks. Make the PNGs with `rsvg-convert -w 512 -h 512 icons/icon.svg -o icons/icon-512.png` (and 192, 96, and 180 for `apple-touch-icon.png`).
+
+## Original content
+
+Sentence Builders is a practice supplement for skills students have already been taught, or are assumed to have been taught, in class. Every sentence, hint, Tip Card and explanation is written for this game. It follows the Shurley English method (the Q&A Flow, its label abbreviations, the sentence patterns and the Skill Check steps) and the 2020 Minnesota standards, but copies no text, examples or jingles from Shurley's books or any other curriculum, and isn't made by or connected to Shurley Instructional Materials or the Minnesota Department of Education. The app icon and drawings are original too; the decorations are the device's own emoji.

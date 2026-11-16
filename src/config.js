@@ -24,8 +24,8 @@ export const MAX_PLAYERS = 4;
 export const WORLDS = [
   { id: "port", tab: "Punctuation", name: "Punctuation Port", emoji: "⚓", ready: true, blurb: "Commas, colons, quotation marks and apostrophes" },
   { id: "works", tab: "Word Works", name: "Word Works", emoji: "⚙️", ready: true, blurb: "Verb tenses, agreement, pronouns, word parts and word choice" },
-  { id: "studio", tab: "Sentences", name: "Sentence Studio", emoji: "🎨", ready: true, blurb: "Fragments, run-ons, compound and complex sentences, and figurative language" },
-  { id: "flow", tab: "Q&A Flow", name: "Flow Factory", emoji: "🏭", ready: true, blurb: "Label every word with the Q&A Flow, then mark it up (and diagram it, from grade 5)" },
+  { id: "studio", tab: "Sentences", name: "Sentence Studio", emoji: "🎨", ready: true, blurb: "Fragments, run-ons, compound and complex sentences, figurative language and revising" },
+  { id: "flow", tab: "Q&A Flow", name: "Flow Factory", emoji: "🏭", ready: true, blurb: "Label every word with the Q&A Flow and the parts of speech, then mark it up (and diagram it, from grade 5)" },
   {
     id: "desk", tab: "Revision", name: "Revision Ridge", emoji: "📝", ready: true, minGrade: 6,
     blurb: "Grades 6–8: pronouns, punctuation, sentence types, modifiers and proofreading",
@@ -103,6 +103,12 @@ export const SKILLS = [
     badge: { id: "word-artist", name: "Word Artist", emoji: "🖌️" },
   },
   {
+    // Synonyms and antonyms, then revising with a new word, then adding detail or cutting extra words.
+    id: "revising", world: "studio", name: "Revising Sentences", short: "Revising", color: "#00838f",
+    grades: [3, 4, 5], benchmarks: "MN 3.2.3.2, 4.2.3.2, 5.2.3.2 (words and sentences that convey ideas precisely); synonyms and antonyms",
+    badge: { id: "polish-pro", name: "Polish Pro", emoji: "✨" },
+  },
+  {
     id: "flow", world: "flow", name: "Q&A Flow", short: "Q&A Flow", color: "#6d4c9f",
     grades: [3, 4, 5], benchmarks: "Shurley English Levels 3–5; MN 3.2.1.3, 4.2.1.3, 5.2.1.3",
     badge: { id: "flow-master", name: "Flow Master", emoji: "🔤" },
@@ -116,6 +122,12 @@ export const SKILLS = [
     badge: { id: "compound-crew", name: "Compound Crew", emoji: "🔗" },
     levelPlan: [{ type: "flow", count: 3 }, { type: "labels", count: 2 }],
     goldNeedsAllRight: "labels",
+  },
+  {
+    // The eight parts of speech, asked the way tests ask: what part of speech is this word here?
+    id: "speech", world: "flow", name: "Parts of Speech", short: "Parts of Speech", color: "#3949ab",
+    grades: [3, 4, 5], benchmarks: "MN 3.2.1.3, 4.2.1.3, 5.2.1.3 (nouns, verbs, adjectives, adverbs, pronouns, conjunctions); Shurley's eight parts of speech",
+    badge: { id: "part-spotter", name: "Part Spotter", emoji: "🔎" },
   },
   {
     id: "flow2", world: "flow", name: "Advanced Q&A Flow", short: "Adv. Flow", color: "#4527a0", minGrade: 6,

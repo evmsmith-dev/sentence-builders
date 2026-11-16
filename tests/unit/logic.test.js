@@ -74,7 +74,7 @@ test("build: tiles, punctuation joins the word before it", () => {
 });
 
 test("every item in the bank shows and checks its own answer", () => {
-  for (const item of content.items) assert.ok(answerText(item).length > 3, item.id);
+  for (const item of content.items) assert.ok(answerText(item).length > 1, item.id); // "on" can be a whole answer
 });
 
 test("level picks: 8 items, 6 from the level + 2 review once other levels are passed", () => {
@@ -509,4 +509,21 @@ test("compounds: mark-up circles compound nouns, a phrase runs to its last objec
   const v = split("We|SP washed|CV-t and|C dried|CV-t the|A dishes.|DO");
   const vt = Object.fromEntries(markupTasks(v.map((x) => x[1]), v.map((x) => x[0])).map((t) => [t.id, t]));
   assert.deepEqual(vt.slash.answer, [1]);
+});
+
+test("commands, inverted order and not: how they're marked up", async () => {
+  const { markupTasks } = await import("../../src/lib/markup.js");
+  const tasksOf = (tags) => {
+    const t = tags.split(" ").map((x) => x.split("|"));
+    return Object.fromEntries(markupTasks(t.map((x) => x[1]), t.map((x) => x[0])).map((k) => [k.id, k]));
+  };
+  const command = tasksOf("(You)|SP Wait|V by|P the|A door.|OP");
+  assert.deepEqual(command.subject.answer, [0]); // the understood (You) is the subject
+  assert.deepEqual(command.slash.answer, [1]);
+  const not = tasksOf("The|A dog|SN did|HV not|Adv bark.|V");
+  assert.deepEqual(not.slash.answer, [2]); // before the helping verb
+  assert.deepEqual(not.verb.answer, [2, 3, 4]); // not is in the predicate
+  const inverted = tasksOf("Down|P the|A hill|OP rolled|V the|A ball.|SN");
+  assert.deepEqual(inverted.parens.answer, [0, 1, 2]);
+  assert.equal(inverted.slash, undefined); // the subject comes last: no slash to place
 });

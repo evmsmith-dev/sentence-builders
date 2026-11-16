@@ -1,5 +1,7 @@
 # Writing items
 
+Write every sentence yourself. Don't copy sentences, examples, jingles or explanations from Shurley English books, other curricula, worksheets or websites; the game is a practice supplement with its own content.
+
 `content.json` holds the Tip Cards (`tips`, one per skill and level, keyed like `commas-2`) and the items. Run `npm run validate:items` after any change; it checks that every item can be shown and answered.
 
 Every item has `id`, `skill`, `level` (1–3), `type` and `hint` (shown after a first miss). Ids are permanent: progress is saved by id, so don't reuse or renumber them.
