@@ -375,3 +375,22 @@ export const SPELLING_RULES = [
     ],
   },
 ];
+
+/**
+ * The decorating scene (the Build screen's close-up) is 360 wide: sky above SCENE.park, the park down to
+ * SCENE.water, then water to SCENE.height. Placed decorations keep their spot in these units; the town maps
+ * them onto its own sky, park and harbor.
+ */
+export const SCENE = { park: 64, water: 138, height: 176 };
+
+/** Where a new decoration first appears (from its zone and row); kids can then drag it anywhere. */
+export function defaultSpot(d) {
+  if (d.zone === "sky") return { x: d.x, y: 40 };
+  if (d.zone === "water") return { x: d.x, y: SCENE.water + 28 };
+  return { x: d.x, y: SCENE.park + (d.row === "back" ? 36 : 66) };
+}
+
+/** Keeps a decoration inside the scene (x, y is the bottom middle of the emoji). */
+export function clampSpot(x, y) {
+  return { x: Math.round(Math.min(348, Math.max(12, x))), y: Math.round(Math.min(SCENE.height - 4, Math.max(28, y))) };
+}

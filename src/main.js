@@ -1,11 +1,11 @@
 // Startup and screens: players, the town, worlds, levels, results, badges and settings.
 import {
-  AVATARS, AVATAR_GROUPS, HABIT_BADGES, ITEMS_PER_LEVEL, MAX_GRADE, MAX_PLAYERS, MIN_GRADE, PIP, DECOR, HOMEWORK_PER_ROUND, SKILLS, SPELLING_RULES, STUDIO_FROM_GRADE, NOUN_TABLE_FROM_GRADE, NOUN_KINDS, NOUN_REMINDERS_UNTIL, TIER_NAMES, WORLDS, WORLD_BADGES,
+  AVATARS, AVATAR_GROUPS, HABIT_BADGES, ITEMS_PER_LEVEL, MAX_GRADE, MAX_PLAYERS, MIN_GRADE, PIP, DECOR, HOMEWORK_PER_ROUND, clampSpot, SKILLS, SPELLING_RULES, STUDIO_FROM_GRADE, NOUN_TABLE_FROM_GRADE, NOUN_KINDS, NOUN_REMINDERS_UNTIL, TIER_NAMES, WORLDS, WORLD_BADGES,
   GOLD_DAYS, LABELS, LABEL_LISTS, PATTERNS, FLOW_LABELS, FLOW_PATTERNS, WORD_LISTS, skillById, skillOpenFor, skillsInWorld, skillsInWorldFor, worldOpenFor,
 } from "./config.js";
 import { answerText, spokenText } from "./lib/parse.js";
 import { pickLevelItems } from "./lib/select.js";
-import { recordHomework, buyDecor,
+import { recordHomework, buyDecor, moveDecor, removeDecor,
   currentBadges, habitValue, isPassed, isUnlocked, levelStars, localDate, mostMissed, newPlayer, normalizePlayer,
   passedKeys, recordLevel, skillTier, weekSummary,
 } from "./lib/progress.js";
@@ -556,7 +556,7 @@ function renderRules(focusWorld, back) {
 /** The home screen's Build card: bricks, and what they can build now or next. */
 function buildCardHtml(player) {
   const bricks = player.bricks || 0;
-  const left = DECOR.filter((d) => !player.decor.includes(d.id));
+  const left = DECOR; // anything can be built again
   const canBuild = left.filter((d) => d.cost <= bricks);
   const next = left.find((d) => d.cost > bricks);
   let line;
@@ -577,29 +577,122 @@ function buildCardHtml(player) {
 function renderBuild(fresh = null) {
   const player = state.player;
   const bricks = player.bricks || 0;
+  if (!player.decor.some((p) => p.uid === state.buildSelected)) state.buildSelected = null;
   $("build-bricks").innerHTML = `You have <strong>🧱 ${bricks}</strong> brick${bricks === 1 ? "" : "s"}.`;
-  $("build-town").innerHTML = parkSvg(player, { fresh });
+  drawBuildScene(fresh);
   $("build-list").innerHTML = DECOR.map((d) => {
-    const owned = player.decor.includes(d.id);
+    const count = player.decor.filter((p) => p.id === d.id).length;
     const short = d.cost - bricks;
-    const action = owned
-      ? '<span class="build-done">Built ✓</span>'
-      : `<button type="button" class="${short > 0 ? "secondary" : "primary"}" data-buy="${d.id}" ${short > 0 ? "disabled" : ""}>
-          ${short > 0 ? `${short} more` : "Build"}</button>`;
-    return `<li class="build-item${owned ? " owned" : ""}"><span class="build-emoji" aria-hidden="true">${d.emoji}</span>
-      <span class="build-name">${esc(d.name)}<small>🧱 ${d.cost}</small></span>${action}</li>`;
+    return `<li class="build-item"><span class="build-emoji" aria-hidden="true">${d.emoji}</span>
+      <span class="build-name">${esc(d.name)}<small>🧱 ${d.cost}${count ? ` · you have ${count}` : ""}</small></span>
+      <button type="button" class="${short > 0 ? "secondary" : "primary"}" data-buy="${d.id}" ${short > 0 ? "disabled" : ""}>
+        ${short > 0 ? `${short} more` : count ? "Build another" : "Build"}</button></li>`;
   }).join("");
   showScreen("build");
 }
 
+/** The close-up scene and, under it, what's selected (or how to move things). */
+function drawBuildScene(fresh = null) {
+  const player = state.player;
+  const selected = player.decor.find((p) => p.uid === state.buildSelected);
+  const item = selected && DECOR.find((d) => d.id === selected.id);
+  $("build-town").innerHTML = parkSvg(player, { fresh, selected: state.buildSelected })
+    + (item
+      ? `<div class="build-selected"><span><span aria-hidden="true">${item.emoji}</span> ${esc(item.name)}: drag it anywhere.</span>
+          <span class="build-selected-actions"><button type="button" class="secondary" data-put-away="${selected.uid}">Put away (+${item.cost} 🧱)</button>
+          <button type="button" class="link" data-deselect>Done</button></span></div>`
+      : `<p class="build-hint">${player.decor.length ? "Drag anything to move it. Tap one to put it away." : "Build something, then drag it where you want it."}</p>`);
+}
+
 function buyDecoration(id) {
-  const next = buyDecor(state.player, id);
-  if (!next) return;
-  savePlayer(next);
+  const out = buyDecor(state.player, id);
+  if (!out) return;
+  savePlayer(out.player);
   sound("done", settings().sound);
   buzz([20, 40, 20]);
-  renderBuild(id);
+  state.buildSelected = out.uid; // the new one is selected, ready to drag into place
+  renderBuild(out.uid);
   $("build-town").scrollIntoView({ block: "nearest", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+}
+
+/**
+ * Dragging decorations in the Build close-up (mouse, finger or pen). A press that barely moves is a tap: it
+ * selects the decoration. Arrow keys move a focused decoration; Enter selects it.
+ */
+function initBuildDragging() {
+  const box = $("build-town");
+  let drag = null;
+  const toScene = (svg, event) => {
+    const pt = svg.createSVGPoint();
+    pt.x = event.clientX;
+    pt.y = event.clientY;
+    return pt.matrixTransform(svg.getScreenCTM().inverse());
+  };
+  box.addEventListener("pointerdown", (event) => {
+    const el = event.target.closest(".decor.drag");
+    if (!el) return;
+    event.preventDefault();
+    const svg = el.ownerSVGElement;
+    const start = toScene(svg, event);
+    drag = { el, svg, uid: el.dataset.uid, start, x0: Number(el.getAttribute("x")), y0: Number(el.getAttribute("y")), moved: false };
+    el.setPointerCapture(event.pointerId);
+    el.classList.add("dragging");
+  });
+  box.addEventListener("pointermove", (event) => {
+    if (!drag) return;
+    const at = toScene(drag.svg, event);
+    const dx = at.x - drag.start.x;
+    const dy = at.y - drag.start.y;
+    if (!drag.moved && Math.hypot(dx, dy) < 4) return;
+    drag.moved = true;
+    const spot = clampSpot(drag.x0 + dx, drag.y0 + dy);
+    drag.el.setAttribute("x", spot.x);
+    drag.el.setAttribute("y", spot.y);
+  });
+  const finish = () => {
+    if (!drag) return;
+    const { el, uid, moved } = drag;
+    drag = null;
+    el.classList.remove("dragging");
+    if (moved) {
+      savePlayer(moveDecor(state.player, uid, Number(el.getAttribute("x")), Number(el.getAttribute("y"))));
+      state.buildSelected = uid;
+    } else {
+      state.buildSelected = state.buildSelected === uid ? null : uid;
+    }
+    drawBuildScene();
+    box.querySelector(`[data-uid="${uid}"]`)?.focus({ preventScroll: true });
+  };
+  box.addEventListener("pointerup", finish);
+  box.addEventListener("pointercancel", finish);
+  box.addEventListener("keydown", (event) => {
+    const el = event.target.closest(".decor.drag");
+    if (!el) return;
+    const step = { ArrowLeft: [-8, 0], ArrowRight: [8, 0], ArrowUp: [0, -8], ArrowDown: [0, 8] }[event.key];
+    const uid = el.dataset.uid;
+    if (step) {
+      event.preventDefault();
+      const p = state.player.decor.find((d) => d.uid === uid);
+      savePlayer(moveDecor(state.player, uid, p.x + step[0], p.y + step[1]));
+      state.buildSelected = uid;
+    } else if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      state.buildSelected = state.buildSelected === uid ? null : uid;
+    } else return;
+    drawBuildScene();
+    box.querySelector(`[data-uid="${uid}"]`)?.focus({ preventScroll: true });
+  });
+  box.addEventListener("click", (event) => {
+    const away = event.target.closest("[data-put-away]");
+    if (away) {
+      savePlayer(removeDecor(state.player, away.dataset.putAway));
+      state.buildSelected = null;
+      renderBuild();
+    } else if (event.target.closest("[data-deselect]")) {
+      state.buildSelected = null;
+      drawBuildScene();
+    }
+  });
 }
 
 /* ==================== Badges ==================== */
@@ -894,6 +987,7 @@ function wire() {
   $("who-btn").addEventListener("click", renderPlayers);
   // About goes back where it came from: Settings (over the town) or Who's playing?
   $("build-back").addEventListener("click", () => renderHome());
+  initBuildDragging();
   $("about-back").addEventListener("click", () => {
     if (state.aboutFrom === "settings" && state.player) {
       renderHome();

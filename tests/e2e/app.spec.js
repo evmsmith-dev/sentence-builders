@@ -818,8 +818,28 @@ test("bricks: a level pays bricks, the new building rises, and the Build screen 
   await expect(page.locator('[data-buy="ferris"]')).toContainText("125 more");
   await page.locator('[data-buy="oak"]').click();
   await expect(page.locator("#build-bricks")).toContainText("23");
-  await expect(page.locator('#build-list .build-item.owned')).toContainText("Oak tree");
-  await expect(page.locator("#build-town .decor title")).toHaveText("Oak tree");
+  await expect(page.locator(".build-selected")).toContainText("Oak tree: drag it anywhere.");
+  await expect(page.locator('[data-buy="oak"]')).toHaveText("Build another");
+  await page.locator('[data-buy="oak"]').click(); // a second oak
+  await expect(page.locator("#build-town .decor")).toHaveCount(2);
+  await expect(page.locator("#build-bricks")).toContainText("11");
+  // Drag the first oak up into the sky.
+  const oak = page.locator("#build-town .decor").first();
+  const box = await oak.boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  const scene = await page.locator("#build-town svg").boundingBox();
+  await page.mouse.move(scene.x + scene.width * 0.4, scene.y + scene.height * 0.25, { steps: 8 });
+  await page.mouse.up();
+  let saved = await page.evaluate(() => JSON.parse(localStorage.getItem("sentenceBuilders_players")));
+  expect(saved[0].decor[0].y).toBeLessThan(64); // in the sky now
+  // Tap the other to select it, then put it away for a full refund.
+  await page.locator("#build-town .decor").nth(1).click();
+  await page.locator("[data-put-away]").click();
+  await expect(page.locator("#build-bricks")).toContainText("23");
+  await expect(page.locator("#build-town .decor")).toHaveCount(1);
+  saved = await page.evaluate(() => JSON.parse(localStorage.getItem("sentenceBuilders_players")));
+  expect(saved[0].decor).toHaveLength(1);
   await page.goBack();
   await expect(page.locator("#home")).toBeVisible();
   await expect(page.locator("#town .decor title")).toHaveText("Oak tree");

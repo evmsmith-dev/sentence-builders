@@ -1,7 +1,7 @@
 // A player's progress: what's unlocked, recording a finished level, stars, mastery and badges.
 // Pure functions on plain data, so they're easy to test and save.
 import {
-  BRICKS, DECOR, GOLD_DAYS, GOLD_POINTS, HABIT_BADGES, POINTS, SKILLS, STAR_THRESHOLDS, WORLD_BADGES, skillById, skillsInWorld,
+  BRICKS, DECOR, GOLD_DAYS, GOLD_POINTS, clampSpot, defaultSpot, HABIT_BADGES, POINTS, SKILLS, STAR_THRESHOLDS, WORLD_BADGES, skillById, skillsInWorld,
 } from "../config.js";
 
 export const levelKey = (skill, level) => `${skill}-${level}`;
@@ -23,14 +23,23 @@ export function newPlayer({ id, name, avatar, grade, now }) {
     time: {}, // date: milliseconds spent in levels that day
     badges: {}, // badge id: highest tier earned (kept even if data is later trimmed)
     bricks: 0, // spent on town decorations
-    decor: [], // decoration ids built in the town
+    decor: [], // decorations placed in the town: { uid, id, x, y } in SCENE units
   };
 }
 
 /** Fills in fields added after a player was first saved, so older saves keep working. */
 export function normalizePlayer(player) {
   const base = newPlayer({ id: player.id, name: player.name || "Player", avatar: player.avatar, grade: player.grade || 4, now: player.created || 0 });
-  return { ...base, ...player, settings: { ...base.settings, ...(player.settings || {}) } };
+  const out = { ...base, ...player, settings: { ...base.settings, ...(player.settings || {}) } };
+  // Saves from before placing and moving: decor was a list of ids, each at its fixed spot.
+  if (out.decor.some((d) => typeof d === "string")) {
+    out.decor = out.decor.map((d, k) => {
+      if (typeof d !== "string") return d;
+      const item = DECOR.find((x) => x.id === d);
+      return item ? { uid: `d${k + 1}`, id: d, ...defaultSpot(item) } : null;
+    }).filter(Boolean);
+  }
+  return out;
 }
 
 // A level's time counts at most this much, so a game left open doesn't count as practice.
@@ -165,12 +174,34 @@ export function bricksFor(results, stars, firstPass) {
   return perSentence + stars * BRICKS.star + (firstPass ? BRICKS.firstPass : 0);
 }
 
-/** Builds a decoration if the player has the bricks and doesn't have it yet; returns the new player or null. */
+/**
+ * Builds another decoration if the player has the bricks; returns { player, uid } or null. It appears at its
+ * zone's spot, nudged over a little for each copy already there so copies don't stack exactly.
+ */
 export function buyDecor(player, id) {
   const item = DECOR.find((d) => d.id === id);
   const next = normalizePlayer(player);
-  if (!item || next.decor.includes(id) || next.bricks < item.cost) return null;
-  return { ...next, bricks: next.bricks - item.cost, decor: [...next.decor, id] };
+  if (!item || next.bricks < item.cost) return null;
+  const copies = next.decor.filter((d) => d.id === id).length;
+  const spot = defaultSpot(item);
+  const uid = `d${Math.max(0, ...next.decor.map((d) => Number(String(d.uid).slice(1)) || 0)) + 1}`;
+  const placed = { uid, id, ...clampSpot(spot.x + ((copies * 26) % 120) * (spot.x > 180 ? -1 : 1), spot.y) };
+  return { player: { ...next, bricks: next.bricks - item.cost, decor: [...next.decor, placed] }, uid };
+}
+
+/** Moves a placed decoration (kept inside the scene). */
+export function moveDecor(player, uid, x, y) {
+  const next = normalizePlayer(player);
+  return { ...next, decor: next.decor.map((d) => (d.uid === uid ? { ...d, ...clampSpot(x, y) } : d)) };
+}
+
+/** Puts a decoration away and gives all its bricks back, so rearranging the town never costs anything. */
+export function removeDecor(player, uid) {
+  const next = normalizePlayer(player);
+  const placed = next.decor.find((d) => d.uid === uid);
+  if (!placed) return next;
+  const cost = DECOR.find((d) => d.id === placed.id)?.cost || 0;
+  return { ...next, bricks: next.bricks + cost, decor: next.decor.filter((d) => d.uid !== uid) };
 }
 
 /** Pip's grade for a homework round: A+ when every paragraph was right on the first try. */

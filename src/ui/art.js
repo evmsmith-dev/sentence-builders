@@ -1,5 +1,5 @@
 // Drawings made in code: Pip the foreman robot and the player's town.
-import { DECOR, WORLDS, skillsInWorldFor, worldOpenFor } from "../config.js";
+import { DECOR, SCENE, WORLDS, skillsInWorldFor, worldOpenFor } from "../config.js";
 import { levelStars, skillTier } from "../lib/progress.js";
 import { esc } from "./dom.js";
 
@@ -75,16 +75,27 @@ function street(player, world, ground, rising) {
 const PARK = 74; // the park strip between the last street and the water
 const SKY = 44; // extra sky, added once something flies there
 
-/** One decoration as an emoji in the SVG; `fresh` pops in (just built). */
-function decorSvg(d, x, y, fresh) {
-  const cls = ["decor", d.walk ? "walk" : "", d.id === fresh ? "pop" : ""].filter(Boolean).join(" ");
-  return `<text class="${cls}" x="${x}" y="${y}" text-anchor="middle" font-size="${d.zone === "square" && d.row === "back" ? 30 : 24}">${d.emoji}<title>${d.name}</title></text>`;
+/** Placed decorations with their catalog entry, drawn back to front (lower on the screen is nearer). */
+function placedDecor(player) {
+  return (player.decor || []).filter((p) => typeof p === "object")
+    .map((p) => ({ ...p, item: DECOR.find((d) => d.id === p.id) }))
+    .filter((p) => p.item)
+    .sort((a, b) => a.y - b.y);
+}
+
+/** One decoration as an emoji; `fresh` pops in (just built). In the Build close-up it can be dragged. */
+function decorSvg(p, y, { fresh = null, drag = false, selected = null, walk = true } = {}) {
+  const d = p.item;
+  const cls = ["decor", walk && d.walk ? "walk" : "", p.uid === fresh ? "pop" : "", drag ? "drag" : "", p.uid === selected ? "selected" : ""].filter(Boolean).join(" ");
+  const size = d.zone === "square" && d.row === "back" ? 30 : 26;
+  const handle = drag ? ` data-uid="${p.uid}" tabindex="0" role="button" aria-label="${d.name}: drag to move, or tap to select"` : "";
+  return `<text class="${cls}" x="${p.x}" y="${y}" text-anchor="middle" font-size="${size}"${handle}>${d.emoji}<title>${d.name}</title></text>`;
 }
 
 export function townSvg(player, { fresh = null, rising = null } = {}) {
   const worlds = WORLDS.filter((world) => worldOpenFor(world, player));
-  const owned = DECOR.filter((d) => (player.decor || []).includes(d.id));
-  const sky = owned.some((d) => d.zone === "sky") ? SKY : 0;
+  const placed = placedDecor(player);
+  const sky = placed.some((p) => p.y < SCENE.park) ? SKY : 0;
   const grounds = worlds.map((_, r) => sky + TOP + 96 + r * ROW);
   const last = grounds[grounds.length - 1];
   const park = last + 32;
@@ -93,7 +104,8 @@ export function townSvg(player, { fresh = null, rising = null } = {}) {
   const built = shownSkills.reduce((n, skill) => n + [1, 2, 3].filter((level) => levelStars(player, skill.id, level)).length, 0);
   const total = shownSkills.length * 3;
   const water = park + PARK;
-  const inPark = owned.filter((d) => d.zone === "square");
+  // Decorations keep their spot from the Build screen: sky ones above the first street, the rest in the park and harbor.
+  const townY = (p) => (p.y < SCENE.park ? p.y : park + (p.y - SCENE.park));
   return `<svg class="town" viewBox="0 0 360 ${height}" role="img" aria-label="Your town: ${built} of ${total} buildings built">
     <defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#cfe6ff"/><stop offset="1" stop-color="#eef6ff"/></linearGradient></defs>
     <rect width="360" height="${height}" fill="url(#sky)"/>
@@ -103,37 +115,28 @@ export function townSvg(player, { fresh = null, rising = null } = {}) {
     <rect y="${last + 22}" width="360" height="10" fill="#c9c3b5"/>
     <rect y="${park}" width="360" height="${PARK}" fill="#a5d6a7"/>
     <path d="M0 ${park + 46}h360" stroke="#c8e6c9" stroke-width="10"/>
-    ${inPark.length ? "" : `<text x="180" y="${park + 42}" text-anchor="middle" class="park-sign">Town park: build here with 🧱 bricks</text>`}
-    ${inPark.filter((d) => d.row === "back").map((d) => decorSvg(d, d.x, park + 36, fresh)).join("")}
-    ${inPark.filter((d) => d.row === "front").map((d) => decorSvg(d, d.x, park + 66, fresh)).join("")}
-    ${owned.filter((d) => d.zone === "sky").map((d) => decorSvg(d, d.x, 44, fresh)).join("")}
+    ${placed.length ? "" : `<text x="180" y="${park + 42}" text-anchor="middle" class="park-sign">Town park: build here with 🧱 bricks</text>`}
     <rect y="${water}" width="360" height="38" fill="#6fb6e8"/>
     <path d="M0 ${water + 8}q15-4 30 0t30 0t30 0t30 0t30 0t30 0t30 0t30 0t30 0t30 0t30 0t30 0" stroke="#a9d8f5" stroke-width="2" fill="none"/>
     <g transform="translate(286 ${water + 8})"><path d="M0 8h40l-6 10H6z" fill="#e85d4a"/><rect x="18" y="-14" width="2.5" height="22" fill="#5a3a22"/><path d="M21 -13l14 18H21z" fill="#fff"/></g>
-    ${owned.filter((d) => d.zone === "water").map((d) => decorSvg(d, d.x, water + 28, fresh)).join("")}
+    ${placed.map((p) => decorSvg(p, townY(p), { fresh })).join("")}
   </svg>`;
 }
 
-/** Close-up of the decorations for the Build screen: a strip of sky, the park and the water. */
-export function parkSvg(player, { fresh = null } = {}) {
-  const owned = DECOR.filter((d) => (player.decor || []).includes(d.id));
-  const park = 64;
-  const water = park + PARK;
-  const height = water + 38;
-  const inPark = owned.filter((d) => d.zone === "square");
-  return `<svg class="town park-view" viewBox="0 0 360 ${height}" role="img" aria-label="Your town park: ${owned.length} of ${DECOR.length} decorations">
+/** Close-up of the decorations for the Build screen: sky, park and water, where kids drag things around. */
+export function parkSvg(player, { fresh = null, selected = null } = {}) {
+  const placed = placedDecor(player);
+  const { park, water, height } = SCENE;
+  return `<svg class="town park-view" viewBox="0 0 360 ${height}" role="group" aria-label="Your town park: ${placed.length} decorations. Drag one to move it.">
     <defs><linearGradient id="park-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#cfe6ff"/><stop offset="1" stop-color="#eef6ff"/></linearGradient></defs>
     <rect width="360" height="${park}" fill="url(#park-sky)"/>
     <circle cx="330" cy="20" r="10" fill="#ffd54f"/>
     <rect y="${park - 8}" width="360" height="8" fill="#c9c3b5"/>
-    <rect y="${park}" width="360" height="${PARK}" fill="#a5d6a7"/>
+    <rect y="${park}" width="360" height="${water - park}" fill="#a5d6a7"/>
     <path d="M0 ${park + 46}h360" stroke="#c8e6c9" stroke-width="10"/>
-    ${inPark.length ? "" : `<text x="180" y="${park + 42}" text-anchor="middle" class="park-sign">Town park: build here with 🧱 bricks</text>`}
-    ${inPark.filter((d) => d.row === "back").map((d) => decorSvg(d, d.x, park + 36, fresh)).join("")}
-    ${inPark.filter((d) => d.row === "front").map((d) => decorSvg(d, d.x, park + 66, fresh)).join("")}
-    ${owned.filter((d) => d.zone === "sky").map((d) => decorSvg(d, d.x, 40, fresh)).join("")}
-    <rect y="${water}" width="360" height="38" fill="#6fb6e8"/>
+    ${placed.length ? "" : `<text x="180" y="${park + 42}" text-anchor="middle" class="park-sign">Town park: build here with 🧱 bricks</text>`}
+    <rect y="${water}" width="360" height="${height - water}" fill="#6fb6e8"/>
     <path d="M0 ${water + 8}q15-4 30 0t30 0t30 0t30 0t30 0t30 0t30 0t30 0t30 0t30 0t30 0t30 0" stroke="#a9d8f5" stroke-width="2" fill="none"/>
-    ${owned.filter((d) => d.zone === "water").map((d) => decorSvg(d, d.x, water + 28, fresh)).join("")}
+    ${placed.map((p) => decorSvg(p, p.y, { fresh, drag: true, selected, walk: false })).join("")}
   </svg>`;
 }

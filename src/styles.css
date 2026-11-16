@@ -657,3 +657,12 @@ body.theme-studio .build-card { background: var(--card); }
 .spell-ex { display: block; color: var(--muted); font-weight: 600; margin-top: 2px; }
 details.spell-card > .rule-card { margin-top: 8px; }
 .spell-pairs li { white-space: nowrap; }
+
+.park-view .decor.drag { cursor: grab; touch-action: none; -webkit-user-select: none; user-select: none; }
+.park-view .decor.drag:focus { outline: none; }
+.park-view .decor.drag:focus-visible, .park-view .decor.selected { filter: drop-shadow(0 0 2px #fff) drop-shadow(0 0 4px #f2a900); }
+.park-view .decor.dragging { cursor: grabbing; filter: drop-shadow(0 6px 4px rgba(0, 0, 0, 0.3)); }
+.build-hint { margin: 6px 4px 0; color: var(--muted); font-size: 0.95rem; }
+.build-selected { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 10px; margin: 6px 2px 0; font-weight: 600; }
+.build-selected-actions { display: flex; gap: 8px; align-items: center; }
+.build-selected-actions button { min-height: 44px; padding: 6px 12px; }

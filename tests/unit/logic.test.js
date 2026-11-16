@@ -357,7 +357,7 @@ test("noun table: job, singular or plural, common or proper, then the simple sub
 });
 
 test("bricks: earned per sentence, star and first pass; decorations cost bricks and are built once", async () => {
-  const { bricksFor, buyDecor, recordLevel, newPlayer, homeworkGrade, recordHomework } = await import("../../src/lib/progress.js");
+  const { bricksFor, buyDecor, moveDecor, removeDecor, normalizePlayer, recordLevel, newPlayer, homeworkGrade, recordHomework } = await import("../../src/lib/progress.js");
   const results = [{ correct: true, tries: 1 }, { correct: true, tries: 2 }, { correct: false, tries: 2 }];
   assert.equal(bricksFor(results, 2, true), 2 + 1 + 0 + 6 + 10);
   assert.equal(bricksFor(results, 0, false), 3);
@@ -369,10 +369,22 @@ test("bricks: earned per sentence, star and first pass; decorations cost bricks 
   assert.equal(recordLevel(out.player, { skill: "commas", level: 1, results: eight, now: Date.UTC(2026, 10, 17) }).bricks, 25); // no first-pass bonus twice
   p = out.player;
   assert.equal(buyDecor(p, "ferris"), null); // 160 is too many
-  const bought = buyDecor(p, "oak");
-  assert.equal(bought.bricks, 35 - 12);
-  assert.deepEqual(bought.decor, ["oak"]);
-  assert.equal(buyDecor(bought, "oak"), null); // built once
+  const one = buyDecor(p, "oak");
+  assert.equal(one.player.bricks, 35 - 12);
+  assert.equal(one.player.decor.length, 1);
+  assert.equal(one.player.decor[0].id, "oak");
+  const two = buyDecor(one.player, "oak"); // more than one of anything
+  assert.equal(two.player.decor.length, 2);
+  assert.notEqual(two.uid, one.uid);
+  assert.notEqual(two.player.decor[1].x, two.player.decor[0].x); // copies don't stack exactly
+  const moved = moveDecor(two.player, one.uid, 999, -50); // kept inside the scene
+  assert.deepEqual([moved.decor[0].x, moved.decor[0].y], [348, 28]);
+  const away = removeDecor(moved, one.uid); // full refund
+  assert.equal(away.bricks, 35 - 24 + 12);
+  assert.deepEqual(away.decor.map((d) => d.uid), [two.uid]);
+  // Older saves listed ids; they keep their old spots.
+  const old = normalizePlayer({ ...p, decor: ["oak", "ducks"] });
+  assert.deepEqual(old.decor.map((d) => [d.id, d.x, d.y]), [["oak", 28, 100], ["ducks", 60, 166]]);
   // Pip's homework: graded A+ … Try again; 6 bricks a paragraph right first, 3 on the second try.
   assert.equal(homeworkGrade([{ correct: true, tries: 1 }, { correct: true, tries: 1 }]), "A+");
   assert.equal(homeworkGrade([{ correct: true, tries: 1 }, { correct: true, tries: 2 }]), "B");
