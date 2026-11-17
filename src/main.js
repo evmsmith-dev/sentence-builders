@@ -360,7 +360,7 @@ function openTip(skillId, level, { review = false } = {}) {
 /** Pip's homework: three paragraphs with mistakes to find, unseen ones first. Doesn't count toward levels or badges. */
 function startHomework() {
   closeOverlay("week-overlay");
-  const band = state.player.grade <= 5 ? "3-5" : "6-8";
+  const band = state.player.grade <= 4 ? "3-4" : state.player.grade === 5 ? "5" : "6-8"; // three sets, by grade
   const stats = state.player.items;
   const pool = (state.content.homework || []).filter((h) => h.band === band)
     .map((h) => ({ h, last: stats[h.id]?.last ?? -1, r: Math.random() }))

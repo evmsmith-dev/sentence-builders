@@ -37,7 +37,7 @@ for (const level of [1, 2]) {
   if (n < PRACTICE_PER_ROUND * 3) problems.push(`Spelling level ${level}: only ${n} questions (needs ${PRACTICE_PER_ROUND * 3}+)`);
 }
 // Pip's homework: proofreading paragraphs for grades 3–5 and 6–8.
-for (const band of ["3-5", "6-8"]) {
+for (const band of ["3-4", "5", "6-8"]) {
   const set = (content.homework || []).filter((h) => h.band === band);
   if (set.length < HOMEWORK_PER_ROUND * 2) problems.push(`Pip's homework ${band}: only ${set.length} paragraphs (needs ${HOMEWORK_PER_ROUND * 2}+)`);
 }
