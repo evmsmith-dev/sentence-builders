@@ -1081,3 +1081,8 @@ body.island-home.peaks-open #home #map-panel { display: none; }
 .hold-btn { position: relative; overflow: hidden; text-align: left; min-height: 48px; user-select: none; -webkit-user-select: none; touch-action: none; }
 .hold-btn::after { content: ""; position: absolute; left: 0; bottom: 0; height: 4px; width: 0; background: var(--primary); }
 .hold-btn.holding::after { width: 100%; transition: width 1.5s linear; }
+/* Keep the parents' setting inside the sheet: the grid can't grow wider than the sheet, and long choices fit. */
+.unlock-setting { grid-template-columns: minmax(0, 1fr); }
+.unlock-setting select, .unlock-setting .hold-btn { width: 100%; max-width: 100%; min-width: 0; }
+.unlock-setting .hold-btn { white-space: normal; line-height: 1.3; }
+.unlock-setting label { overflow-wrap: anywhere; }
