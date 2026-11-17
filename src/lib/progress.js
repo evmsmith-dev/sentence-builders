@@ -15,7 +15,7 @@ export function newPlayer({ id, name, avatar, grade, now }) {
   return {
     id, name: name.trim(), avatar, grade: Number(grade), created: now,
     settings: { autoRead: false, pip: true, sound: true, breakMinutes: 0 },
-    levels: {}, // "commas-1": { best, stars, plays }
+    levels: {}, // "commas-1": { best, stars, plays, passedOn }
     goldDays: {}, // "commas": ["2026-11-15", ...] days with GOLD_POINTS+ on level 3
     items: {}, // item id: { seen, misses, last }
     secondTryWins: 0,
@@ -134,6 +134,9 @@ export function recordLevel(player, { skill, level, results, now, durationMs = 0
   const key = levelKey(skill, level);
   const before = next.levels[key] || { best: 0, stars: 0, plays: 0 };
   next.levels[key] = { best: Math.max(before.best, points), stars: Math.max(before.stars, stars), plays: before.plays + 1 };
+  // The day it was first passed, for the teacher report's date ranges.
+  const passedOn = before.passedOn || (stars > 0 ? date : null);
+  if (passedOn) next.levels[key].passedOn = passedOn;
 
   for (const result of results) {
     const s = next.items[result.id] || { seen: 0, misses: 0, last: 0 };

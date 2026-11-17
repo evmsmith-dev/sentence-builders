@@ -63,3 +63,27 @@ test("every item still validates with the player's names in it", () => {
   registerNames(names);
   for (const item of content.items) assert.ok(validateItem(personalize(item, names, { rand: () => 0 })), item.id);
 });
+
+test("teacher report: habits by range, first-try rates and what needs practice", async () => {
+  const { teacherReport, reportText } = await import("../../src/lib/report.js");
+  const { localDate } = await import("../../src/lib/progress.js");
+  const now = Date.UTC(2026, 10, 16, 18);
+  const today = localDate(now);
+  const old = localDate(now - 20 * 864e5);
+  const p = {
+    name: "Evan", grade: 4, levels: { "commas-1": { best: 7, stars: 2, plays: 1, passedOn: today }, "verbs-1": { best: 6, stars: 1, plays: 1, passedOn: old } },
+    items: Object.fromEntries(Array.from({ length: 8 }, (_, i) => [`commas-2-0${i + 1}`, { seen: 1, misses: i < 4 ? 1 : 0, last: now }])),
+    days: [today, old], time: { [today]: 600000, [old]: 300000 }, goldDays: {}, badges: {},
+  };
+  const week = teacherReport(p, content, { now, range: "week" });
+  assert.deepEqual(week.habits, { minutes: 10, days: 1, passed: 1 });
+  assert.deepEqual(teacherReport(p, content, { now, range: "month" }).habits, { minutes: 15, days: 2, passed: 2 });
+  const commas = week.worlds[0].skills.find((s) => s.id === "commas");
+  assert.equal(commas.firstTryText, "50%");
+  assert.equal(week.needs[0].name, "Commas and colons");
+  assert.equal(week.needs[0].examples.length, 2);
+  assert.ok(!week.worlds.some((w) => w.id === "desk"), "grade 4 doesn't see Revision Ridge");
+  const text = reportText(week, "Hi!");
+  assert.match(text, /Practice: 10 minutes on 1 day; 1 level passed\./);
+  assert.match(text, /Note: Hi!/);
+});

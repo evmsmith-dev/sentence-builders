@@ -147,6 +147,31 @@
     <div id="parent-players"></div>
   </main>
 
+  <!-- ==================== Teacher report: print, save as PDF or share ==================== -->
+  <main id="report" class="screen" hidden>
+    <header class="top no-print">
+      <button type="button" id="report-back" class="back" aria-label="Back">←</button>
+      <h1 class="screen-title">📄 Teacher report</h1>
+    </header>
+    <div class="report-controls no-print">
+      <label for="report-range">Covering</label>
+      <select id="report-range">
+        <option value="week">The last 7 days</option>
+        <option value="month">The last 30 days</option>
+        <option value="all">All time</option>
+      </select>
+      <label for="report-note">Note for the teacher (optional)</label>
+      <textarea id="report-note" rows="2" maxlength="400" placeholder="For example: We've been working on commas this week."></textarea>
+      <div class="report-actions">
+        <button type="button" id="report-print" class="primary">🖨️ Print or save as PDF</button>
+        <button type="button" id="report-share" class="secondary">📤 Share as text</button>
+      </div>
+      <p id="report-status" class="note" role="status"></p>
+      <p class="note">Nothing is sent unless you print or share it. To save a PDF, pick Save as PDF (or Save to Files) on the print screen.</p>
+    </div>
+    <article id="report-sheet" class="report-sheet" aria-label="Report"></article>
+  </main>
+
   <!-- ==================== Build: spend bricks on town decorations ==================== -->
   <main id="build" class="screen" hidden>
     <header class="top">

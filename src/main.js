@@ -14,6 +14,7 @@ import { districtSkills, mapDistricts, mapLayout, parkSvg, pipSays, pipSvg, town
 import { createTownMap } from "./ui/townmap.js";
 import { $, closeOverlay, esc, initBackButton, openOverlay, pick, showScreen, topOverlay } from "./ui/dom.js";
 import { renderItem } from "./ui/items.js";
+import { reportText, teacherReport } from "./lib/report.js";
 import { MAX_PEOPLE, cleanName, namesFor, personalize, registerNames } from "./lib/names.js";
 import { buzz, canSay, celebrate, say, sound, stopSaying } from "./ui/feel.js";
 import { registerServiceWorker } from "./ui/update.js";
@@ -1032,7 +1033,79 @@ function playerDetailHtml(p, now) {
     ${worlds}
     <h4>Sentences missed most</h4>
     ${missed ? `<ol class="missed-list">${missed}</ol>` : '<p class="note">None yet.</p>'}
+    <div class="sheet-actions start"><button type="button" class="secondary" data-teacher-report="${esc(p.id)}">📄 Teacher report</button></div>
   </section>`;
+}
+
+/* ==================== Teacher report ==================== */
+
+function currentReport() {
+  const p = state.players.find((x) => x.id === state.reportPlayer);
+  return p ? teacherReport(p, state.content, { now: Date.now(), range: $("report-range").value }) : null;
+}
+
+function reportHtml(r, note) {
+  const levelCell = (l) => (l.passed ? `<span class="rep-pass">✓ ${"★".repeat(l.stars)}</span>` : '<span class="muted">—</span>')
+    + (l.grade ? `<small>gr ${l.grade}</small>` : "");
+  // Skills not started yet are listed by name only, so the printout stays short.
+  const started = (s) => s.answers > 0 || s.levels.some((l) => l.passed);
+  const worlds = r.worlds.filter((w) => w.skills.some(started)).map((w) => ({ ...w, waiting: w.skills.filter((s) => !started(s)), skills: w.skills.filter(started) })).map((w) => `<section class="rep-world"><h3>${w.emoji} ${esc(w.name)}</h3>
+    <table class="rep-table"><thead><tr><th scope="col">Skill</th><th scope="col">Level 1</th><th scope="col">Level 2</th><th scope="col">Level 3</th><th scope="col">Badge</th><th scope="col">First try</th></tr></thead>
+    <tbody>${w.skills.map((s) => `<tr><th scope="row">${esc(s.name)}<small>${esc(s.benchmarks)}</small></th>${s.levels.map((l) => `<td>${levelCell(l)}</td>`).join("")}
+      <td>${s.badge || "—"}</td><td>${s.firstTryText}${s.answers ? `<small>${s.answers} answers</small>` : ""}</td></tr>`).join("")}</tbody></table>
+    ${w.waiting.length ? `<p class="rep-waiting">Not started yet: ${w.waiting.map((s) => esc(s.name)).join(", ")}</p>` : ""}</section>`).join("")
+    || '<p class="note">No skills started yet.</p>';
+  const untouched = r.worlds.filter((w) => !w.skills.some(started)).map((w) => esc(w.name));
+  const shurley = r.shurley.length ? `<section><h3>Shurley-style Q&amp;A Flow</h3><ul class="rep-list">${r.shurley.map((s) =>
+    `<li><strong>${esc(s.name)}:</strong> ${s.passed} of 3 levels passed${s.badge ? ` (${s.badge})` : ""}</li>`).join("")}</ul></section>` : "";
+  const needs = r.needs.length
+    ? `<ul class="rep-list">${r.needs.map((n) => `<li><strong>${esc(n.name)}</strong> (${n.firstTryText} right on the first try)${n.examples.length
+      ? `<ul>${n.examples.map((e) => `<li>${esc(e)}</li>`).join("")}</ul>` : ""}</li>`).join("")}</ul>`
+    : '<p class="note">Nothing stands out: no skill with enough answers is under 75% right on the first try.</p>';
+  return `<header class="rep-head"><img src="icons/icon-96.png" alt="" width="48" height="48">
+      <div><h2>${esc(r.name)} · Grade ${r.grade}</h2><p>Sentence Builders progress report · made ${r.made} · covering ${r.rangeLabel}</p></div></header>
+    <div class="rep-stats"><div><strong>${r.habits.minutes}</strong><span>minutes practiced</span></div>
+      <div><strong>${r.habits.days}</strong><span>days played</span></div><div><strong>${r.habits.passed}</strong><span>levels passed</span></div></div>
+    ${note.trim() ? `<p class="rep-note"><strong>Note from home:</strong> ${esc(note.trim())}</p>` : ""}
+    <section><h3>Needs practice</h3>${needs}</section>
+    ${shurley}
+    <h3 class="rep-skills-title">Skills to date</h3>
+    <p class="note">A level is passed with 6 of 8 right. First try: the share of answers right without a hint, over all practice.</p>
+    ${worlds}
+    ${untouched.length ? `<p class="rep-waiting">Not started yet: ${untouched.join(", ")}.</p>` : ""}
+    <footer class="rep-foot">Sentence Builders is a free grammar practice game for grades 3–8 with original sentences, built on the 2020 Minnesota ELA standards and Shurley-style Q&amp;A Flow. It practices skills taught in class; it isn't a test.</footer>`;
+}
+
+function drawReport() {
+  const r = currentReport();
+  if (r) $("report-sheet").innerHTML = reportHtml(r, $("report-note").value);
+}
+
+function openReport(playerId) {
+  state.reportPlayer = playerId;
+  $("report-note").value = "";
+  $("report-status").textContent = "";
+  drawReport();
+  showScreen("report");
+  window.scrollTo(0, 0);
+}
+
+async function shareReport() {
+  const r = currentReport();
+  if (!r) return;
+  const text = reportText(r, $("report-note").value);
+  const title = `Sentence Builders report: ${r.name}`;
+  try {
+    if (navigator.share) {
+      await navigator.share({ title, text });
+      return;
+    }
+    await navigator.clipboard.writeText(text);
+    $("report-status").textContent = "Copied. Paste it into an email or message.";
+  } catch (error) {
+    if (error?.name === "AbortError") return; // closed the share sheet
+    window.location.href = `mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(text.slice(0, 1800))}`;
+  }
 }
 
 /** Everyone on this device at a glance: buildings built, levels, badges and this week. No details. */
@@ -1392,6 +1465,15 @@ function wire() {
     else renderPlayers();
   });
   $("parent-back").addEventListener("click", () => (state.player ? renderHome() : renderPlayers()));
+  $("parent-players").addEventListener("click", (event) => {
+    const btn = event.target.closest("[data-teacher-report]");
+    if (btn) openReport(btn.dataset.teacherReport);
+  });
+  $("report-back").addEventListener("click", () => renderParent("me"));
+  $("report-range").addEventListener("change", drawReport);
+  $("report-note").addEventListener("input", drawReport);
+  $("report-print").addEventListener("click", () => window.print());
+  $("report-share").addEventListener("click", shareReport);
   $("backup-save").addEventListener("click", saveBackup);
   $("backup-file").addEventListener("change", (event) => {
     const file = event.target.files?.[0];
@@ -1517,6 +1599,7 @@ function handleBack() {
   else if (screen === "world" || screen === "badges") renderHome();
   else if (screen === "rules") $("rules-back").click();
   else if (screen === "parent") $("parent-back").click();
+  else if (screen === "report") $("report-back").click();
   else if (screen === "about") $("about-back").click();
   else if (screen === "build") renderHome();
   else if (screen === "add-player" && state.players.length) renderPlayers();

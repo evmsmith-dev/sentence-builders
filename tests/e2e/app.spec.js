@@ -1190,3 +1190,38 @@ test("Island: things that move (the tractor) drive back and forth", async ({ pag
   const anim = await page.locator(".town .move-drive").first().evaluate((el) => getComputedStyle(el).animationName);
   expect(anim).toBe("drive");
 });
+
+test("Teacher report: from Progress → Me; ranges, a note, print layout and shared text @layout", async ({ page }) => {
+  const now = Date.now();
+  const today = new Date(now - new Date(now).getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  const evan = player({ name: "Evan", grade: 4, levels: { "commas-1": { best: 7, stars: 2, plays: 1, passedOn: today }, "verbs-1": { best: 8, stars: 3, plays: 2 } } });
+  evan.items = Object.fromEntries(Array.from({ length: 8 }, (_, i) => [`commas-2-0${i + 1}`, { seen: 1, misses: i < 4 ? 1 : 0, last: now }]));
+  evan.days = [today];
+  evan.time = { [today]: 12 * 60000 };
+  await openApp(page, { players: [evan], current: "p1" });
+  await page.locator("#home [data-progress]").click();
+  await page.locator("[data-teacher-report]").click();
+  await expect(page.locator("#report")).toBeVisible();
+  const sheet = page.locator("#report-sheet");
+  await expect(sheet).toContainText("Evan · Grade 4");
+  await expect(sheet.locator(".rep-stats")).toContainText("12");
+  // This week: the comma level passed today counts; the verbs level has no date, so only All time counts it.
+  await expect(sheet.locator(".rep-stats div").nth(2)).toContainText("1");
+  await page.locator("#report-range").selectOption("all");
+  await expect(sheet.locator(".rep-stats div").nth(2)).toContainText("2");
+  // Commas: 4 of 8 right on the first try is under 75%, so it needs practice, with a missed sentence.
+  await expect(sheet.locator(".rep-list").first()).toContainText("Commas and colons (50% right on the first try)");
+  await page.locator("#report-note").fill("Working on commas.");
+  await expect(sheet.locator(".rep-note")).toContainText("Working on commas.");
+  await page.emulateMedia({ media: "print" });
+  await expect(page.locator("#report .report-controls")).toBeHidden();
+  await expect(page.locator("#report-sheet")).toBeVisible();
+  await page.emulateMedia({ media: "screen" });
+  // Share: no share sheet here, so it copies the text.
+  await page.context().grantPermissions(["clipboard-read", "clipboard-write"]).catch(() => {});
+  await page.evaluate(() => { delete navigator.share; });
+  await page.locator("#report-share").click();
+  await expect(page.locator("#report-status")).toContainText("Copied");
+  await page.locator("#report-back").click();
+  await expect(page.locator("#parent")).toBeVisible();
+});
