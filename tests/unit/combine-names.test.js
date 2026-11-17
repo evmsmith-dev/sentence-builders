@@ -132,3 +132,43 @@ test("Sentence of the Week: bands, week turns, open days and the week's record",
   assert.equal(again.weekDone, false);
   assert.equal(again.player.banners.length, 1);
 });
+
+test("Challenge Trails (grades 3-5): mastery opens the next level, one a day; gated skills need Gold groundwork", async () => {
+  const { isUnlocked, isChallenge, challengeCandidates, openChallenge, recordLevel, normalizePlayer } = await import("../../src/lib/progress.js");
+  const { skillOpenFor, worldOpenFor, SKILLS, WORLDS } = await import("../../src/config.js");
+  const day1 = new Date(2026, 10, 16, 10).getTime();
+  const day2 = new Date(2026, 10, 17, 10).getTime();
+  const right = Array.from({ length: 8 }, (_, i) => ({ id: `commas-1-0${i + 1}`, tries: 1, correct: true }));
+  let p = normalizePlayer({ id: "p", name: "A", grade: 3, avatar: "x" });
+  assert.equal(isUnlocked(p, "commas", 2), false); // grade 4 level
+  assert.equal(isChallenge(p, "commas", 2), true);
+  p = recordLevel(p, { skill: "commas", level: 1, results: right, now: day1 }).player;
+  assert.deepEqual(challengeCandidates(p), [], "one strong day isn't mastery");
+  p = recordLevel(p, { skill: "commas", level: 1, results: right, now: day2 }).player;
+  assert.deepEqual(challengeCandidates(p), ["commas-2"]);
+  const opened = openChallenge(p, day2);
+  assert.equal(opened.opened, "commas-2");
+  assert.equal(isUnlocked(opened.player, "commas", 2), true);
+  // Only one a day.
+  const q = { ...opened.player, levels: { ...opened.player.levels, "verbs-1": { best: 8, stars: 3, plays: 2, strongOn: ["2026-11-16", "2026-11-17"] } } };
+  assert.equal(openChallenge(q, day2).opened, null);
+  assert.equal(openChallenge(q, day2 + 864e5).opened, "verbs-2");
+  // No grade cap: level 3 (grade 5) can follow for a 3rd grader.
+  // Settings: grade only, or everything open.
+  assert.equal(isUnlocked({ ...p, settings: { unlock: "grade" } }, "commas", 2), false);
+  assert.equal(isUnlocked({ ...p, settings: { unlock: "open" } }, "commas", 3), true);
+  // Gated skills: diagramming opens early once Q&A Flow and compounds are Gold.
+  const diagram = SKILLS.find((s) => s.id === "diagram");
+  const g4 = normalizePlayer({ id: "p", name: "A", grade: 4, avatar: "x" });
+  assert.equal(skillOpenFor(diagram, g4), false);
+  const gold = { ...g4, goldDays: { flow: ["a", "b"], cflow: ["a", "b"] } };
+  assert.deepEqual(challengeCandidates(gold).includes("diagram-1"), true);
+  assert.equal(skillOpenFor(diagram, { ...gold, unlocks: { "diagram-1": "x" } }), true);
+  // Revision Ridge's world opens with its first opened skill; all open opens it too; grades 6-8 unchanged.
+  const desk = WORLDS.find((w) => w.id === "desk");
+  assert.equal(worldOpenFor(desk, g4), false);
+  assert.equal(worldOpenFor(desk, { ...g4, unlocks: { "case-1": "x" } }), true);
+  assert.equal(worldOpenFor(desk, { ...g4, settings: { unlock: "open" } }), true);
+  const g7 = normalizePlayer({ id: "p", name: "A", grade: 7, avatar: "x" });
+  assert.equal(isChallenge(g7, "case", 3), false);
+});

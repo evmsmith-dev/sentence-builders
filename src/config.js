@@ -310,10 +310,33 @@ export const PATTERNS = {
 export const MARK_ORDER = [",", ".", "?", "!", '"', "'", ":", ";", "-", "—", "…", "(", ")"];
 
 /** Skills a player can see: some (like Advanced Q&A Flow) wait until grade 6. */
-export const skillOpenFor = (skill, player) => !skill.minGrade || (player?.grade || 0) >= skill.minGrade;
+/**
+ * Levels above a player's grade (grades 3–5; Settings, for parents): "mastery" (the default: Challenge Trails open
+ * a skill's next level once the level before it is scored 7+ on two different days, and the later skills once
+ * the skills they build on are Gold), "grade" (only the player's grade and below) or "open" (everything).
+ * Grades 6–8 keep everything as it was.
+ */
+export const CHALLENGE_UP_TO_GRADE = 5;
+export const unlockMode = (player) => ((player?.grade || 0) > CHALLENGE_UP_TO_GRADE ? null : player?.settings?.unlock || "mastery");
+/** What a skill that waits for a grade builds on: all Gold opens it early as a Challenge Trail. */
+export const CHALLENGE_PREREQS = {
+  diagram: ["flow", "cflow"], flow2: ["flow", "cflow", "diagram"],
+  case: ["pronouns"], proofread: ["commas", "capitals"], aside: ["commas"], types: ["compound", "complex"], modifiers: ["complex"],
+};
+
+/** The grade a skill waits for: its own, or its world's (Revision Ridge). */
+export const skillGate = (skill) => skill.minGrade || WORLDS.find((w) => w.id === skill.world)?.minGrade || 0;
+
+export const skillOpenFor = (skill, player) => {
+  const gate = skillGate(skill);
+  if (!gate || (player?.grade || 0) >= gate) return true;
+  const mode = unlockMode(player);
+  return mode === "open" || (mode === "mastery" && Boolean(player?.unlocks?.[`${skill.id}-1`]));
+};
 
 /** Worlds a player can open: Revision Ridge waits until grade 6. */
-export const worldOpenFor = (world, player) => world.ready && (!world.minGrade || (player?.grade || 0) >= world.minGrade);
+export const worldOpenFor = (world, player) => world.ready && (!world.minGrade || (player?.grade || 0) >= world.minGrade
+  || unlockMode(player) === "open" || SKILLS.some((skill) => skill.world === world.id && Boolean(player?.unlocks?.[`${skill.id}-1`])));
 
 export const skillById = (id) => SKILLS.find((skill) => skill.id === id);
 export const skillsInWorld = (worldId) => SKILLS.filter((skill) => skill.world === worldId);

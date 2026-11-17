@@ -45,7 +45,7 @@
       </fieldset>
       <label for="player-grade">Grade</label>
       <select id="player-grade" name="grade"></select>
-      <p class="note">Levels for your grade and below start unlocked. Diagramming opens in grade 5, and Revision Ridge and Advanced Q&A Flow in grade 6.</p>
+      <p class="note">Levels for your grade and below start unlocked. In grades 3–5, harder levels open as Challenge Trails when skills are mastered. Diagramming opens in grade 5, and Revision Ridge and Advanced Q&A Flow in grade 6, or earlier as Challenge Trails.</p>
       <button type="submit" class="primary big">Start building</button>
     </form>
   </main>
@@ -301,6 +301,16 @@
     </div>
   </div>
 
+  <div id="gate-overlay" class="overlay" hidden>
+    <div class="sheet" role="dialog" aria-modal="true" aria-label="Review first">
+      <div id="gate-body" class="pip-row"></div>
+      <div class="sheet-actions">
+        <button type="button" class="secondary" data-close>Not now</button>
+        <button type="button" class="primary" data-practice="summit">🔁 Review now</button>
+      </div>
+    </div>
+  </div>
+
   <div id="week-overlay" class="overlay" hidden>
     <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="week-title">
       <h2 id="week-title">📌 Notice Board</h2>
@@ -315,6 +325,15 @@
       <label class="toggle"><input type="checkbox" id="set-autoread"> Read every sentence aloud</label>
       <label class="toggle"><input type="checkbox" id="set-pip"> Comments and greeting</label>
       <label class="toggle"><input type="checkbox" id="set-sound"> Sounds</label>
+      <div id="unlock-setting" class="unlock-setting">
+        <label for="set-unlock">Levels above my grade <span class="note">(for parents: press and hold to change)</span></label>
+        <button type="button" id="unlock-hold" class="secondary hold-btn"></button>
+        <select id="set-unlock" hidden>
+          <option value="mastery">Challenge Trails: open as skills are mastered</option>
+          <option value="grade">Only levels for my grade and below</option>
+          <option value="open">All levels open</option>
+        </select>
+      </div>
       <label class="toggle" id="island-toggle"><input type="checkbox" id="set-island"> Island Home: the island fills the screen (grades 3–5)</label>
       <label class="toggle" id="showisland-toggle"><input type="checkbox" id="set-showisland"> Show Grammar Island in color, with decorations and building (instead of the blueprint)</label>
       <label class="toggle"><input type="checkbox" id="set-calm"> Calm island: decorations stay still</label>

@@ -1073,3 +1073,11 @@ body.island-home.peaks-open #home #map-panel { display: none; }
   body.island-home #home #pip-home .bubble { padding: 8px 44px 8px 12px; font-size: 0.95rem; }
   body.island-home #home #pip-home { bottom: calc(env(safe-area-inset-bottom) + 56px); }
 }
+
+/* Challenge Trails (grades 3–5): levels above the player's grade, opened by mastery. */
+.level-btn.challenge .level-grade { color: #b7791f; font-weight: 700; }
+.trail-note { margin: 6px 0 0; font-size: 0.9rem; color: #8a5a00; }
+.unlock-setting { display: grid; gap: 6px; margin: 6px 0; }
+.hold-btn { position: relative; overflow: hidden; text-align: left; min-height: 48px; user-select: none; -webkit-user-select: none; touch-action: none; }
+.hold-btn::after { content: ""; position: absolute; left: 0; bottom: 0; height: 4px; width: 0; background: var(--primary); }
+.hold-btn.holding::after { width: 100%; transition: width 1.5s linear; }

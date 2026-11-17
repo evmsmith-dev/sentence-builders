@@ -152,6 +152,16 @@ Following the teaching and UI experts, players in grade 6 and up see Grammar Isl
 
 Following the experts, Pip stays the mascot for every grade (he's on the app icon), but grades 6–8 meet him as a coworker rather than a buddy: a small line drawing instead of the colorful robot, no greeting on the home page (just "Next up" and ▶ Play, and the card is titled "Today"), and plainer words (`PIP_GROWN`: "Correct.", "Not yet. Hint:", "Level passed.", results titled Passed or Perfect score). His main job there is Pip's homework, as a slightly overconfident writer who asks to be graded honestly ("A C. In my defense, some of those were sneaky."). He still presents Tip Cards and sits beside hints, and stays off the map. Settings → Comments and greeting turns off his face, greetings and remarks for any grade; hints, homework and Tip Cards keep working in a plain voice.
 
+## Challenge Trails (grades 3–5)
+
+Following the teaching and game-design experts (without their one-grade-ahead limit, at the parent's request), levels above a 3rd–5th grader's grade open by mastery instead of by grade:
+- **A skill's next level** opens once the level before it is scored 7 or 8 of 8 on two different days (`strongOn` on each level record; levels saved earlier count with 2+ stars and 2+ plays). There's no limit on how far ahead a strong student can go.
+- **Skills that wait for a grade** open early once the skills they build on are Gold (`CHALLENGE_PREREQS`): Sentence Diagramming after Q&A Flow and Compound Q&A Flow; Advanced Q&A Flow after those and Diagramming; each Revision Ridge skill after its groundwork (Pronoun Case after Pronouns, Proofreading after Commas and Capitals, Dashes after Commas, Sentence Types after Compound and Complex, Modifiers after Complex). Revision Ridge's world opens with its first opened skill.
+- **One new trail a day**, so it can't become a race; Pip announces it on the home page ("You got Commas and colons level 1 right on two different days, so you opened a Challenge Trail…") with a Try it button. Each skill card says what opens the next one.
+- **Review first:** with missed sentences waiting (and no Summit Review yet today), a Challenge level shows Pip's "Review first!" with a Review now button.
+- **No grade numbers for the kids:** those levels say ⭐ Challenge instead of a grade; the teacher report shows the grade with "Challenge".
+- **For parents:** Settings → Levels above my grade (press and hold for a moment to change): Challenge Trails (the default), Only levels for my grade and below, or All levels open. Grades 6–8 are unchanged.
+
 ## Island Home (grades 3–5, off by default)
 
 Settings → **Island Home** makes Grammar Island the whole home screen (new players in grades 3–5 also choose it, or Classic, by picture at the end of Pip's introduction; Skip goes straight to that choice, which sets the same switch), following the teaching expert's advice: an option for grades 3–5 only (not offered from grade 6, where the page and the calmer Studio look fit better), off until a parent turns it on, with the regular page kept as the default for everyone.

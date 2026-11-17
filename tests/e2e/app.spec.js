@@ -991,7 +991,7 @@ test("Grammar Peaks: a Summit Review mixes passed skills and plants a flag; Spel
   const peaks = await page.locator('.region[data-area="peaks"]').boundingBox();
   await page.mouse.click(peaks.x + peaks.width / 2, peaks.y + peaks.height * 0.4);
   await expect(page.locator("#map-panel")).toContainText("Summit Review");
-  await page.locator('[data-practice="summit"]').click();
+  await page.locator('#map-panel [data-practice="summit"]').click();
   const seen = [];
   for (let n = 0; n < 8; n++) {
     await expect(page.locator("#play-skill")).toContainText("Summit Review");
@@ -1006,7 +1006,7 @@ test("Grammar Peaks: a Summit Review mixes passed skills and plants a flag; Spel
   await expect(page.locator(".summit-flag")).toHaveCount(1);
   await expect(page.locator("#map-panel")).toContainText("1 flag planted");
   // Spelling Lake: grade 4 gets the grades 3-5 questions.
-  await page.locator('[data-practice="lake"]').click();
+  await page.locator('#map-panel [data-practice="lake"]').click();
   for (let n = 0; n < 8; n++) {
     await expect(page.locator("#play-skill")).toHaveText("💧 Spelling Lake");
     await expect(page.locator("#prompt")).toHaveText("Which spelling is right?");
@@ -1028,9 +1028,9 @@ test("Grammar Peaks: no Summit Review until a level is passed", { tag: "@layout"
   await page.locator("#town").scrollIntoViewIfNeeded();
   const peaks = await page.locator('.region[data-area="peaks"]').boundingBox();
   await page.mouse.click(peaks.x + peaks.width / 2, peaks.y + peaks.height * 0.4);
-  await expect(page.locator('[data-practice="summit"]')).toBeDisabled();
-  await expect(page.locator('[data-practice="summit"]')).toContainText("Pass a level anywhere on the island");
-  await expect(page.locator('[data-practice="lake"]')).toBeEnabled();
+  await expect(page.locator('#map-panel [data-practice="summit"]')).toBeDisabled();
+  await expect(page.locator('#map-panel [data-practice="summit"]')).toContainText("Pass a level anywhere on the island");
+  await expect(page.locator('#map-panel [data-practice="lake"]')).toBeEnabled();
 });
 
 test("Compound Q&A Flow: grades 3-5 label compound parts and interjections, all three levels", async ({ page }) => {
@@ -1111,7 +1111,7 @@ test("Grammar Peaks has a card in the Worlds list that opens it on the map", { t
   await expect(card).toContainText("🚩 2 · ⛵ 1");
   await card.click();
   await expect(page.locator(".town-map")).toHaveClass(/zoomed/);
-  await expect(page.locator('[data-practice="lake"]')).toBeVisible();
+  await expect(page.locator('#map-panel [data-practice="lake"]')).toBeVisible();
 });
 
 test("Parts of Speech and Revising Sentences: play a level of each", async ({ page }) => {
@@ -1444,4 +1444,43 @@ test("after a level: Not now on the next level's tip goes to the level list, not
   await expect(page.locator("#tip-overlay")).toBeHidden();
   await expect(page.locator("#play")).toBeHidden();
   await expect(page.locator("#world")).toBeVisible();
+});
+
+test("Challenge Trails (grades 3-5): mastery opens the next level with Pip's news; review first; parents can change it @layout", async ({ page }) => {
+  const p = player({ grade: 3, levels: { "commas-1": { best: 8, stars: 3, plays: 2, strongOn: ["2026-11-01", "2026-11-02"] } } });
+  await openApp(page, { players: [p], current: "p1" });
+  await expect(page.locator("#pip-home")).toContainText("opened a Challenge Trail: Commas and colons, level 2");
+  await page.locator('[data-world="port"]').click();
+  const level2 = page.locator('.level-btn[data-skill="commas"][data-level="2"]');
+  await expect(level2).toBeEnabled();
+  await expect(level2).toContainText("⭐ Challenge");
+  await expect(level2).not.toContainText("Grade");
+  await expect(page.locator('.level-btn[data-skill="commas"][data-level="3"]')).toBeDisabled();
+  await expect(page.locator(".skill-card").first()).toContainText("7 of 8 on level 2 on two different days");
+  // Missed sentences waiting: review comes first.
+  await page.evaluate(() => {
+    const players = JSON.parse(localStorage.getItem("sentenceBuilders_players"));
+    players[0].items = Object.fromEntries(Array.from({ length: 5 }, (_, i) => [`commas-1-0${i + 1}`, { seen: 1, misses: 1, last: 1 }]));
+    localStorage.setItem("sentenceBuilders_players", JSON.stringify(players));
+  });
+  await page.reload();
+  await page.locator('[data-world="port"]').click();
+  await page.locator('.level-btn[data-skill="commas"][data-level="2"]').click();
+  await expect(page.locator("#gate-overlay")).toBeVisible();
+  await expect(page.locator("#gate-overlay")).toContainText("Review first");
+  await page.locator("#gate-overlay [data-close]").click();
+  // Parents: press and hold to change the setting.
+  await page.goBack();
+  await page.locator("#settings-btn").click();
+  await expect(page.locator("#set-unlock")).toBeHidden();
+  const hold = page.locator("#unlock-hold");
+  await hold.hover();
+  await page.mouse.down();
+  await page.waitForTimeout(1700);
+  await page.mouse.up();
+  await expect(page.locator("#set-unlock")).toBeVisible();
+  await page.locator("#set-unlock").selectOption("grade");
+  await page.locator("#settings-overlay [data-close]").click();
+  await page.locator('[data-world="port"]').click();
+  await expect(page.locator('.level-btn[data-skill="commas"][data-level="2"]')).toBeDisabled();
 });

@@ -1,7 +1,7 @@
 // A player's progress: what's unlocked, recording a finished level, stars, mastery and badges.
 // Pure functions on plain data, so they're easy to test and save.
 import {
-  BRICKS, DECOR, GOLD_DAYS, GOLD_POINTS, PRACTICE_GOAL, clampSpot, defaultSpot, HABIT_BADGES, POINTS, SKILLS, STAR_THRESHOLDS, WORLD_BADGES, skillById, skillOpenFor, skillsInWorld,
+  BRICKS, CHALLENGE_PREREQS, DECOR, skillGate, GOLD_DAYS, unlockMode, GOLD_POINTS, PRACTICE_GOAL, clampSpot, defaultSpot, HABIT_BADGES, POINTS, SKILLS, STAR_THRESHOLDS, WORLD_BADGES, skillById, skillOpenFor, skillsInWorld,
 } from "../config.js";
 
 export const levelKey = (skill, level) => `${skill}-${level}`;
@@ -29,6 +29,7 @@ export function newPlayer({ id, name, avatar, grade, now }) {
     decor: [], // decorations placed in the town: { uid, id, area, x, y } in SCENE units (area: a district id)
     week: null, // Sentence of the Week this week: { key (its Monday), id, done: [day indexes 0-4] }
     banners: [], // finished weeks, hung in the Town Square: { key, text }
+    unlocks: {}, // Challenge Trails opened (grades 3–5): { "commas-3": the day it opened }
     homeworkOn: null, // the last day Pip's homework was checked (the Notice Board's flyer waits until then)
   };
 }
@@ -85,9 +86,56 @@ export const isPassed = (player, skill, level) => levelStars(player, skill, leve
 /** Level 1 is always open. A later level opens when the one before is passed, or right away if it's at or below the player's grade. */
 export function isUnlocked(player, skillId, level) {
   if (level === 1) return true;
-  if (isPassed(player, skillId, level - 1)) return true;
   const skill = skillById(skillId);
-  return Boolean(skill && skill.grades[level - 1] <= player.grade);
+  if (skill && skill.grades[level - 1] <= player.grade) return true;
+  const mode = unlockMode(player);
+  if (mode === "open") return true;
+  if (mode === "grade") return false;
+  if (mode === "mastery") return Boolean(player.unlocks?.[levelKey(skillId, level)]);
+  return isPassed(player, skillId, level - 1); // grades 6–8: as before
+}
+
+/** A level above the player's grade (a Challenge Trail, for grades 3–5). */
+export const isChallenge = (player, skillId, level) => {
+  const skill = skillById(skillId);
+  return Boolean(unlockMode(player) && skill && (skill.grades[level - 1] > player.grade || skillGate(skill) > player.grade));
+};
+
+/** Scored 7+ (of 8) on two different days: mastered, for opening the next Challenge Trail. */
+export function isMastered(player, skillId, level) {
+  const rec = player.levels[levelKey(skillId, level)];
+  if (!rec) return false;
+  if (rec.strongOn) return rec.strongOn.length >= GOLD_DAYS;
+  return rec.stars >= 2 && rec.plays >= 2; // saved before days were kept
+}
+
+/** Challenge Trails ready to open, in order: a skill's next level, or a later skill whose groundwork is Gold. */
+export function challengeCandidates(player) {
+  if (unlockMode(player) !== "mastery") return [];
+  const out = [];
+  const opened = (key) => Boolean(player.unlocks?.[key]);
+  for (const skill of SKILLS) {
+    const gated = skillGate(skill) > player.grade;
+    if (gated) {
+      const pre = CHALLENGE_PREREQS[skill.id] || [];
+      if (!opened(levelKey(skill.id, 1)) && pre.length && pre.every((id) => skillTier(player, id) === 3)) out.push(levelKey(skill.id, 1));
+      if (!opened(levelKey(skill.id, 1))) continue;
+    }
+    for (const level of [2, 3]) {
+      const key = levelKey(skill.id, level);
+      if (skill.grades[level - 1] > player.grade && !opened(key) && isUnlocked(player, skill.id, level - 1) && isMastered(player, skill.id, level - 1)) out.push(key);
+    }
+  }
+  return out;
+}
+
+/** Opens one Challenge Trail a day at most (the next one waits for tomorrow). Returns { player, opened: key|null }. */
+export function openChallenge(player, now) {
+  const today = localDate(now);
+  if (Object.values(player.unlocks || {}).includes(today)) return { player, opened: null };
+  const [key] = challengeCandidates(player);
+  if (!key) return { player, opened: null };
+  return { player: { ...player, unlocks: { ...(player.unlocks || {}), [key]: today } }, opened: key };
 }
 
 export function passedKeys(player) {
@@ -140,6 +188,10 @@ export function recordLevel(player, { skill, level, results, now, durationMs = 0
   // The day it was first passed, for the teacher report's date ranges.
   const passedOn = before.passedOn || (stars > 0 ? date : null);
   if (passedOn) next.levels[key].passedOn = passedOn;
+  // Days with 7+ of 8 (two of them master a level, which opens the next Challenge Trail).
+  const strong = [...(before.strongOn || [])];
+  if (points >= (GOLD_POINTS / 8) * total && !strong.includes(date)) strong.push(date);
+  next.levels[key].strongOn = strong.slice(-GOLD_DAYS);
 
   for (const result of results) {
     const s = next.items[result.id] || { seen: 0, misses: 0, last: 0 };

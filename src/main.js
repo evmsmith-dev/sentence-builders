@@ -1,12 +1,12 @@
 // Startup and screens: players, the town, worlds, levels, results, badges and settings.
 import {
   AVATARS, AVATAR_GROUPS, HABIT_BADGES, ITEMS_PER_LEVEL, MAX_GRADE, MAX_PLAYERS, MIN_GRADE, PIP, PIP_INTRO, DECOR, decorFor, HOMEWORK_PER_ROUND, PRACTICE_PER_ROUND, PRACTICE_GOAL, clampSpot, SKILLS, SPELLING_RULES, STUDIO_FROM_GRADE, NOUN_TABLE_FROM_GRADE, NOUN_KINDS, NOUN_REMINDERS_UNTIL, TIER_NAMES, WORLDS, WORLD_BADGES,
-  GOLD_DAYS, LABELS, LABEL_LISTS, PATTERNS, FLOW_LABELS, FLOW_PATTERNS, WORD_LISTS, WORD_PARTS, skillById, skillOpenFor, skillsInWorld, skillsInWorldFor, worldOpenFor, PIP_GROWN, GROWN_PIP_FROM_GRADE} from "./config.js";
+  GOLD_DAYS, LABELS, LABEL_LISTS, PATTERNS, FLOW_LABELS, FLOW_PATTERNS, WORD_LISTS, WORD_PARTS, skillById, skillOpenFor, skillsInWorld, skillsInWorldFor, worldOpenFor, PIP_GROWN, GROWN_PIP_FROM_GRADE, CHALLENGE_PREREQS, CHALLENGE_UP_TO_GRADE, unlockMode} from "./config.js";
 import { answerText, spokenText } from "./lib/parse.js";
 import { pickLevelItems, pickSpellingItems, pickSummitItems } from "./lib/select.js";
 import { recordHomework, recordPractice, buyDecor, moveDecor, removeDecor,
   currentBadges, habitValue, isPassed, isUnlocked, levelStars, localDate, mostMissed, newPlayer, normalizePlayer,
-  passedKeys, recordLevel, skillTier, weekSummary, recordWeekDay } from "./lib/progress.js";
+  passedKeys, recordLevel, skillTier, weekSummary, recordWeekDay, isChallenge, isMastered, openChallenge} from "./lib/progress.js";
 import { loadCurrentId, loadPlayers, saveCurrentId, savePlayers } from "./storage.js";
 import { districtSkills, mapDistricts, mapLayout, parkSvg, pipSays, pipSvg, townSvg } from "./ui/art.js";
 import { createTownMap } from "./ui/townmap.js";
@@ -192,6 +192,13 @@ function renderHome() {
     $("bp-toggle").textContent = state.mapOpen ? "Smaller" : "Open the plan";
   } else $("town-title").textContent = "🏝️ Grammar Island";
   $("who-btn").innerHTML = `<span class="avatar" aria-hidden="true">${player.avatar}</span> ${esc(player.name)}`;
+  // Grades 3–5: a Challenge Trail that's ready opens (one a day), and Pip says why.
+  const challenge = openChallenge(player, Date.now());
+  if (challenge.opened) {
+    savePlayer(challenge.player);
+    state.newChallenge = challenge.opened;
+    return renderHome();
+  }
   const next = nextUp(player);
   const due = island ? reviewDue(player) : 0;
   let greeting = next
@@ -203,6 +210,16 @@ function renderHome() {
     // Island Home: review that's due comes before new levels, at Pip's Review Dock (Summit Review).
     greeting = `Review first, ${player.name}! ${due} sentences you missed are waiting at the Review Dock.`;
     play = `<button type="button" class="primary next-play" data-practice="summit">🔁 Review</button>${next ? `<button type="button" class="link" data-next-up="${next.skill.id}-${next.level}">or a new lesson</button>` : ""}`;
+  }
+  if (state.newChallenge) {
+    const [id, lv] = [state.newChallenge.replace(/-\d$/, ""), Number(state.newChallenge.slice(-1))];
+    const skill = skillById(id);
+    const why = lv === 1
+      ? `You mastered ${CHALLENGE_PREREQS[id].map((p) => skillById(p).name).join(" and ")}`
+      : `You got ${skill.name} level ${lv - 1} right on two different days`;
+    greeting = `${why}, so you opened a Challenge Trail: ${skill.name}, level ${lv}! ⭐`;
+    play = `<button type="button" class="primary next-play" data-next-up="${id}-${lv}">▶ Try it</button>`;
+    state.newChallenge = null;
   }
   if (island) {
     islandBarHtml(player);
@@ -288,17 +305,27 @@ function skillCardHtml(skill) {
       const open = isUnlocked(player, skill.id, level);
       const stars = levelStars(player, skill.id, level);
       const starText = [1, 2, 3].map((n) => `<span class="${n <= stars ? "on" : ""}">★</span>`).join("");
-      return `<button type="button" class="level-btn" data-skill="${skill.id}" data-level="${level}" ${open ? "" : "disabled"}
-          aria-label="${esc(skill.name)} level ${level}, grade ${skill.grades[level - 1]}${open ? `, ${stars} stars` : ", locked"}">
-        <span class="level-num">Level ${level}</span><span class="level-grade">Grade ${skill.grades[level - 1]}</span>
+      // Above the player's grade (grades 3–5): a Challenge Trail, with no grade number shown to the player.
+      const challenge = isChallenge(player, skill.id, level);
+      const tag = challenge ? "⭐ Challenge" : `Grade ${skill.grades[level - 1]}`;
+      return `<button type="button" class="level-btn${challenge ? " challenge" : ""}" data-skill="${skill.id}" data-level="${level}" ${open ? "" : "disabled"}
+          aria-label="${esc(skill.name)} level ${level}, ${challenge ? "challenge" : `grade ${skill.grades[level - 1]}`}${open ? `, ${stars} stars` : ", locked"}">
+        <span class="level-num">Level ${level}</span><span class="level-grade">${tag}</span>
         <span class="level-stars" aria-hidden="true">${open ? starText : "🔒"}</span></button>`;
     }).join("");
+    // How the next Challenge Trail opens (grades 3–5, mastery): the level before it, 7 of 8 on two different days.
+    const nextLocked = [2, 3].find((l) => !isUnlocked(player, skill.id, l));
+    const trail = unlockMode(player) === "mastery" && nextLocked && isUnlocked(player, skill.id, nextLocked - 1)
+      ? (isMastered(player, skill.id, nextLocked - 1)
+        ? "A Challenge Trail is ready here. One new trail opens each day, so it may open tomorrow."
+        : `Challenge Trail: get 7 of 8 on level ${nextLocked - 1} on two different days to open level ${nextLocked}.`) : "";
     const gold = tier === 3 ? "Gold! A gold flag flies on its top building." : isPassed(player, skill.id, 3) ? `Gold: 7+ on level 3 on ${GOLD_DAYS} days (${goldDays}/${GOLD_DAYS})` : "";
     return `<section class="skill-card" style="--skill:${skill.color}">
       <div class="skill-head"><h2>${esc(skill.name)}</h2>
         <span class="tier${tier ? "" : " none"}">${skill.badge.emoji} ${tier ? TIER_NAMES[tier - 1] : "No badge yet"}</span></div>
       <p class="skill-sub">${esc(skill.benchmarks)}</p>
       <div class="levels">${levels}</div>
+      ${trail ? `<p class="trail-note">${esc(trail)}</p>` : ""}
       ${gold ? `<p class="gold-note">${esc(gold)}</p>` : ""}
     </section>`;
 }
@@ -307,6 +334,12 @@ function skillCardHtml(skill) {
 
 /** The Tip Card before a level, or (review) to look at the rule again from the results. */
 function openTip(skillId, level, { review = false } = {}) {
+  // Review first: with missed sentences waiting, Challenge Trails wait until today's Summit Review.
+  if (!review && isChallenge(state.player, skillId, level) && reviewDue(state.player)) {
+    $("gate-body").innerHTML = pipSays(`Review first! ${reviewDue(state.player)} sentences you missed are waiting at Grammar Peaks. After a Summit Review, Challenge Trails are open again today.`, true);
+    openOverlay("gate-overlay");
+    return;
+  }
   const skill = skillById(skillId);
   const tip = state.content.tips[`${skillId}-${level}`];
   state.tip = { skillId, level, tip, review };
@@ -426,6 +459,7 @@ function summitItems(player) {
 
 /** kind: "summit" (mixed review of passed skills) or "lake" (spelling). Neither counts toward levels or badges. */
 function startPractice(kind) {
+  closeOverlay("gate-overlay");
   const player = state.player;
   const items = kind === "summit" ? summitItems(player)
     : pickSpellingItems({ items: state.content.spelling || [], grade: player.grade, stats: player.items, count: PRACTICE_PER_ROUND })
@@ -1325,7 +1359,7 @@ function currentReport() {
 
 function reportHtml(r, note) {
   const levelCell = (l) => (l.passed ? `<span class="rep-pass">✓ ${"★".repeat(l.stars)}</span>` : '<span class="muted">—</span>')
-    + (l.grade ? `<small>gr ${l.grade}</small>` : "");
+    + (l.grade ? `<small>gr ${l.grade}${l.grade > r.grade ? " · Challenge" : ""}</small>` : "");
   // Skills not started yet are listed by name only, so the printout stays short.
   const started = (s) => s.answers > 0 || s.levels.some((l) => l.passed);
   const worlds = r.worlds.filter((w) => w.skills.some(started)).map((w) => ({ ...w, waiting: w.skills.filter((s) => !started(s)), skills: w.skills.filter(started) })).map((w) => `<section class="rep-world"><h3>${w.emoji} ${esc(w.name)}</h3>
@@ -1555,6 +1589,11 @@ function fillSettings() {
   $("set-island").checked = Boolean(s.islandHome);
   $("set-calm").checked = Boolean(s.calm);
   $("set-showisland").checked = Boolean(s.showIsland);
+  $("unlock-setting").hidden = state.player.grade > CHALLENGE_UP_TO_GRADE;
+  $("set-unlock").value = s.unlock || "mastery";
+  $("set-unlock").hidden = true;
+  $("unlock-hold").hidden = false;
+  $("unlock-hold").textContent = `🔒 ${$("set-unlock").selectedOptions[0].textContent}`;
   $("showisland-toggle").hidden = state.player.grade < BLUEPRINT_FROM_GRADE;
   $("island-toggle").hidden = state.player.grade > ISLAND_HOME_MAX_GRADE;
   $("set-autoread").closest("label").hidden = !canSay();
@@ -1594,7 +1633,7 @@ function changeSetting() {
     settings: { ...state.player.settings, autoRead: $("set-autoread").checked, pip: $("set-pip").checked, sound: $("set-sound").checked,
       theme: $("set-theme").value, breakMinutes: Number($("set-break").value),
       font: $("set-font").value, textSize: $("set-size").value, spacing: $("set-spacing").checked, names: readNames(),
-      showWords: $("set-showwords").checked, islandHome: $("set-island").checked, calm: $("set-calm").checked, showIsland: $("set-showisland").checked },
+      showWords: $("set-showwords").checked, islandHome: $("set-island").checked, calm: $("set-calm").checked, showIsland: $("set-showisland").checked, unlock: $("set-unlock").value },
   };
   $("names-fields").hidden = !player.settings.names.on;
   savePlayer(player);
@@ -1754,6 +1793,20 @@ function wire() {
       drawPipIntro();
     } else closePipIntro();
   });
+  // Parents' setting: press and hold for a moment to show the choices (so it isn't changed by a quick tap).
+  let holdTimer = null;
+  const endHold = () => { clearTimeout(holdTimer); $("unlock-hold").classList.remove("holding"); };
+  $("unlock-hold").addEventListener("pointerdown", () => {
+    $("unlock-hold").classList.add("holding");
+    holdTimer = setTimeout(() => {
+      endHold();
+      $("unlock-hold").hidden = true;
+      $("set-unlock").hidden = false;
+      $("set-unlock").focus();
+    }, 1500);
+  });
+  for (const type of ["pointerup", "pointerleave", "pointercancel"]) $("unlock-hold").addEventListener(type, endHold);
+  $("unlock-hold").addEventListener("contextmenu", (event) => event.preventDefault());
   $("pip-intro-choice").addEventListener("click", (event) => {
     const btn = event.target.closest("[data-home-choice]");
     if (btn) chooseHome(btn.dataset.homeChoice);
@@ -1895,7 +1948,7 @@ function wire() {
     closeOverlay("result-overlay");
     renderHome();
   });
-  for (const id of ["set-autoread", "set-pip", "set-sound", "set-theme", "set-break", "set-font", "set-size", "set-spacing", "set-showwords", "set-island", "set-calm", "set-showisland", "set-names-on", "set-pet",
+  for (const id of ["set-autoread", "set-pip", "set-sound", "set-theme", "set-break", "set-font", "set-size", "set-spacing", "set-showwords", "set-island", "set-calm", "set-showisland", "set-unlock", "set-names-on", "set-pet",
     ...Array.from({ length: MAX_PEOPLE }, (_, i) => [`set-name-${i}`, `set-pron-${i}`]).flat()]) $(id).addEventListener("change", changeSetting);
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
