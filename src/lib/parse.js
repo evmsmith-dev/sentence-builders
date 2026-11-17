@@ -447,7 +447,11 @@ export function checkDictation(target, typed) {
       else add(i, `Check the mark after "${want.core}".`);
     }
   }
-  return { right: issues.length === 0, hint: issues[0]?.text || null, spelling, issues };
+  // A period where the sentence has ! counts (a voice can't show it), but the answer says so.
+  const lastWant = t.at(-1)?.trail || "";
+  const lastGot = u.at(-1)?.trail || "";
+  const exclaim = lastWant.includes("!") && !lastGot.includes("!");
+  return { right: issues.length === 0, hint: issues[0]?.text || null, spelling, issues, exclaim };
 }
 
 /** The sentence's words without capitals or marks, for players who read instead of listen. */

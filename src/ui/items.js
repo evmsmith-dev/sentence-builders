@@ -1249,7 +1249,8 @@ function renderDictate(root, item, { onChange, showWords }) {
     const names = result.spelling.filter((s) => s.name);
     const words = result.spelling.filter((s) => !s.name);
     // A name heard aloud can be spelled many ways (Mia, Maya), so it's only shown, never counted.
-    return (names.length ? `<p class="dictate-spelling">How the name is spelled here: ${fixes(names)}</p>` : "")
+    const bang = result.exclaim ? '<p class="dictate-spelling">Your period counts. This sentence shows strong feeling, so the writer ended it with <strong>!</strong></p>' : "";
+    return bang + (names.length ? `<p class="dictate-spelling">How the name is spelled here: ${fixes(names)}</p>` : "")
       + (words.length ? `<p class="dictate-spelling">Spelling to practice (it doesn't count here): ${fixes(words)}</p>` : "");
   };
   const finish = (cls) => {
