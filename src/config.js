@@ -365,6 +365,17 @@ export const PIP = {
   passed: ["New building unlocked!", "The island just grew.", "Another one built."],
   notYet: "Let's build that one again. Nothing is lost.",
 };
+/** Grades 6–8: the same Pip as a coworker, not a cheerleader. Short and plain. */
+export const PIP_GROWN = {
+  right: ["Correct.", "Right.", "That's it.", "Yes.", "Exactly."],
+  secondTry: ["Correct on the second try.", "Fixed.", "Got it."],
+  hint: "Not yet. Hint:",
+  shown: "Here's the answer. It will come back later.",
+  passed: ["Level passed.", "Passed. On to the next.", "Another level done."],
+  notYet: "Not passed yet. Try it again; nothing is lost.",
+};
+/** From this grade, Pip is a small line drawing with drier words, and doesn't greet on the home page. */
+export const GROWN_PIP_FROM_GRADE = 6;
 
 /** Kinds of nouns, for the noun table: shown in the Rule Book (Flow Factory and Word lists) and from 📘 Nouns. */
 export const NOUN_KINDS = [

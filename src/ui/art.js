@@ -3,7 +3,15 @@ import { DECOR, DISTRICTS, SCENE, WORLDS, skillsInWorldFor, worldOpenFor } from 
 import { isUnlocked, levelStars, skillTier } from "../lib/progress.js";
 import { esc } from "./dom.js";
 
-export function pipSvg(size = 56) {
+export function pipSvg(size = 56, { line = false } = {}) {
+  // Grades 6–8: Pip as a line drawing, like an engineer's stamp on a plan.
+  if (line) {
+    return `<svg class="pip pip-line" width="${size}" height="${size}" viewBox="0 0 64 64" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="12" y="24" width="40" height="28" rx="9"/><rect x="19" y="31" width="26" height="13" rx="5"/>
+    <circle cx="27" cy="37.5" r="1.6" fill="currentColor"/><circle cx="37" cy="37.5" r="1.6" fill="currentColor"/>
+    <path d="M12 22q20-18 40 0"/><path d="M8 23h48"/><path d="M24 52v6M40 52v6"/>
+  </svg>`;
+  }
   return `<svg class="pip" width="${size}" height="${size}" viewBox="0 0 64 64" aria-hidden="true">
     <rect x="12" y="22" width="40" height="30" rx="9" fill="#5b8def"/>
     <rect x="18" y="29" width="28" height="15" rx="6" fill="#e9f1ff"/>
@@ -15,9 +23,11 @@ export function pipSvg(size = 56) {
 }
 
 /** Pip with a speech bubble. Empty when the player turned Pip off. */
-export function pipSays(text, on = true, action = "") {
+export function pipSays(text, on = true, action = "", { grown = false } = {}) {
   if (!on || !text) return "";
-  return action ? `${pipSvg()}<div class="bubble"><p>${esc(text)}</p>${action}</div>` : `${pipSvg()}<p class="bubble">${esc(text)}</p>`;
+  const face = grown ? pipSvg(34, { line: true }) : pipSvg();
+  const cls = grown ? "bubble grown" : "bubble";
+  return action ? `${face}<div class="${cls}"><p>${esc(text)}</p>${action}</div>` : `${face}<p class="${cls}">${esc(text)}</p>`;
 }
 
 const D = 7; // depth of side walls: drawn back and up to the right, so everything looks solid

@@ -1013,3 +1013,9 @@ body.blueprint-home #home > .town-card { order: 6; margin-top: 16px; }
 /* Outlines have no fill, so taps still need to land on regions, lots and the board. */
 .town.blueprint :is(.lot-hit, .board-hit, path.region) { pointer-events: all; }
 .town.blueprint g.district > path:not([transform]) { pointer-events: all; }
+
+/* ---------- Pip for grades 6–8: a small line drawing, plain words ---------- */
+.pip-line { color: #3d5a8a; flex: none; }
+body.theme-studio .pip-line { color: #4f5f80; }
+.bubble.grown { padding: 8px 12px; font-size: 0.98rem; border-radius: 10px; }
+.result .pip-row .pip-line { align-self: center; }

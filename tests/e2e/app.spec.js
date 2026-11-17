@@ -54,7 +54,7 @@ test("play a whole level right: 3 stars, a building and badges", async ({ page }
     await page.locator("#next-btn").click();
   }
   await expect(page.locator("#result-overlay")).toBeVisible();
-  await expect(page.locator("#result-title")).toHaveText("Perfect build!");
+  await expect(page.locator("#result-title")).toHaveText(/^Perfect (build!|score)$/);
   await expect(page.locator("#result-score")).toContainText("8 of 8 points");
   await expect(page.locator("#result-badges")).toContainText("First Brick");
   await expect(page.locator("#result-badges")).toContainText("Comma Captain");
@@ -139,7 +139,7 @@ test("Word Works: play a level with every item type it uses, including Sort it",
       await expect(page.locator("#feedback.good")).toBeVisible();
       await page.locator("#next-btn").click();
     }
-    await expect(page.locator("#result-title")).toHaveText("Perfect build!");
+    await expect(page.locator("#result-title")).toHaveText(/^Perfect (build!|score)$/);
     await page.locator("#result-town").click();
   }
   await expect(page.locator(".town")).toHaveAttribute("aria-label", /3 of 57 buildings/);
@@ -226,7 +226,7 @@ test("Sentence Studio: every level of all three skills, with Sentence check and 
         await expect(page.locator("#feedback.good")).toBeVisible();
         await page.locator("#next-btn").click();
       }
-      await expect(page.locator("#result-title")).toHaveText("Perfect build!");
+      await expect(page.locator("#result-title")).toHaveText(/^Perfect (build!|score)$/);
       await page.locator("#result-town").click();
     }
   }
@@ -274,7 +274,7 @@ test("Flow Factory: all three levels, 3 Q&A Flows then 2 Build from labels", asy
       await page.locator("#next-btn").click();
     }
     expect(types).toEqual(["flow", "flow", "flow", "labels", "labels"]);
-    await expect(page.locator("#result-title")).toHaveText("Perfect build!");
+    await expect(page.locator("#result-title")).toHaveText(/^Perfect (build!|score)$/);
     await expect(page.locator("#result-score")).toContainText("5 of 5 points");
     await page.locator("#result-town").click();
   }
@@ -332,7 +332,7 @@ test("Revision Ridge: play every skill, including hyphens, dashes, parentheses a
       await expect(page.locator("#feedback.good")).toBeVisible();
       await page.locator("#next-btn").click();
     }
-    await expect(page.locator("#result-title")).toHaveText("Perfect build!");
+    await expect(page.locator("#result-title")).toHaveText(/^Perfect (build!|score)$/);
     await page.locator("#result-town").click();
   }
 });
@@ -372,7 +372,7 @@ test("Advanced Q&A Flow: hidden below grade 6; questions, commands and patterns 
       await expect(page.locator("#feedback.good")).toBeVisible();
       await page.locator("#next-btn").click();
     }
-    await expect(page.locator("#result-title")).toHaveText("Perfect build!");
+    await expect(page.locator("#result-title")).toHaveText(/^Perfect (build!|score)$/);
     await page.locator("#result-town").click();
   }
 });
@@ -928,7 +928,7 @@ test("Capital letters: a Punctuation Port skill, with its own spot on the port's
     await answer(page);
     await page.locator("#next-btn").click();
   }
-  await expect(page.locator("#result-title")).toHaveText("Perfect build!");
+  await expect(page.locator("#result-title")).toHaveText(/^Perfect (build!|score)$/);
   await page.locator("#result-town").click();
   // Every building lot fits on screen: nothing runs off the right edge of the town.
   const overflow = await page.evaluate(() => {
@@ -1043,7 +1043,7 @@ test("Compound Q&A Flow: grades 3-5 label compound parts and interjections, all 
       await expect(page.locator("#feedback.good")).toBeVisible();
       await page.locator("#next-btn").click();
     }
-    await expect(page.locator("#result-title")).toHaveText("Perfect build!");
+    await expect(page.locator("#result-title")).toHaveText(/^Perfect (build!|score)$/);
     await page.locator("#result-town").click();
   }
   await expect(page.locator('.town g[data-skill="cflow"]')).toHaveCount(1);
@@ -1059,7 +1059,7 @@ test("compounds: either part first is right, in a Q&A Flow and in Build from lab
       await expect(page.locator("#feedback.good")).toContainText("✓");
       await page.locator("#next-btn").click();
     }
-    await expect(page.locator("#result-title")).toHaveText("Perfect build!");
+    await expect(page.locator("#result-title")).toHaveText(/^Perfect (build!|score)$/);
     await page.locator("#result-town").click();
   }
 });
@@ -1094,7 +1094,7 @@ test("Word Parts, Word Choice and Figurative Language: play a level of each, and
       await answer(page);
       await page.locator("#next-btn").click();
     }
-    await expect(page.locator("#result-title")).toHaveText("Perfect build!");
+    await expect(page.locator("#result-title")).toHaveText(/^Perfect (build!|score)$/);
     await page.locator("#result-town").click();
   }
   await page.locator("#rules-btn").click();
@@ -1121,7 +1121,7 @@ test("Parts of Speech and Revising Sentences: play a level of each", async ({ pa
       await answer(page);
       await page.locator("#next-btn").click();
     }
-    await expect(page.locator("#result-title")).toHaveText("Perfect build!");
+    await expect(page.locator("#result-title")).toHaveText(/^Perfect (build!|score)$/);
     await page.locator("#result-town").click();
   }
 });
@@ -1374,4 +1374,15 @@ test("Grades 6-8: the island as a blueprint, Worlds first, no brick shop; Settin
   await page.locator("#settings-overlay [data-close]").click();
   await expect(page.locator("body")).not.toHaveClass(/blueprint-home/);
   await expect(page.locator("#build-btn")).toBeVisible();
+});
+
+test("Grades 6-8: grown-up Pip (line drawing, no greeting, plain words) @layout", async ({ page }) => {
+  await openApp(page, { players: [player({ grade: 7 })], current: "p1" });
+  await expect(page.locator("#pip-home .bubble")).toHaveCount(0);
+  await expect(page.locator("#pip-home")).toContainText("Next up:");
+  await expect(page.locator("#pip-home .next-play")).toBeVisible();
+  await startLevel(page, "commas", 1, "port");
+  await miss(page);
+  await expect(page.locator("#feedback .pip-line")).toBeVisible();
+  await expect(page.locator("#feedback")).toContainText("Not yet. Hint:");
 });

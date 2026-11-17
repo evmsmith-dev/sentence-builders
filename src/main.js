@@ -1,8 +1,7 @@
 // Startup and screens: players, the town, worlds, levels, results, badges and settings.
 import {
   AVATARS, AVATAR_GROUPS, HABIT_BADGES, ITEMS_PER_LEVEL, MAX_GRADE, MAX_PLAYERS, MIN_GRADE, PIP, PIP_INTRO, DECOR, decorFor, HOMEWORK_PER_ROUND, PRACTICE_PER_ROUND, PRACTICE_GOAL, clampSpot, SKILLS, SPELLING_RULES, STUDIO_FROM_GRADE, NOUN_TABLE_FROM_GRADE, NOUN_KINDS, NOUN_REMINDERS_UNTIL, TIER_NAMES, WORLDS, WORLD_BADGES,
-  GOLD_DAYS, LABELS, LABEL_LISTS, PATTERNS, FLOW_LABELS, FLOW_PATTERNS, WORD_LISTS, WORD_PARTS, skillById, skillOpenFor, skillsInWorld, skillsInWorldFor, worldOpenFor,
-} from "./config.js";
+  GOLD_DAYS, LABELS, LABEL_LISTS, PATTERNS, FLOW_LABELS, FLOW_PATTERNS, WORD_LISTS, WORD_PARTS, skillById, skillOpenFor, skillsInWorld, skillsInWorldFor, worldOpenFor, PIP_GROWN, GROWN_PIP_FROM_GRADE} from "./config.js";
 import { answerText, spokenText } from "./lib/parse.js";
 import { pickLevelItems, pickSpellingItems, pickSummitItems } from "./lib/select.js";
 import { recordHomework, recordPractice, buyDecor, moveDecor, removeDecor,
@@ -216,7 +215,8 @@ function renderHome() {
     $("pip-home").innerHTML = `<button type="button" class="pip-mini" data-pip-expand aria-label="Show Pip's message">${settings().pip ? pipSvg(44) : "💬"}</button>${mainPlay}`;
   } else {
     const tuck = island ? '<button type="button" class="pip-min" data-pip-min aria-label="Make Pip\'s message smaller">–</button>' : "";
-    $("pip-home").innerHTML = settings().pip
+    // From grade 6 there's no greeting: just what's next and the Play button.
+    $("pip-home").innerHTML = settings().pip && !grownPip()
       ? pipSays(greeting, true, play + tuck)
       : next || due ? `<p class="next-line">${due ? esc(greeting) : `Next up: ${esc(next.skill.name)}, level ${next.level}.`} ${play}${tuck}</p>` : "";
   }
@@ -237,6 +237,7 @@ function renderHome() {
   $("badges-btn").innerHTML = `<span class="tool-emoji" aria-hidden="true">🏅</span><span>Badges ${earned}/${total}</span>`;
   $("build-btn").innerHTML = buildCardHtml(player);
   $("week-btn").innerHTML = weekCardHtml(player);
+  $("today-title").textContent = grownPip() ? "Today" : "Today with Pip";
   // A player who hasn't met Pip yet gets his welcome once (unless Pip is turned off).
   if (!player.introSeen && settings().pip && !topOverlay()) setTimeout(() => !$("home").hidden && !topOverlay() && openPipIntro(), 250);
   // Island Home: the Notice Board opens by itself once a day, when something is waiting, before free roaming.
@@ -312,7 +313,7 @@ function openTip(skillId, level, { review = false } = {}) {
   $("tip-start").textContent = review ? "Back to my results" : "Let's build";
   $("tip-close").hidden = review;
   $("tip-level").textContent = `${skill.name} · Level ${level} · Grade ${skill.grades[level - 1]}`;
-  $("tip-pip").innerHTML = settings().pip ? pipSvg(48) : "";
+  $("tip-pip").innerHTML = settings().pip ? pipArt(48) : "";
   $("tip-title").textContent = tip.title;
   $("tip-rule").textContent = tip.rule;
   $("tip-example").textContent = tip.example;
@@ -343,7 +344,7 @@ function startHomework() {
 /** Pip's welcome: a few short bubbles, shown once per player (and again from About). */
 function openPipIntro() {
   state.pipIntro = 0;
-  $("pip-intro-face").innerHTML = pipSvg(96);
+  $("pip-intro-face").innerHTML = grownPip() ? pipSvg(72, { line: true }) : pipSvg(96);
   drawPipIntro();
   openOverlay("pip-intro-overlay");
 }
@@ -408,7 +409,7 @@ function finishPractice() {
   const line = out.reached
     ? (summit ? `Flag number ${out.player.summits} is flying on Grammar Peaks. You remembered your rules!` : `Boat number ${out.player.lakeWins} is out on the lake. Great spelling!`)
     : `${goal} Look at the ones below, then try again.`;
-  $("result-pip").innerHTML = pipSays(line, true);
+  $("result-pip").innerHTML = pipRemark(line);
   $("result-badges").innerHTML = newBadges.map((b) => `<p class="new-badge"><span aria-hidden="true">${b.emoji}</span> New badge: <strong>${esc(b.name)}</strong></p>`).join("");
   $("result-review").innerHTML = reviewHtml(play);
   state.resultNext = { practice: play.mode };
@@ -424,6 +425,10 @@ function finishPractice() {
   state.play = null;
 }
 
+/** Pip's homework from grade 6: a slightly overconfident coworker who takes the grade. */
+const GROWN_HOMEWORK = { "A+": "Not one mistake got past you. Grade accepted.", A: "Fair grade. I'll fix those.",
+  B: "A B. I'll take it, and the corrections.", C: "A C. In my defense, some of those were sneaky.", "Try again": "Those were tricky. Want another of my paragraphs?" };
+
 function finishHomework() {
   const play = state.play;
   const now = Date.now();
@@ -437,7 +442,7 @@ function finishHomework() {
   $("result-bricks").innerHTML = `+${out.bricks} 🧱 bricks <span class="note">· ${out.player.bricks} to build with</span>`;
   const lines = { "A+": "An A+! Thank you, teacher. I'll fix those mistakes for good.", A: "An A! Thanks for checking my work so carefully.",
     B: "A B. Not bad! Thanks for catching my mistakes.", C: "A C. Hmm, some of those mistakes were sneaky.", "Try again": "Those were tricky. Want to check another one?" };
-  $("result-pip").innerHTML = pipSays(lines[out.grade], true);
+  $("result-pip").innerHTML = pipRemark((grownPip() ? GROWN_HOMEWORK : lines)[out.grade]);
   $("result-badges").innerHTML = "";
   $("result-review").innerHTML = reviewHtml(play);
   state.resultNext = { homework: true };
@@ -507,8 +512,9 @@ function openWeek() {
   const tutor = homeworkWaiting(player);
   $("week-body").innerHTML = `<section class="board-notice tutor-notice${tutor ? "" : " answered"}" aria-labelledby="tutor-title">
       <h3 id="tutor-title">📝 Tutor needed</h3>
-      <p>${tutor ? `Pip has ${HOMEWORK_PER_ROUND} paragraphs of homework. Can you find his mistakes? You'll earn bricks, and Pip gets a grade.`
-        : "Thanks for checking Pip's homework today! He always has more, if you'd like to keep tutoring."}</p>
+      <p>${tutor ? (grownPip() ? `I wrote ${HOMEWORK_PER_ROUND} paragraphs and I'm fairly sure they're fine. Check them, and grade me honestly.`
+          : `Pip has ${HOMEWORK_PER_ROUND} paragraphs of homework. Can you find his mistakes? You'll earn bricks, and Pip gets a grade.`)
+        : grownPip() ? "Thanks for the corrections. I have more paragraphs if you want them." : "Thanks for checking Pip's homework today! He always has more, if you'd like to keep tutoring."}</p>
       <button type="button" id="homework-btn" class="${tutor ? "primary" : "secondary"}">${tutor ? "Help Pip" : "Check more homework"}</button>
     </section>
     <section class="board-notice" aria-labelledby="sow-title">
@@ -550,9 +556,9 @@ function finishWeekDay() {
   $("result-score").textContent = `${out.right} of ${play.results.length} right on the first try · ${after.done.length} of 5 days`;
   $("result-bricks").hidden = !out.bricks;
   $("result-bricks").innerHTML = `+${out.bricks} 🧱 bricks${out.weekDone ? ` (${WEEK_BONUS} for the week)` : ""} <span class="note">· ${out.player.bricks} to build with</span>`;
-  $("result-pip").innerHTML = pipSays(out.weekDone
+  $("result-pip").innerHTML = pipRemark(out.weekDone
     ? "Five days, one sentence, and you know it inside out. Your banner is flying in the Town Square!"
-    : next !== null ? `Nice work. ${WEEK_DAYS[next].name}'s job is waiting too, if you want to catch up.` : "See you tomorrow for the next job on this sentence.", true);
+    : next !== null ? `Nice work. ${WEEK_DAYS[next].name}'s job is waiting too, if you want to catch up.` : "See you tomorrow for the next job on this sentence.");
   $("result-badges").innerHTML = "";
   $("result-review").innerHTML = reviewHtml(play);
   state.resultNext = next !== null ? { weekDay: next } : { home: true };
@@ -651,8 +657,15 @@ function updateCheck() {
   if (ctrl.usesCheck) $("check-btn").disabled = state.play.done || !ctrl.canCheck();
 }
 
+/** Grades 6–8 get Pip as a coworker: a small line drawing, drier words, no home-page greeting. */
+const grownPip = () => (state.player?.grade || 0) >= GROWN_PIP_FROM_GRADE;
+const pipWords = () => (grownPip() ? PIP_GROWN : PIP);
+const pipArt = (size) => (grownPip() ? pipSvg(Math.min(size, 34), { line: true }) : pipSvg(size));
+/** Pip's remark (results, the week): hidden when Comments and greeting is off, small and plain from grade 6. */
+const pipRemark = (text, action = "") => pipSays(text, settings().pip, action, { grown: grownPip() });
+
 /** Pip's small face beside a hint (nothing when Pip is turned off). */
-const pipFace = () => (settings().pip ? `<span class="feedback-pip" aria-hidden="true">${pipSvg(36)}</span>` : "");
+const pipFace = () => (settings().pip ? `<span class="feedback-pip" aria-hidden="true">${pipArt(36)}</span>` : "");
 
 function handleAnswer(right) {
   const play = state.play;
@@ -665,7 +678,7 @@ function handleAnswer(right) {
     (play.ctrl.showRight || play.ctrl.lock)();
     sound("right", s.sound);
     buzz(10);
-    const line = play.tries === 1 ? pick(PIP.right) : pick(PIP.secondTry);
+    const line = play.tries === 1 ? pick(pipWords().right) : pick(pipWords().secondTry);
     $("feedback").className = "feedback good";
     $("feedback").innerHTML = `<p><strong>✓ ${esc(line)}</strong></p>`;
   } else if (play.tries === 1) {
@@ -675,14 +688,14 @@ function handleAnswer(right) {
     $("feedback").className = "feedback hint";
     // Typed answers can say exactly what slipped (a capital, a comma); otherwise the item's own hint.
     const hintText = play.ctrl.missHint?.() || item.hint;
-    $("feedback").innerHTML = `${pipFace()}<div><p><strong>${esc(PIP.hint)}</strong> ${esc(hintText)}</p><p class="try-again">Try again.</p></div>`;
+    $("feedback").innerHTML = `${pipFace()}<div><p><strong>${esc(pipWords().hint)}</strong> ${esc(hintText)}</p><p class="try-again">Try again.</p></div>`;
     updateCheck();
   } else {
     play.results.push({ id: item.id, type: item.type, tries: 2, correct: false });
     finishItem();
     play.ctrl.reveal();
     $("feedback").className = "feedback shown";
-    $("feedback").innerHTML = `${pipFace()}<div><p><strong>${esc(PIP.shown)}</strong></p><p class="answer-line">${esc(answerText(item))}</p><p class="hint-line">${esc(item.hint)}</p></div>`;
+    $("feedback").innerHTML = `${pipFace()}<div><p><strong>${esc(pipWords().shown)}</strong></p><p class="answer-line">${esc(answerText(item))}</p><p class="hint-line">${esc(item.hint)}</p></div>`;
   }
 }
 
@@ -729,7 +742,7 @@ function completeItem({ tries, correct }) {
     sound("right", s.sound);
     buzz(10);
     $("feedback").className = "feedback good";
-    $("feedback").innerHTML = `<p><strong>✓ ${esc(tries === 1 ? pick(PIP.right) : "Done! A hint helped on the way.")}</strong></p>`;
+    $("feedback").innerHTML = `<p><strong>✓ ${esc(tries === 1 ? pick(pipWords().right) : "Done! A hint helped on the way.")}</strong></p>`;
   } else {
     $("feedback").className = "feedback shown";
     $("feedback").innerHTML = `${pipFace()}<div><p><strong>Done. Some answers were shown, so this one will come back later.</strong></p><p class="answer-line">${esc(answerText(item))}</p></div>`;
@@ -770,11 +783,11 @@ function finishLevel() {
   const skill = skillById(play.skillId);
   $("progress-fill").style.width = "100%";
   $("result-stars").innerHTML = [1, 2, 3].map((n) => `<span class="${n <= out.stars ? "on" : ""}">★</span>`).join("");
-  $("result-title").textContent = ["Almost there", "Built it!", "Great build!", "Perfect build!"][out.stars];
+  $("result-title").textContent = (grownPip() ? ["Not passed yet", "Passed", "Passed: 2 stars", "Perfect score"] : ["Almost there", "Built it!", "Great build!", "Perfect build!"])[out.stars];
   $("result-score").textContent = `${points(out.points)} of ${play.results.length} points · ${skill.name} level ${play.level}`;
   $("result-bricks").hidden = !out.bricks;
   $("result-bricks").innerHTML = `+${out.bricks} 🧱 bricks <span class="note">· ${out.player.bricks} to build with</span>`;
-  let pipLine = out.passed ? pick(PIP.passed) : PIP.notYet;
+  let pipLine = out.passed ? pick(pipWords().passed) : pipWords().notYet;
   if (out.passed && play.level === 3 && skillTier(out.player, skill.id) < 3) {
     const goldAt = (7 / 8) * play.results.length;
     pipLine += out.points >= goldAt && out.goldProgress ? ` Gold progress: ${out.goldProgress} of ${GOLD_DAYS} days.`
@@ -785,7 +798,7 @@ function finishLevel() {
     pipLine += ` You've been building for ${Math.round((now - state.sessionStart) / 60000)} minutes. Time for a stretch break!`;
     state.sessionStart = null;
   }
-  $("result-pip").innerHTML = pipSays(pipLine, true);
+  $("result-pip").innerHTML = pipRemark(pipLine);
   $("result-badges").innerHTML = out.newBadges.map(({ id, tier }) => {
     const badge = SKILLS.find((sk) => sk.badge.id === id)?.badge || [...WORLD_BADGES, ...HABIT_BADGES].find((b) => b.id === id);
     const tierName = SKILLS.some((sk) => sk.badge.id === id) ? ` · ${TIER_NAMES[tier - 1]}` : "";
