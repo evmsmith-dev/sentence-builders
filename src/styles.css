@@ -932,3 +932,12 @@ body.spacing .sentence { line-height: 2.3; }
 .today-card .today-chev { flex: none; font-size: 1.3rem; }
 .today-card .week-dots { margin: 0; gap: 3px; flex: none; }
 .today-card .week-dots span { width: 18px; height: 18px; font-size: 0.6rem; border-width: 1.5px; }
+
+/* Notice Board sheet: Pip's "Tutor needed" flyer, then the Sentence of the Week. */
+.board-notice { margin: 10px 0; padding: 12px 14px; border-radius: 14px; border: 2px solid var(--border); background: var(--card); }
+.board-notice h3 { margin: 0 0 6px; font-size: 1.1rem; }
+.board-notice p { margin: 0 0 8px; }
+.tutor-notice { border: 2px dashed var(--primary); background: #fbfdff; transform: rotate(-0.4deg); }
+.tutor-notice.answered { border-style: solid; border-color: var(--border); transform: none; }
+.tutor-notice button { min-height: 46px; padding: 6px 18px; }
+.today-card .week-row strong + span { white-space: normal; }

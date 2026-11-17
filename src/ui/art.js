@@ -343,22 +343,34 @@ function districtSvg(player, district, { fresh, rising, week = null }) {
   </g>`;
 }
 
-/** The Town Square's Notice Board: the Sentence of the Week, a stamp for each day done, a "!" when one waits. */
-function noticeBoardSvg({ done, waiting, today }) {
-  const x = 262;
+/**
+ * The Town Square's Notice Board: the Sentence of the Week (a stamp for each day done) and Pip's "Tutor needed"
+ * flyer (until his homework is checked today), with a "!" when either is waiting.
+ */
+function noticeBoardSvg({ done, waiting, tutor, today }) {
+  const x = 232;
   const y = 8;
   const stamps = ["M", "T", "W", "T", "F"].map((d, i) => {
-    const cx = x + 13 + i * 15;
+    const cx = x + 12 + i * 13;
     const on = done.includes(i);
-    return `<circle cx="${cx}" cy="${y + 30}" r="6" fill="${on ? "#2f6f4f" : "#fff"}" stroke="${on ? "#2f6f4f" : i === today ? "#2f6f4f" : "#c9b48f"}" stroke-width="1.5"/>
-      <text x="${cx}" y="${y + 33}" text-anchor="middle" font-size="7" font-weight="700" fill="${on ? "#fff" : "#7a6545"}">${on ? "✓" : d}</text>`;
+    return `<circle cx="${cx}" cy="${y + 30}" r="5.5" fill="${on ? "#2f6f4f" : "#fff"}" stroke="${on ? "#2f6f4f" : i === today ? "#2f6f4f" : "#c9b48f"}" stroke-width="1.4"/>
+      <text x="${cx}" y="${y + 32.5}" text-anchor="middle" font-size="6.5" font-weight="700" fill="${on ? "#fff" : "#7a6545"}">${on ? "✓" : d}</text>`;
   }).join("");
+  // Pip's flyer: a paper pinned at a tilt, with his face. Once his homework is checked today it says Thanks!
+  const fx = x + 76;
+  const flyer = `<g transform="rotate(${tutor ? 4 : -3} ${fx + 18} ${y + 22})">
+      <rect x="${fx}" y="${y + 5}" width="36" height="34" rx="2" fill="#fff" stroke="#d8cdb6"/>
+      <circle cx="${fx + 18}" cy="${y + 7}" r="2.2" fill="#e5484d"/>
+      <text x="${fx + 18}" y="${y + 16}" text-anchor="middle" font-size="6" font-weight="800" fill="#1f4e8c">${tutor ? "TUTOR" : "THANKS"}</text>
+      <text x="${fx + 18}" y="${y + 23}" text-anchor="middle" font-size="6" font-weight="800" fill="#1f4e8c">${tutor ? "NEEDED" : "TUTOR!"}</text>
+      <rect x="${fx + 12}" y="${y + 26}" width="12" height="9" rx="2.5" fill="#4f86e8"/><circle cx="${fx + 15.5}" cy="${y + 30}" r="1.2" fill="#fff"/><circle cx="${fx + 20.5}" cy="${y + 30}" r="1.2" fill="#fff"/>
+      <rect x="${fx + 11}" y="${y + 24.5}" width="14" height="2.5" rx="1.2" fill="#f5b72e"/></g>`;
   return `<g class="notice-board">
-    <rect x="${x + 8}" y="${y + 40}" width="5" height="18" fill="#7a5233"/><rect x="${x + 73}" y="${y + 40}" width="5" height="18" fill="#7a5233"/>
-    <rect x="${x}" y="${y}" width="86" height="44" rx="5" fill="#a8774c"/><rect x="${x + 4}" y="${y + 4}" width="78" height="36" rx="3" fill="#f6e7c4"/>
-    <text x="${x + 43}" y="${y + 16}" text-anchor="middle" font-size="9" font-weight="700" fill="#5b4126">📌 This week</text>${stamps}
-    ${waiting ? `<g class="board-alert"><circle cx="${x + 84}" cy="${y + 2}" r="9" fill="#e5484d"/><text x="${x + 84}" y="${y + 6}" text-anchor="middle" font-size="12" font-weight="800" fill="#fff">!</text></g>` : ""}
-    <rect class="board-hit" x="${x - 4}" y="${y - 8}" width="100" height="70" fill="transparent"><title>Notice Board: Sentence of the Week</title></rect></g>`;
+    <rect x="${x + 10}" y="${y + 42}" width="5" height="16" fill="#7a5233"/><rect x="${x + 101}" y="${y + 42}" width="5" height="16" fill="#7a5233"/>
+    <rect x="${x}" y="${y}" width="116" height="46" rx="5" fill="#a8774c"/><rect x="${x + 4}" y="${y + 4}" width="108" height="38" rx="3" fill="#f6e7c4"/>
+    <text x="${x + 38}" y="${y + 16}" text-anchor="middle" font-size="8.5" font-weight="700" fill="#5b4126">📌 This week</text>${stamps}${flyer}
+    ${waiting ? `<g class="board-alert"><circle cx="${x + 114}" cy="${y + 2}" r="9" fill="#e5484d"/><text x="${x + 114}" y="${y + 6}" text-anchor="middle" font-size="12" font-weight="800" fill="#fff">!</text></g>` : ""}
+    <rect class="board-hit" x="${x - 4}" y="${y - 8}" width="128" height="70" fill="transparent"><title>Notice Board: Sentence of the Week and Pip's homework</title></rect></g>`;
 }
 
 /** A string of pennants along the top of the Town Square, one for each finished week (the latest 12). */

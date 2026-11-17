@@ -874,6 +874,7 @@ test("bricks: a level pays bricks, the new building rises, and the Build screen 
 
 test("Pip's homework: grade three paragraphs, earn bricks, and it doesn't count as a level", async ({ page }) => {
   await openApp(page, { players: [player({ grade: 7 })], current: "p1" });
+  await page.locator("#week-btn").click(); // the Notice Board: Pip's "Tutor needed" flyer
   await page.locator("#homework-btn").click();
   await expect(page.locator("#play-skill")).toContainText("📝 Pip's homework:");
   await expect(page.locator("#progress-text")).toHaveText("1 of 3");
@@ -895,6 +896,10 @@ test("Pip's homework: grade three paragraphs, earn bricks, and it doesn't count 
   await expect(page.locator("#home")).toBeVisible();
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("sentenceBuilders_players")));
   expect(Object.keys(saved[0].levels)).toHaveLength(0);
+  // Today's homework is checked, so the board's flyer says thanks (and more is still there).
+  await expect(page.locator("#week-btn")).not.toContainText("Pip needs a tutor");
+  await page.locator("#week-btn").click();
+  await expect(page.locator("#homework-btn")).toHaveText("Check more homework");
 });
 
 test("Rule Book: word endings (-ed, plurals, will, -s/-ing, irregular verbs) in one place, Reference", { tag: "@layout" }, async ({ page }) => {
@@ -1265,7 +1270,8 @@ test("Listen and Write: Show the words setting @layout", async ({ page }) => {
 test("Sentence of the Week: Today with Pip card, the Notice Board, a day's job, and the week's banner @layout", async ({ page }) => {
   await page.clock.setFixedTime(new Date(2026, 10, 18, 10)); // a Wednesday
   await openApp(page, { players: [player({ grade: 4 })], current: "p1" });
-  await expect(page.locator("#week-btn")).toContainText("Sentence of the Week");
+  await expect(page.locator("#week-btn")).toContainText("Notice Board");
+  await expect(page.locator("#week-btn")).toContainText("Pip needs a tutor");
   await expect(page.locator("#week-btn")).toContainText("Monday: Parts of speech");
   await expect(page.locator(".town .notice-board")).toBeAttached();
   await expect(page.locator(".town .board-alert")).toBeAttached();

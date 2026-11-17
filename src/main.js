@@ -149,7 +149,6 @@ function renderHome() {
   $("badges-btn").innerHTML = `<span class="tool-emoji" aria-hidden="true">🏅</span><span>Badges ${earned}/${total}</span>`;
   $("build-btn").innerHTML = buildCardHtml(player);
   $("week-btn").innerHTML = weekCardHtml(player);
-  $("week-btn").hidden = !currentWeek(player);
   // A player who hasn't met Pip yet gets his welcome once (unless Pip is turned off).
   if (!player.introSeen && settings().pip && !topOverlay()) setTimeout(() => !$("home").hidden && !topOverlay() && openPipIntro(), 250);
   const worldCards = WORLDS.map((world) => {
@@ -233,6 +232,7 @@ function openTip(skillId, level, { review = false } = {}) {
 
 /** Pip's homework: three paragraphs with mistakes to find, unseen ones first. Doesn't count toward levels or badges. */
 function startHomework() {
+  closeOverlay("week-overlay");
   const band = state.player.grade <= 5 ? "3-5" : "6-8";
   const stats = state.player.items;
   const pool = (state.content.homework || []).filter((h) => h.band === band)
@@ -372,18 +372,20 @@ function weekDotsHtml(progress, now) {
     `<span class="${progress.done.includes(i) ? "done" : i === today ? "today" : i > today ? "later" : ""}">${progress.done.includes(i) ? "✓" : d.short}</span>`).join("")}</span>`;
 }
 
+const homeworkWaiting = (player) => player.homeworkOn !== localDate(Date.now());
+
+/** Today with Pip's first row: the Notice Board, with this week's job and Pip's "Tutor needed" flyer. */
 function weekCardHtml(player) {
   const week = currentWeek(player);
-  if (!week) return "";
   const now = Date.now();
-  const progress = weekProgressFor(player);
-  const next = nextDay(progress, now);
-  const line = progress.done.length === 5 ? "Week done! A new sentence comes Monday."
-    : next !== null ? `${WEEK_DAYS[next].name}: ${WEEK_DAYS[next].task}`
-    : `Done today. ${WEEK_DAYS[Math.min(todayIndex(now) + 1, 4)].name} is next.`;
+  const progress = week ? weekProgressFor(player) : { done: [] };
+  const next = week ? nextDay(progress, now) : null;
+  const weekLine = !week ? "" : progress.done.length === 5 ? "Week done!"
+    : next !== null ? `${WEEK_DAYS[next].name}: ${WEEK_DAYS[next].task}` : `Done today. ${WEEK_DAYS[Math.min(todayIndex(now) + 1, 4)].name} is next.`;
+  const line = [weekLine, homeworkWaiting(player) ? "Pip needs a tutor" : ""].filter(Boolean).join(" · ") || "All done for today";
   return `<span class="homework-emoji" aria-hidden="true">📌</span>
-    <span><strong>Sentence of the Week</strong><span>${esc(line)}</span></span>
-    ${weekDotsHtml(progress, now)}<span class="today-chev" aria-hidden="true">›</span>`;
+    <span><strong>Notice Board</strong><span>${esc(line)}</span></span>
+    ${week ? weekDotsHtml(progress, now) : ""}<span class="today-chev" aria-hidden="true">›</span>`;
 }
 
 /** What the Notice Board on the map shows: the days done, and whether one is waiting today. */
@@ -391,7 +393,7 @@ function weekMapInfo(player) {
   const week = currentWeek(player);
   if (!week) return null;
   const progress = weekProgressFor(player);
-  return { done: progress.done, waiting: nextDay(progress, Date.now()) !== null, today: todayIndex(Date.now()) };
+  return { done: progress.done, waiting: nextDay(progress, Date.now()) !== null || homeworkWaiting(player), tutor: homeworkWaiting(player), today: todayIndex(Date.now()) };
 }
 
 function openWeek() {
@@ -409,10 +411,20 @@ function openWeek() {
     return `<li class="week-day${done ? " done" : ""}"><span><strong>${d.name}</strong><span>${d.task}</span></span>${action}</li>`;
   }).join("");
   const banners = (player.banners || []).length;
-  $("week-body").innerHTML = `<p class="week-board" aria-label="This week's sentence">${esc(boardText(week))}</p>
-    <p class="note">One sentence all week, a short job each day. Missed a day? Catch up any time before Monday. Finish all five for ${WEEK_BONUS} bonus bricks and a banner in the Town Square.</p>
-    <ol class="week-days">${rows}</ol>
-    ${banners ? `<p class="note">🎏 ${banners} banner${banners === 1 ? "" : "s"} flying in the Town Square.</p>` : ""}`;
+  const tutor = homeworkWaiting(player);
+  $("week-body").innerHTML = `<section class="board-notice tutor-notice${tutor ? "" : " answered"}" aria-labelledby="tutor-title">
+      <h3 id="tutor-title">📝 Tutor needed</h3>
+      <p>${tutor ? `Pip has ${HOMEWORK_PER_ROUND} paragraphs of homework. Can you find his mistakes? You'll earn bricks, and Pip gets a grade.`
+        : "Thanks for checking Pip's homework today! He always has more, if you'd like to keep tutoring."}</p>
+      <button type="button" id="homework-btn" class="${tutor ? "primary" : "secondary"}">${tutor ? "Help Pip" : "Check more homework"}</button>
+    </section>
+    <section class="board-notice" aria-labelledby="sow-title">
+      <h3 id="sow-title">📌 Sentence of the Week</h3>
+      <p class="week-board" aria-label="This week's sentence">${esc(boardText(week))}</p>
+      <p class="note">One sentence all week, a short job each day. Missed a day? Catch up any time before Monday. Finish all five for ${WEEK_BONUS} bonus bricks and a banner in the Town Square.</p>
+      <ol class="week-days">${rows}</ol>
+      ${banners ? `<p class="note">🎏 ${banners} banner${banners === 1 ? "" : "s"} flying in the Town Square.</p>` : ""}
+    </section>`;
   openOverlay("week-overlay");
 }
 
@@ -908,8 +920,8 @@ function drawMapPanel() {
     ${skills.length
       ? `<p class="map-hint">Tap a building or an empty lot to pick a level.</p>
         <div class="map-chips">${skills.map((s) => `<button type="button" class="map-chip" data-skill-sheet="${s.id}" style="--skill:${s.color}">${esc(s.name)}</button>`).join("")}</div>`
-      : `<p class="map-hint">The middle of the island: decorate it with your bricks.${currentWeek(player) ? " The Notice Board has the Sentence of the Week." : ""}</p>
-        ${currentWeek(player) ? '<div class="map-chips"><button type="button" class="map-chip" data-week>📌 Sentence of the Week</button></div>' : ""}`}
+      : `<p class="map-hint">The middle of the island: decorate it with your bricks. The Notice Board has the Sentence of the Week and Pip's homework.</p>
+        <div class="map-chips"><button type="button" class="map-chip" data-week>📌 Notice Board</button></div>`}
     <div class="map-actions">${decorate}${here.world ? `<button type="button" class="link" data-open-world="${here.world}">All levels here</button>` : ""}${whole}</div>`;
 }
 
