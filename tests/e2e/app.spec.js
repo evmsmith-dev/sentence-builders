@@ -1365,8 +1365,10 @@ test("Grades 6-8: the island as a blueprint, Worlds first, no brick shop; Settin
   expect(listY).toBeLessThan(mapY);
   await expect(page.locator(".town.blueprint")).toBeAttached();
   await expect(page.locator(".town .skill-label.bp-weak")).toContainText("Commas · 1/3 · 50%");
+  const before = await page.evaluate(() => { document.querySelector("#map-expand").scrollIntoView({ block: "center" }); return window.scrollY; });
   await page.locator("#map-expand").click();
   await expect(page.locator("#bp-toggle")).toHaveText("Smaller");
+  expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(before - 50); // the page stays where it was
   await page.locator("#settings-btn").click();
   await page.locator("#set-showisland").check();
   await page.locator("#settings-overlay [data-close]").click();

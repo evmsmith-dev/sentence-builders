@@ -1590,9 +1590,11 @@ function wire() {
       const [skillId, level] = nextUpBtn.dataset.nextUp.split(/-(?=\d$)/);
       return openTip(skillId, Number(level));
     }
-    if (target.closest("#map-expand, #bp-toggle")) { state.mapOpen = !state.mapOpen; return renderHome(); }
-    if (target.closest("[data-pip-min]")) { state.pipMin = true; return renderHome(); }
-    if (target.closest("[data-pip-expand]")) { state.pipMin = false; return renderHome(); }
+    // Redrawing the home screen shouldn't jump the page back to the top.
+    const stay = (change) => { const y = window.scrollY; change(); renderHome(); window.scrollTo(0, y); };
+    if (target.closest("#map-expand, #bp-toggle")) return stay(() => { state.mapOpen = !state.mapOpen; });
+    if (target.closest("[data-pip-min]")) return stay(() => { state.pipMin = true; });
+    if (target.closest("[data-pip-expand]")) return stay(() => { state.pipMin = false; });
     if (target.closest("#island-build")) {
       if (!playedToday(state.player)) {
         $("pip-home").innerHTML = pipSays("Let's do a lesson first! Then you can build with your bricks.", true, $("pip-home").querySelector(".next-play")?.outerHTML || "");
