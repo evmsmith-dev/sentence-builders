@@ -1277,6 +1277,9 @@ export function renderItem(root, item, hooks) {
     flow: renderFlow, labels: renderLabels, proofread: renderProofread, diagram: renderDiagram, combine: renderCombine, dictate: renderDictate,
   }[item.type];
   if (!render) throw new Error(`Unknown item type: ${item.type}`);
-  root.innerHTML = "";
-  return render(root, item, hooks);
+  // A fresh box for each question: the last question's click and key listeners go with the old one (otherwise
+  // Listen in Listen and Write also played the earlier sentences).
+  const fresh = root.cloneNode(false);
+  root.replaceWith(fresh);
+  return render(fresh, item, hooks);
 }

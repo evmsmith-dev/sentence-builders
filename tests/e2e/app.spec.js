@@ -1484,3 +1484,22 @@ test("Challenge Trails (grades 3-5): mastery opens the next level with Pip's new
   await page.locator('[data-world="port"]').click();
   await expect(page.locator('.level-btn[data-skill="commas"][data-level="2"]')).toBeDisabled();
 });
+
+test("Listen and Write: Listen on a later question reads only that question's sentence", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.__said = [];
+    const fake = { speak: (u) => window.__said.push(u.text), cancel: () => {}, getVoices: () => [], addEventListener: () => {}, speaking: false };
+    Object.defineProperty(window, "speechSynthesis", { value: fake, configurable: true });
+    window.SpeechSynthesisUtterance = function (text) { this.text = text; };
+  });
+  await openApp(page, { players: [player({ grade: 4 })], current: "p1" });
+  await startLevel(page, "dictation", 1, "port");
+  await answer(page);
+  await page.locator("#next-btn").click();
+  const second = await currentItem(page);
+  await page.waitForTimeout(500); // the sentence plays once on its own
+  await page.evaluate(() => { window.__said = []; });
+  await page.locator("#item [data-dictate='play']").click();
+  const said = await page.evaluate(() => window.__said);
+  expect(said).toEqual([second.text.replace(/["“”]/g, "")]);
+});
