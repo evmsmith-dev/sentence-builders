@@ -386,11 +386,11 @@ function weekCardHtml(player) {
   const progress = weekProgressFor(player);
   const next = nextDay(progress, now);
   const line = progress.done.length === 5 ? "Week done! A new sentence comes Monday."
-    : next !== null ? `${WEEK_DAYS[next].name}: ${WEEK_DAYS[next].task} · about 2 minutes`
-    : `Done for today. ${WEEK_DAYS[Math.min(todayIndex(now) + 1, 4)].name} is next.`;
+    : next !== null ? `${WEEK_DAYS[next].name}: ${WEEK_DAYS[next].task}`
+    : `Done today. ${WEEK_DAYS[Math.min(todayIndex(now) + 1, 4)].name} is next.`;
   return `<span class="homework-emoji" aria-hidden="true">📌</span>
-    <span><strong>Sentence of the Week</strong><span>${esc(line)}</span>${weekDotsHtml(progress, now)}</span>
-    <span class="today-chev" aria-hidden="true">›</span>`;
+    <span><strong>Sentence of the Week</strong><span>${esc(line)}</span></span>
+    ${weekDotsHtml(progress, now)}<span class="today-chev" aria-hidden="true">›</span>`;
 }
 
 /** What the Notice Board on the map shows: the days done, and whether one is waiting today. */
@@ -936,18 +936,17 @@ function buildCardHtml(player) {
   const next = left.find((d) => d.cost > bricks);
   let line;
   let bar = "";
-  if (!left.length) line = "Every decoration is built. What an island!";
+  if (!left.length) line = "Everything is built. What an island!";
   else if (canBuild.length) {
     const best = canBuild[canBuild.length - 1];
-    line = canBuild.length === 1 ? `You can build the ${best.emoji} ${best.name.toLowerCase()}!` : `You can build ${canBuild.length} things, like the ${best.emoji} ${best.name.toLowerCase()}!`;
+    line = canBuild.length === 1 ? `Ready: the ${best.emoji} ${best.name.toLowerCase()}` : `${canBuild.length} ready, like the ${best.emoji} ${best.name.toLowerCase()}`;
   } else {
-    line = `${next.cost - bricks} more for the ${next.emoji} ${next.name.toLowerCase()}.`;
+    line = `${next.cost - bricks} more for the ${next.emoji} ${next.name.toLowerCase()}`;
     bar = `<span class="build-bar" aria-hidden="true"><span style="width:${Math.round((bricks / next.cost) * 100)}%"></span></span>`;
   }
   return `<span class="homework-emoji" aria-hidden="true">🧱</span>
-    <span><strong>Build on the island · ${bricks} brick${bricks === 1 ? "" : "s"}</strong><span>${esc(line)}</span>${bar}</span>
-    <span class="today-chev" aria-hidden="true">›</span>
-    ${canBuild.length ? '<span class="build-ready">Build</span>' : ""}`;
+    <span><strong>Build on the island · ${bricks} 🧱</strong><span>${esc(line)}</span>${bar}</span>
+    ${canBuild.length ? '<span class="build-ready">Build</span>' : '<span class="today-chev" aria-hidden="true">›</span>'}`;
 }
 
 /** A district that can be decorated now: the one asked for if it's open, else the Town Square. */

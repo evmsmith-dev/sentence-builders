@@ -919,3 +919,16 @@ body.spacing .sentence { line-height: 2.3; }
 .week-day.done { background: #e8f3ec; border-color: #b9d3c4; }
 .week-day button { min-height: 44px; padding: 6px 16px; }
 .week-done { color: #2f6f4f; font-weight: 700; }
+
+/* Today with Pip, compact: one short line under each title, so the card stays small. */
+.today-title { padding: 8px 14px 2px; font-size: 0.9rem; }
+.today-card .today-row { padding: 7px 12px; gap: 10px; min-height: 56px; }
+.today-card .homework-emoji { font-size: 1.4rem; width: 28px; text-align: center; flex: none; }
+.today-card .today-row > span:nth-child(2) { min-width: 0; gap: 0; }
+.today-card .today-row strong { font-size: 0.98rem; line-height: 1.25; }
+.today-card .today-row strong + span { font-size: 0.88rem; color: var(--muted); line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.today-card .build-bar { height: 5px; margin-top: 3px; }
+.today-card .build-ready { padding: 5px 12px; font-size: 0.9rem; flex: none; }
+.today-card .today-chev { flex: none; font-size: 1.3rem; }
+.today-card .week-dots { margin: 0; gap: 3px; flex: none; }
+.today-card .week-dots span { width: 18px; height: 18px; font-size: 0.6rem; border-width: 1.5px; }
