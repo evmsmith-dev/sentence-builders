@@ -36,7 +36,7 @@ body {
   min-height: 100vh;
   background: var(--bg);
   color: var(--text);
-  font: 500 18px/1.45 "DashFix", "Fredoka", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font: 500 1.125rem/1.45 "DashFix", "Fredoka", system-ui, -apple-system, "Segoe UI", sans-serif;
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 button, input, select { font: inherit; color: inherit; }
@@ -238,6 +238,15 @@ button:disabled { cursor: default; }
 .kinds { margin-top: 16px; }
 .fix-step, .word-step, .comma-step { margin-top: 14px; padding-top: 12px; border-top: 2px solid var(--primary-soft); }
 .join-parts .sentence { margin: 0 0 4px; }
+/* Sentence combining: the short sentences, then the typing box. */
+.combine-parts .sentence { margin: 0 0 6px; line-height: 1.5; padding: 6px 12px; border-left: 4px solid var(--primary); background: var(--primary-soft); border-radius: 8px; }
+.combine-use { margin: 8px 0 4px; }
+.combine-use strong { padding: 2px 10px; border-radius: 999px; background: var(--hint-soft); color: var(--hint); }
+.combine-input { display: block; width: 100%; margin-top: 4px; padding: 10px 12px; border: 2px solid var(--border); border-radius: 12px;
+  background: #fff; font: inherit; font-size: 1.3rem; line-height: 1.5; resize: vertical; color: var(--text); }
+.combine-input:focus { border-color: var(--primary); outline: none; }
+.combine-input.right { border-color: var(--good); background: var(--good-soft); }
+.combine-input.shown { border-color: var(--shown); background: var(--shown-soft); }
 .comma-sentence .sentence { font-size: 1.35rem; }
 
 /* Q&A Flow */
@@ -598,10 +607,49 @@ details.noun-kind > .rule-card { margin-top: 8px; }
 .town .park-sign { font: 600 13px "Fredoka", system-ui, sans-serif; fill: #2e5e32; }
 .town .decor { transform-box: fill-box; transform-origin: 50% 100%; }
 @media (prefers-reduced-motion: no-preference) {
-  .town .decor.walk { animation: stroll 9s ease-in-out infinite alternate; }
   .town .decor.pop { animation: pop-in 0.7s cubic-bezier(.2, 1.6, .4, 1) both; }
+  /* On the island: things that drive, walk or swim go back and forth and turn around; others fly, spin or rock. */
+  .town .move { transform-box: fill-box; transform-origin: 50% 100%; }
+  .town .move-drive { animation: drive 11s ease-in-out infinite; }
+  .town .move-walk { animation: walk 14s ease-in-out infinite; }
+  .town .move-swim { animation: swim 16s ease-in-out infinite; }
+  .town .move-sail { animation: sail 7s ease-in-out infinite alternate; }
+  .town .move-fly { animation: fly 3.2s ease-in-out infinite alternate; }
+  .town .move-hover { animation: hover 7s ease-in-out infinite alternate; }
+  .town .move-spin { transform-origin: 50% 62%; animation: spin 6s linear infinite; }
+  .town .move-sway { animation: sway 4s ease-in-out infinite alternate; }
+  .town .move-bob { animation: bob 1.4s ease-in-out infinite alternate; }
+  /* In the Build close-up they move on the spot, so they stay easy to grab. */
+  .park-view .decor.drag { transform-box: fill-box; transform-origin: 50% 100%; }
+  .park-view .idle-drive:not(.dragging), .park-view .idle-walk:not(.dragging) { animation: rumble 0.5s ease-in-out infinite alternate; }
+  .park-view .idle-swim:not(.dragging), .park-view .idle-sail:not(.dragging), .park-view .idle-bob:not(.dragging) { animation: bob 1.4s ease-in-out infinite alternate; }
+  .park-view .idle-fly:not(.dragging), .park-view .idle-sway:not(.dragging) { animation: sway 3s ease-in-out infinite alternate; }
+  .park-view .idle-hover:not(.dragging) { animation: bob 2s ease-in-out infinite alternate; }
+  .park-view .idle-spin:not(.dragging) { transform-origin: 50% 62%; animation: spin 6s linear infinite; }
 }
-@keyframes stroll { from { transform: translateX(-34px); } to { transform: translateX(34px); } }
+/* Emoji vehicles and animals face left: go left, turn around, come back. */
+@keyframes drive {
+  0% { transform: translateX(30px) scaleX(1); } 46% { transform: translateX(-30px) scaleX(1); }
+  50% { transform: translateX(-30px) scaleX(-1); } 96% { transform: translateX(30px) scaleX(-1); } 100% { transform: translateX(30px) scaleX(1); }
+}
+@keyframes walk {
+  0% { transform: translateX(26px) scaleX(1); } 12% { transform: translateX(14px) translateY(-2px) scaleX(1); }
+  24%, 30% { transform: translateX(0) scaleX(1); } 46% { transform: translateX(-26px) scaleX(1); }
+  50% { transform: translateX(-26px) scaleX(-1); } 62% { transform: translateX(-14px) translateY(-2px) scaleX(-1); }
+  74%, 80% { transform: translateX(0) scaleX(-1); } 96% { transform: translateX(26px) scaleX(-1); } 100% { transform: translateX(26px) scaleX(1); }
+}
+@keyframes swim {
+  0% { transform: translateX(34px) translateY(0) scaleX(1); } 23% { transform: translateX(0) translateY(2px) scaleX(1); }
+  46% { transform: translateX(-34px) translateY(0) scaleX(1); } 50% { transform: translateX(-34px) scaleX(-1); }
+  73% { transform: translateX(0) translateY(2px) scaleX(-1); } 96% { transform: translateX(34px) scaleX(-1); } 100% { transform: translateX(34px) scaleX(1); }
+}
+@keyframes sail { from { transform: translateX(-22px) rotate(-4deg); } to { transform: translateX(22px) rotate(4deg); } }
+@keyframes fly { from { transform: translateY(3px) rotate(-6deg); } to { transform: translateY(-6px) rotate(6deg); } }
+@keyframes hover { from { transform: translate(-30px, 2px); } to { transform: translate(30px, -5px); } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes sway { from { transform: rotate(-4deg); } to { transform: rotate(4deg); } }
+@keyframes bob { from { transform: translateY(0); } to { transform: translateY(-3px); } }
+@keyframes rumble { from { transform: translateY(0); } to { transform: translateY(-1.5px); } }
 @keyframes pop-in { from { transform: scale(0); } to { transform: scale(1); } }
 
 .result-bricks { margin: 2px 0 0; font-weight: 700; color: #8d4e1f; }
@@ -767,3 +815,23 @@ details.spell-card > .rule-card { margin-top: 8px; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 .rules-ref-link { margin: 14px 4px 0; }
 .rules-ref-link .link { font: inherit; font-weight: 700; padding: 0; min-height: 0; }
+
+/* ---------- Reading support (Settings: reading font, text size, extra spacing) ---------- */
+html[data-text-size="large"] { font-size: 112.5%; }
+html[data-text-size="larger"] { font-size: 125%; }
+body[data-font="clear"], body.theme-studio[data-font="clear"] { font-family: "DashFix", "Atkinson Hyperlegible", system-ui, sans-serif; }
+body[data-font="dyslexic"], body.theme-studio[data-font="dyslexic"] { font-family: "OpenDyslexic", system-ui, sans-serif; font-weight: 400; }
+body[data-font] .dg-slot text, body[data-font] .mark-name { font-family: inherit; }
+body.spacing { letter-spacing: 0.06em; word-spacing: 0.16em; }
+body.spacing p, body.spacing li, body.spacing dd { line-height: 1.75; }
+body.spacing .sentence { line-height: 2.3; }
+
+/* ---------- Names in sentences (Settings) ---------- */
+.settings-names { margin-top: 14px; }
+.settings-names h3 { margin: 0 0 4px; font-size: 1.05rem; }
+.names-fields { display: grid; gap: 8px; }
+.names-fields .note { margin: 0; }
+.name-row { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 8px; }
+.name-row input:only-child { grid-column: 1 / -1; }
+.name-row input { min-width: 0; min-height: 46px; padding: 6px 10px; border: 2px solid var(--border); border-radius: 10px; background: #fff; }
+.name-row select { min-height: 46px; }

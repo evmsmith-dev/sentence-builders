@@ -24,7 +24,7 @@ export const MAX_PLAYERS = 4;
 export const WORLDS = [
   { id: "port", tab: "Punctuation", name: "Punctuation Port", emoji: "⚓", ready: true, blurb: "Commas, colons, quotation marks and apostrophes" },
   { id: "works", tab: "Word Works", name: "Word Works", emoji: "⚙️", ready: true, blurb: "Verb tenses, agreement, pronouns, word parts and word choice" },
-  { id: "studio", tab: "Sentences", name: "Sentence Studio", emoji: "🎨", ready: true, blurb: "Fragments, run-ons, compound and complex sentences, figurative language and revising" },
+  { id: "studio", tab: "Sentences", name: "Sentence Studio", emoji: "🎨", ready: true, blurb: "Fragments, run-ons, compound and complex sentences, figurative language, revising and sentence combining" },
   { id: "flow", tab: "Q&A Flow", name: "Flow Factory", emoji: "🏭", ready: true, blurb: "Label every word with the Q&A Flow and the parts of speech, then mark it up (and diagram it, from grade 5)" },
   {
     id: "desk", tab: "Revision", name: "Revision Ridge", emoji: "📝", ready: true, minGrade: 6,
@@ -107,6 +107,12 @@ export const SKILLS = [
     id: "revising", world: "studio", name: "Revising Sentences", short: "Revising", color: "#00838f",
     grades: [3, 4, 5], benchmarks: "MN 3.2.3.2, 4.2.3.2, 5.2.3.2 (words and sentences that convey ideas precisely); synonyms and antonyms",
     badge: { id: "polish-pro", name: "Polish Pro", emoji: "✨" },
+  },
+  {
+    // Typed: two sentences joined with and/or (one subject or verb), then with a comma and and/but/so/or, then with because/when/although.
+    id: "combining", world: "studio", name: "Sentence Combining", short: "Combining", color: "#2e7d32",
+    grades: [3, 4, 5], benchmarks: "MN 3.2.1.3, 4.2.1.3, 5.2.1.1 (simple, compound and complex sentences), put to work in writing: combining short sentences",
+    badge: { id: "sentence-smith", name: "Sentence Smith", emoji: "🔨" },
   },
   {
     id: "flow", world: "flow", name: "Q&A Flow", short: "Q&A Flow", color: "#6d4c9f",
@@ -378,46 +384,47 @@ export const BRICKS = { first: 2, second: 1, star: 3, firstPass: 10, homeworkFix
 
 /**
  * Decorations, cheapest first. zone: "square" (the park by the water, in a back or front row), "sky" or
- * "water"; x is where it sits (0–360), so nothing overlaps. walk: it strolls along the front row (only when
- * motion is allowed).
+ * "water"; x is where it sits (0–360), so nothing overlaps. move: how it moves on the island (only when motion
+ * is allowed): drive and walk go back and forth and turn around, swim and sail move on the water, fly and hover
+ * in the sky, spin turns, sway rocks and bob bounces. In the Build close-up it moves on the spot, so it's easy to grab.
  */
 export const DECOR = [
   { id: "tulips", name: "Tulips", emoji: "🌷", cost: 8, zone: "square", row: "front", x: 22 },
   { id: "mailbox", name: "Mailbox", emoji: "📮", cost: 10, zone: "square", row: "front", x: 72 },
   { id: "oak", name: "Oak tree", emoji: "🌳", cost: 12, zone: "square", row: "back", x: 28 },
-  { id: "balloons", name: "Balloons", emoji: "🎈", cost: 15, zone: "sky", x: 30 },
+  { id: "balloons", name: "Balloons", emoji: "🎈", cost: 15, zone: "sky", x: 30, move: "fly" },
   { id: "sunflowers", name: "Sunflowers", emoji: "🌻", cost: 15, zone: "square", row: "front", x: 338 },
   { id: "pine", name: "Pine tree", emoji: "🌲", cost: 18, zone: "square", row: "back", x: 338 },
-  { id: "ducks", name: "Ducks", emoji: "🦆", cost: 20, zone: "water", x: 60 },
-  { id: "kite", name: "Kite", emoji: "🪁", cost: 25, zone: "sky", x: 96 },
-  { id: "icecream", name: "Ice cream cart", emoji: "🍦", cost: 30, zone: "square", row: "front", x: 292 },
+  { id: "ducks", name: "Ducks", emoji: "🦆", cost: 20, zone: "water", x: 60, move: "swim" },
+  { id: "kite", name: "Kite", emoji: "🪁", cost: 25, zone: "sky", x: 96, move: "fly" },
+  { id: "icecream", name: "Ice cream cart", emoji: "🍦", cost: 30, zone: "square", row: "front", x: 292, move: "drive" },
   { id: "tent", name: "Camping tent", emoji: "⛺", cost: 35, zone: "square", row: "back", x: 298 },
-  { id: "sailboat", name: "Sailboat", emoji: "⛵", cost: 40, zone: "water", x: 170 },
-  { id: "fountain", name: "Fountain", emoji: "⛲", cost: 45, zone: "square", row: "back", x: 120 },
-  { id: "dog", name: "Dog", emoji: "🐕", cost: 50, zone: "square", row: "front", x: 130, walk: true },
-  { id: "cat", name: "Cat", emoji: "🐈", cost: 50, zone: "square", row: "front", x: 230, walk: true },
+  { id: "sailboat", name: "Sailboat", emoji: "⛵", cost: 40, zone: "water", x: 170, move: "sail" },
+  { id: "fountain", name: "Fountain", emoji: "⛲", cost: 45, zone: "square", row: "back", x: 120, move: "bob" },
+  { id: "dog", name: "Dog", emoji: "🐕", cost: 50, zone: "square", row: "front", x: 130, move: "walk" },
+  { id: "cat", name: "Cat", emoji: "🐈", cost: 50, zone: "square", row: "front", x: 230, move: "walk" },
   { id: "slide", name: "Playground slide", emoji: "🛝", cost: 60, zone: "square", row: "back", x: 74 },
-  { id: "foodtruck", name: "Food truck", emoji: "🚚", cost: 75, zone: "square", row: "back", x: 256 },
-  { id: "carousel", name: "Carousel", emoji: "🎠", cost: 90, zone: "square", row: "back", x: 210 },
+  { id: "foodtruck", name: "Food truck", emoji: "🚚", cost: 75, zone: "square", row: "back", x: 256, move: "drive" },
+  { id: "carousel", name: "Carousel", emoji: "🎠", cost: 90, zone: "square", row: "back", x: 210, move: "bob" },
   { id: "rainbow", name: "Rainbow", emoji: "🌈", cost: 110, zone: "sky", x: 196 },
-  { id: "whale", name: "Whale", emoji: "🐳", cost: 130, zone: "water", x: 110 },
-  { id: "ferris", name: "Ferris wheel", emoji: "🎡", cost: 160, zone: "square", row: "back", x: 165 },
-  { id: "ufo", name: "Friendly UFO", emoji: "🛸", cost: 200, zone: "sky", x: 250 },
+  { id: "whale", name: "Whale", emoji: "🐳", cost: 130, zone: "water", x: 110, move: "swim" },
+  { id: "ferris", name: "Ferris wheel", emoji: "🎡", cost: 160, zone: "square", row: "back", x: 165, move: "sway" },
+  { id: "ufo", name: "Friendly UFO", emoji: "🛸", cost: 200, zone: "sky", x: 250, move: "hover" },
   // Themed decorations: each can only be built in its own district (area). Everything above goes anywhere.
   { id: "shell", area: "port", name: "Seashell", emoji: "🐚", cost: 8, zone: "square", row: "front", x: 120 },
   { id: "anchor", area: "port", name: "Anchor", emoji: "⚓", cost: 12, zone: "square", row: "front", x: 40 },
-  { id: "lifebuoy", area: "port", name: "Life ring", emoji: "🛟", cost: 15, zone: "square", row: "back", x: 300 },
-  { id: "crab", area: "port", name: "Crab", emoji: "🦀", cost: 20, zone: "square", row: "front", x: 200, walk: true },
-  { id: "speedboat", area: "port", name: "Speedboat", emoji: "🚤", cost: 45, zone: "water", x: 80 },
-  { id: "seal", area: "port", name: "Seal", emoji: "🦭", cost: 60, zone: "water", x: 250 },
-  { id: "octopus", area: "port", name: "Octopus", emoji: "🐙", cost: 90, zone: "water", x: 170 },
+  { id: "lifebuoy", area: "port", name: "Life ring", emoji: "🛟", cost: 15, zone: "square", row: "back", x: 300, move: "sway" },
+  { id: "crab", area: "port", name: "Crab", emoji: "🦀", cost: 20, zone: "square", row: "front", x: 200, move: "walk" },
+  { id: "speedboat", area: "port", name: "Speedboat", emoji: "🚤", cost: 45, zone: "water", x: 80, move: "swim" },
+  { id: "seal", area: "port", name: "Seal", emoji: "🦭", cost: 60, zone: "water", x: 250, move: "swim" },
+  { id: "octopus", area: "port", name: "Octopus", emoji: "🐙", cost: 90, zone: "water", x: 170, move: "swim" },
   { id: "wrench", area: "works", name: "Giant wrench", emoji: "🔧", cost: 8, zone: "square", row: "front", x: 40 },
   { id: "toolbox", area: "works", name: "Toolbox", emoji: "🧰", cost: 12, zone: "square", row: "front", x: 120 },
-  { id: "gear", area: "works", name: "Big gear", emoji: "⚙️", cost: 18, zone: "square", row: "back", x: 300 },
-  { id: "tractor", area: "works", name: "Tractor", emoji: "🚜", cost: 45, zone: "square", row: "front", x: 230, walk: true },
-  { id: "crane", area: "works", name: "Crane", emoji: "🏗️", cost: 70, zone: "square", row: "back", x: 70 },
-  { id: "robot", area: "works", name: "Robot helper", emoji: "🤖", cost: 90, zone: "square", row: "front", x: 170, walk: true },
-  { id: "train", area: "works", name: "Steam train", emoji: "🚂", cost: 120, zone: "square", row: "back", x: 190 },
+  { id: "gear", area: "works", name: "Big gear", emoji: "⚙️", cost: 18, zone: "square", row: "back", x: 300, move: "spin" },
+  { id: "tractor", area: "works", name: "Tractor", emoji: "🚜", cost: 45, zone: "square", row: "front", x: 230, move: "drive" },
+  { id: "crane", area: "works", name: "Crane", emoji: "🏗️", cost: 70, zone: "square", row: "back", x: 70, move: "sway" },
+  { id: "robot", area: "works", name: "Robot helper", emoji: "🤖", cost: 90, zone: "square", row: "front", x: 170, move: "walk" },
+  { id: "train", area: "works", name: "Steam train", emoji: "🚂", cost: 120, zone: "square", row: "back", x: 190, move: "drive" },
   { id: "palette", area: "studio", name: "Paint palette", emoji: "🎨", cost: 8, zone: "square", row: "front", x: 40 },
   { id: "mic", area: "studio", name: "Microphone", emoji: "🎤", cost: 12, zone: "square", row: "front", x: 120 },
   { id: "masks", area: "studio", name: "Theater masks", emoji: "🎭", cost: 18, zone: "square", row: "back", x: 300 },
@@ -431,7 +438,7 @@ export const DECOR = [
   { id: "barrel", area: "flow", name: "Oil barrel", emoji: "🛢️", cost: 18, zone: "square", row: "back", x: 60 },
   { id: "battery", area: "flow", name: "Battery", emoji: "🔋", cost: 30, zone: "square", row: "back", x: 300 },
   { id: "factory", area: "flow", name: "Factory", emoji: "🏭", cost: 90, zone: "square", row: "back", x: 180 },
-  { id: "rocket", area: "flow", name: "Rocket", emoji: "🚀", cost: 150, zone: "sky", x: 250 },
+  { id: "rocket", area: "flow", name: "Rocket", emoji: "🚀", cost: 150, zone: "sky", x: 250, move: "hover" },
   { id: "newspaper", area: "desk", name: "Newspaper", emoji: "📰", cost: 8, zone: "square", row: "front", x: 40 },
   { id: "coffee", area: "desk", name: "Coffee", emoji: "☕", cost: 10, zone: "square", row: "front", x: 120 },
   { id: "pen", area: "desk", name: "Fountain pen", emoji: "🖋️", cost: 12, zone: "square", row: "front", x: 300 },

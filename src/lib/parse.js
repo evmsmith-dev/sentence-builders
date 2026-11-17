@@ -280,7 +280,84 @@ export function spokenText(item) {
   if (item.type === "flow" || item.type === "diagram") return parseFlow({ ...item, steps: [] }).words.map((w) => w.word).join(" ");
   if (item.type === "labels") return parseLabels(item).line.join(", ");
   if (item.type === "proofread") return parseProofread(item).words.join(" ");
+  if (item.type === "combine") return item.parts.join(" ");
   return "";
+}
+
+/* ---------- Sentence combining: type one sentence that joins two ---------- */
+
+const CONTRACTIONS = [[/\bcan't\b/g, "cannot"], [/\bcan not\b/g, "cannot"], [/\bwon't\b/g, "will not"], [/\b(\w+)n't\b/g, "$1 not"],
+  [/\bit's\b/g, "it is"], [/\bthat's\b/g, "that is"], [/\bthey're\b/g, "they are"], [/\bwe're\b/g, "we are"]];
+
+/** Typed text tidied up: straight quotes, single spaces, no space before a mark, contractions spelled out. */
+export function tidyTyped(text) {
+  let out = String(text || "").replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/\s+/g, " ").trim().replace(/\s+([,.!?;:])/g, "$1");
+  for (const [from, to] of CONTRACTIONS) {
+    out = out.replace(new RegExp(from.source, "gi"), (m, stem) => {
+      const full = stem === undefined ? to : to.replace("$1", stem);
+      return /^[A-Z]/.test(m) ? full[0].toUpperCase() + full.slice(1) : full;
+    });
+  }
+  return out;
+}
+const loose = (text) => tidyTyped(text).toLowerCase().replace(/[^a-z0-9' ]/g, "").replace(/\s+/g, " ").trim();
+
+function editDistance(a, b) {
+  const row = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    let prev = row[0];
+    row[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const keep = row[j];
+      row[j] = Math.min(row[j] + 1, row[j - 1] + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1));
+      prev = keep;
+    }
+  }
+  return row[b.length];
+}
+
+export function parseCombine(item) {
+  return { parts: [...item.parts], answers: [...item.answers], use: item.use || null, answerText: item.answers[0] };
+}
+
+/**
+ * { right, hint }: right when the typed sentence matches one of the answers exactly (capitals and marks too).
+ * Otherwise a hint for the closest kind of slip: a capital, the end mark, a comma, spelling, or the joining word.
+ */
+export function checkCombine(parsed, typed) {
+  const mine = tidyTyped(typed);
+  const answers = parsed.answers.map(tidyTyped);
+  if (answers.includes(mine)) return { right: true, hint: null };
+  const sameWords = answers.find((a) => loose(a) === loose(mine));
+  if (sameWords) {
+    const endOf = (s) => (s.match(/[.!?]$/) || [""])[0];
+    if (endOf(mine) !== endOf(sameWords)) {
+      const mark = { ".": "a period", "?": "a question mark", "!": "an exclamation point" }[endOf(sameWords)];
+      return { right: false, hint: `Check the end of your sentence. It needs ${mark}.` };
+    }
+    if (mine[0] !== sameWords[0]) return { right: false, hint: "Start your sentence with a capital letter." };
+    const a = sameWords.replace(/[^A-Za-z' ]/g, "").split(" ");
+    const b = mine.replace(/[^A-Za-z' ]/g, "").split(" ");
+    const capital = a.findIndex((w, i) => i > 0 && w !== b[i] && w.toLowerCase() === b[i]?.toLowerCase());
+    if (capital > 0) {
+      return { right: false, hint: /^[A-Z]/.test(a[capital])
+        ? `${a[capital]} is a name (or I), so it starts with a capital letter.`
+        : `Only the first word, names and I need capital letters. Look at "${b[capital]}".` };
+    }
+    const commas = (s) => (s.match(/,/g) || []).length;
+    if (commas(mine) < commas(sameWords)) return { right: false, hint: "Your words are right. Now check the commas: one is missing." };
+    if (commas(mine) > commas(sameWords)) return { right: false, hint: "Your words are right, but there's a comma that doesn't belong." };
+    return { right: false, hint: "Your words are right. Check the punctuation." };
+  }
+  if (parsed.use && !new RegExp(`\\b${parsed.use}\\b`, "i").test(mine)) return { right: false, hint: `Use the word ${parsed.use} to join them.` };
+  const near = answers.find((a) => loose(a).split(" ").length === loose(mine).split(" ").length && editDistance(loose(a), loose(mine)) <= 2);
+  if (near) {
+    const a = loose(near).split(" ");
+    const b = loose(mine).split(" ");
+    const k = a.findIndex((w, i) => w !== b[i]);
+    return { right: false, hint: `So close! Check the spelling of "${b[k]}".` };
+  }
+  return { right: false, hint: null };
 }
 
 /** The right answer as a sentence, shown after a second miss. */
@@ -299,10 +376,11 @@ export function answerText(item) {
   if (item.type === "diagram") return diagramText(item);
   if (item.type === "labels") return parseLabels(item).answerText;
   if (item.type === "proofread") return parseProofread(item).answerText;
+  if (item.type === "combine") return parseCombine(item).answerText;
   throw new Error(`Unknown item type: ${item.type}`);
 }
 
-export const ITEM_TYPES = ["mark", "fix", "which", "build", "sort", "check", "join", "flow", "labels", "proofread", "diagram"];
+export const ITEM_TYPES = ["mark", "fix", "which", "build", "sort", "check", "join", "flow", "labels", "proofread", "diagram", "combine"];
 
 /** A diagram in words, for the results review: the baseline, then what hangs under each word. */
 export function diagramText(item) {
@@ -418,6 +496,16 @@ export function validateItem(item) {
     if (!parsed.line.every((l) => flowLabels(item).includes(l))) throw new Error(`${item.id}: uses a label not taught by level ${item.level}`);
     if (new Set(parsed.tiles.map((t) => t.word)).size !== parsed.tiles.length) throw new Error(`${item.id}: repeated words`);
     if (!checkLabels(parsed, parsed.tiles.map((t) => t.word))) throw new Error(`${item.id}: its own answer isn't accepted`);
+  }
+  if (item.type === "combine") {
+    const parsed = parseCombine(item);
+    if (parsed.parts.length < 2 || !parsed.answers.length) throw new Error(`${item.id}: needs 2+ parts and an answer`);
+    for (const answer of parsed.answers) {
+      if (!/^[A-Z]/.test(answer) || !/[.!?]$/.test(answer)) throw new Error(`${item.id}: "${answer}" needs a capital and an end mark`);
+      if (!checkCombine(parsed, answer).right) throw new Error(`${item.id}: its own answer "${answer}" isn't accepted`);
+      if (parsed.use && !new RegExp(`\\b${parsed.use}\\b`, "i").test(answer)) throw new Error(`${item.id}: "${answer}" doesn't use ${parsed.use}`);
+    }
+    if (checkCombine(parsed, parsed.parts.join(" ")).right) throw new Error(`${item.id}: the two sentences as they are count as right`);
   }
   return true;
 }

@@ -12,7 +12,7 @@ import { nounTableQuestions } from "../lib/nountable.js";
 import { buildDiagram, explainSlot, guideOrder, layoutDiagram, wrongSlots } from "../lib/diagram.js";
 import {
   CHECK_KINDS, spaceAfter, checkBuild, checkLabels, checkMark, checkSort, joinTiles, paletteFor, parseBuild, parseCheck, parseFix, parseFlow,
-  parseJoin, parseLabels, parseMark, parseProofread, parseSort, parseWhich,
+  parseJoin, parseCombine, checkCombine, parseLabels, parseMark, parseProofread, parseSort, parseWhich,
 } from "../lib/parse.js";
 import { FLOW_LABELS, LABELS, PATTERNS, SENTENCE_KINDS } from "../config.js";
 
@@ -1165,12 +1165,52 @@ function renderDiagram(root, item, hooks) {
   };
 }
 
+/** Sentence combining: the short sentences, then a box to type one sentence that joins them. */
+function renderCombine(root, item, { onChange }) {
+  const parsed = parseCombine(item);
+  let locked = false;
+  let lastHint = null;
+  root.innerHTML = `<div class="combine-parts" data-type="combine">${parsed.parts.map((part) => `<p class="sentence">${esc(part)}</p>`).join("")}</div>
+    ${parsed.use ? `<p class="combine-use">Use the word: <strong>${esc(parsed.use)}</strong></p>` : ""}
+    <label class="palette-label" for="combine-input">Your sentence:</label>
+    <textarea id="combine-input" class="combine-input" rows="3" maxlength="240" autocomplete="off" autocapitalize="off"
+      autocorrect="off" spellcheck="false" enterkeyhint="done" placeholder="Type one sentence"></textarea>`;
+  const box = root.querySelector(".combine-input");
+  box.addEventListener("input", () => onChange());
+  box.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      document.getElementById("check-btn")?.click();
+    }
+  });
+  const show = (cls) => {
+    locked = true;
+    box.readOnly = true;
+    box.classList.add(cls);
+  };
+  return {
+    get prompt() { return parsed.parts.length > 2 ? "Combine these sentences into one. Type it." : "Combine these two sentences into one. Type it."; },
+    get usesCheck() { return !locked; },
+    canCheck: () => !locked && box.value.trim().length > 0,
+    check: () => {
+      const result = checkCombine(parsed, box.value);
+      lastHint = result.hint;
+      return result.right;
+    },
+    missHint: () => lastHint,
+    retry: () => { box.focus(); },
+    reveal: () => show("shown"),
+    lock: () => show("locked"),
+    showRight: () => show("right"),
+  };
+}
+
 const DIAGRAM_HINT = "The subject and verb go on the long line. Words that describe go on slanted lines under the word they describe.";
 
 export function renderItem(root, item, hooks) {
   const render = {
     mark: renderMark, fix: renderFix, which: renderWhich, build: renderBuild, sort: renderSort, check: renderCheck, join: renderJoin,
-    flow: renderFlow, labels: renderLabels, proofread: renderProofread, diagram: renderDiagram,
+    flow: renderFlow, labels: renderLabels, proofread: renderProofread, diagram: renderDiagram, combine: renderCombine,
   }[item.type];
   if (!render) throw new Error(`Unknown item type: ${item.type}`);
   root.innerHTML = "";

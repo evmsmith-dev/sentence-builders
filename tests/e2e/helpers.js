@@ -62,6 +62,11 @@ const exact = (text) => new RegExp(`^${text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&
 /** One wrong try at the item on screen. Returns false when no wrong choice is left. */
 export async function miss(page) {
   const item = await currentItem(page);
+  if (item.type === "combine") {
+    await page.locator("#item .combine-input").fill(item.parts.join(" "));
+    await page.locator("#check-btn").click();
+    return true;
+  }
   if (item.type === "mark") {
     const parsed = parseMark(item);
     const palette = paletteFor(item);
@@ -180,6 +185,11 @@ export async function miss(page) {
  */
 export async function answer(page, { swapCompounds = false } = {}) {
   const item = await currentItem(page);
+  if (item.type === "combine") {
+    await page.locator("#item .combine-input").fill(item.answers.at(swapCompounds ? -1 : 0));
+    await page.locator("#check-btn").click();
+    return;
+  }
   if (item.type === "mark") {
     const parsed = parseMark(item);
     const gaps = parsed.answers[0].gaps;

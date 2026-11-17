@@ -158,14 +158,20 @@ function placedDecor(player, area) {
 }
 
 /** One decoration as an emoji; `fresh` pops in (just built). In the Build close-up it can be dragged. */
-function decorSvg(p, y, { fresh = null, drag = false, selected = null, walk = true } = {}) {
+function decorSvg(p, y, { fresh = null, drag = false, selected = null } = {}) {
   const d = p.item;
-  const cls = ["decor", walk && d.walk ? "walk" : "", p.uid === fresh ? "pop" : "", drag ? "drag" : "", p.uid === selected ? "selected" : ""].filter(Boolean).join(" ");
+  const cls = ["decor", p.uid === fresh ? "pop" : "", drag ? "drag" : "", p.uid === selected ? "selected" : "",
+    drag && d.move ? `idle-${d.move}` : ""].filter(Boolean).join(" ");
+  // Each one starts at its own point in the loop, so two tractors don't move in step.
+  const delay = d.move ? ` style="animation-delay:-${((p.x * 7 + y * 3) % 90) / 10}s"` : "";
   const size = d.zone === "square" && d.row === "back" ? 30 : 26;
   const handle = drag ? ` data-uid="${p.uid}" tabindex="0" role="button" aria-label="${d.name}: drag to move, or tap to select"` : "";
   const shadow = p.y >= SCENE.park ? `<ellipse cx="${p.x + 3}" cy="${y - 1}" rx="${size * 0.4}" ry="3.5" fill="#000" opacity=".16"/>` : "";
-  if (!drag) return `<g class="${cls}">${shadow}<text x="${p.x}" y="${y}" text-anchor="middle" font-size="${size}">${d.emoji}<title>${d.name}</title></text></g>`;
-  return `${shadow.replace("<ellipse", `<ellipse data-shadow="${p.uid}"`)}<text class="${cls}" x="${p.x}" y="${y}" text-anchor="middle" font-size="${size}"${handle}>${d.emoji}<title>${d.name}</title></text>`;
+  if (!drag) {
+    const body = `${shadow}<text x="${p.x}" y="${y}" text-anchor="middle" font-size="${size}">${d.emoji}<title>${d.name}</title></text>`;
+    return `<g class="${cls}">${d.move ? `<g class="move move-${d.move}"${delay}>${body}</g>` : body}</g>`;
+  }
+  return `${shadow.replace("<ellipse", `<ellipse data-shadow="${p.uid}"`)}<text class="${cls}" x="${p.x}" y="${y}" text-anchor="middle" font-size="${size}"${handle}${delay}>${d.emoji}<title>${d.name}</title></text>`;
 }
 
 const wave = (y, x0 = 0, x1 = 360) => {
@@ -590,6 +596,6 @@ export function parkSvg(player, { area = "square", fresh = null, selected = null
     <path d="M0 ${park + 46}h360" stroke="#ffffff" stroke-opacity=".35" stroke-width="10"/>
     ${placed.length ? "" : `<text x="180" y="${park + 42}" text-anchor="middle" class="park-sign">${esc(district.name)}: build here with 🧱 bricks</text>`}
     <rect y="${water}" width="360" height="${height - water}" fill="${district.water}"/><rect y="${water}" width="360" height="6" fill="${shade(district.water, 0.75)}"/>${wave(water + 12)}
-    ${placed.map((p) => decorSvg(p, p.y, { fresh, drag: true, selected, walk: false })).join("")}
+    ${placed.map((p) => decorSvg(p, p.y, { fresh, drag: true, selected })).join("")}
   </svg>`;
 }

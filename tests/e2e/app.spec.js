@@ -56,12 +56,12 @@ test("play a whole level right: 3 stars, a building and badges", async ({ page }
   await expect(page.locator("#result-badges")).toContainText("First Brick");
   await expect(page.locator("#result-badges")).toContainText("Comma Captain");
   await page.locator("#result-town").click();
-  await expect(page.locator(".town")).toHaveAttribute("aria-label", /1 of 51 buildings/);
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /1 of 54 buildings/);
   await expect(page.locator("#pip-home")).toContainText("Next up: Commas and colons, level 2");
 
   // Saved on the device: still there after a reload.
   await page.reload();
-  await expect(page.locator(".town")).toHaveAttribute("aria-label", /1 of 51 buildings/);
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /1 of 54 buildings/);
 });
 
 test("a miss gives a hint and a second try; a second miss shows the answer", async ({ page }) => {
@@ -139,7 +139,7 @@ test("Word Works: play a level with every item type it uses, including Sort it",
     await expect(page.locator("#result-title")).toHaveText("Perfect build!");
     await page.locator("#result-town").click();
   }
-  await expect(page.locator(".town")).toHaveAttribute("aria-label", /3 of 51 buildings/);
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /3 of 54 buildings/);
 });
 
 test("Sort it: a wrong sort gives a hint, then the answer", async ({ page }) => {
@@ -180,7 +180,7 @@ test("Progress: open to everyone from the home screen; break reminder and backup
   await page.locator('[data-progress-tab="everyone"]').click();
   await expect(page.locator("[data-parent-player]")).toHaveCount(0);
   await expect(page.locator("[data-summary-player]").first()).toContainText("Max (you)");
-  await expect(page.locator('[data-summary-player="p1"]')).toContainText("1 of 51 buildings");
+  await expect(page.locator('[data-summary-player="p1"]')).toContainText("1 of 54 buildings");
   await expect(page.locator(".missed-list")).toHaveCount(0);
   await page.locator('[data-progress-tab="me"]').click();
   await expect(page.locator('[data-parent-player="p2"] .progress-table').first()).toBeVisible();
@@ -227,7 +227,7 @@ test("Sentence Studio: every level of all three skills, with Sentence check and 
       await page.locator("#result-town").click();
     }
   }
-  await expect(page.locator(".town")).toHaveAttribute("aria-label", /9 of 72 buildings/);
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /9 of 75 buildings/);
 });
 
 test("Sentence check and Join it: a miss gives a hint, two show the answer", async ({ page }) => {
@@ -275,7 +275,7 @@ test("Flow Factory: all three levels, 3 Q&A Flows then 2 Build from labels", asy
     await expect(page.locator("#result-score")).toContainText("5 of 5 points");
     await page.locator("#result-town").click();
   }
-  await expect(page.locator(".town")).toHaveAttribute("aria-label", /3 of 72 buildings/);
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /3 of 75 buildings/);
 });
 
 test("Q&A Flow: a miss gives a step hint; a second miss shows that step and moves on", async ({ page }) => {
@@ -301,10 +301,10 @@ test("Revision Ridge: closed below grade 6, open for a 7th grader with grades 6-
   await openApp(page, { players: [player({ grade: 4 }), player({ id: "p2", name: "Max", avatar: "🐯", grade: 7 })], current: "p1" });
   await expect(page.locator('[data-world="desk"]')).toBeDisabled();
   await expect(page.locator('[data-world="desk"]')).toContainText("Grade 6+");
-  await expect(page.locator(".town")).toHaveAttribute("aria-label", /of 51 buildings/);
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /of 54 buildings/);
   await page.locator("#who-btn").click();
   await page.locator('[data-player="p2"]').click();
-  await expect(page.locator(".town")).toHaveAttribute("aria-label", /of 72 buildings/);
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /of 75 buildings/);
   await page.locator('[data-world="desk"]').click();
   await expect(page.locator('.level-btn[data-skill="case"][data-level="2"]')).toBeEnabled();
   await expect(page.locator('.level-btn[data-skill="case"][data-level="3"]')).toBeDisabled();
@@ -1116,4 +1116,77 @@ test("Parts of Speech and Revising Sentences: play a level of each", async ({ pa
     await expect(page.locator("#result-title")).toHaveText("Perfect build!");
     await page.locator("#result-town").click();
   }
+});
+
+test("Sentence Combining: type the joined sentence; a slip gets a pointed hint", async ({ page }) => {
+  test.slow(); // plays a whole level: extra time for slower CI machines
+  await openApp(page, { players: [player({ grade: 5 })], current: "p1" });
+  await startLevel(page, "combining", 2, "studio");
+  const first = await currentItem(page);
+  await expect(page.locator("#item .combine-parts .sentence")).toHaveCount(first.parts.length);
+  // Leave out the comma: the hint says so, and the typed words stay to fix.
+  await page.locator("#item .combine-input").fill(first.answers[0].replace(",", ""));
+  await page.locator("#item .combine-input").press("Enter");
+  await expect(page.locator("#feedback")).toContainText("comma");
+  await expect(page.locator("#item .combine-input")).toHaveValue(first.answers[0].replace(",", ""));
+  await answer(page);
+  await expect(page.locator("#feedback.good")).toBeVisible();
+  await page.locator("#next-btn").click();
+  for (let n = 1; n < 8; n++) {
+    await answer(page, { swapCompounds: n % 2 === 1 });
+    await page.locator("#next-btn").click();
+  }
+  await expect(page.locator("#result-title")).toBeVisible();
+});
+
+test("Settings: names in sentences and reading support @layout", async ({ page }) => {
+  await openApp(page, { players: [player({ grade: 5 })], current: "p1" });
+  await page.locator("#settings-btn").click();
+  await expect(page.locator("#names-fields")).toBeHidden();
+  await page.locator("#set-names-on").check();
+  await expect(page.locator("#set-name-0")).toHaveValue("Ava");
+  await page.locator("#set-name-0").fill("Evan");
+  await page.locator("#set-name-0").dispatchEvent("change");
+  await expect(page.locator("#names-status")).toContainText("pick he or she");
+  await page.locator("#set-pron-0").selectOption("he");
+  await page.locator("#set-name-1").fill("Mary Ann");
+  await page.locator("#set-name-1").dispatchEvent("change");
+  await expect(page.locator("#names-status")).toContainText("Mary Ann");
+  await page.locator("#set-font").selectOption("dyslexic");
+  await page.locator("#set-size").selectOption("larger");
+  await page.locator("#set-spacing").check();
+  await expect(page.locator("body")).toHaveAttribute("data-font", "dyslexic");
+  await expect(page.locator("html")).toHaveAttribute("data-text-size", "larger");
+  await expect(page.locator("body")).toHaveClass(/spacing/);
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("sentenceBuilders_players"))[0].settings);
+  expect(saved.names.on).toBe(true);
+  expect(saved.names.people[0]).toEqual({ name: "Evan", pronoun: "he" });
+  expect(saved.font).toBe("dyslexic");
+  const bigger = await page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).fontSize));
+  expect(bigger).toBe(20);
+  await page.locator("#settings-overlay [data-close]").click();
+  // With the dice always saying yes, every sentence with a he-name in it says Evan instead.
+  await page.evaluate(() => { Math.random = () => 0.01; });
+  await startLevel(page, "combining", 1, "studio");
+  let saw = false;
+  for (let n = 0; n < 8 && !saw; n++) {
+    const text = await page.locator("#item").textContent();
+    saw = text.includes("Evan");
+    expect(text).not.toMatch(/\b(Leo|Ben|Omar|Kai)\b/);
+    await miss(page);
+    await miss(page);
+    await page.locator("#next-btn").click();
+  }
+  expect(saw).toBe(true);
+});
+
+test("Island: things that move (the tractor) drive back and forth", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  const p = player({ grade: 5 });
+  p.decor = [{ uid: "d1", id: "tractor", area: "works", x: 200, y: 400 }];
+  p.bricks = 0;
+  await openApp(page, { players: [p], current: "p1" });
+  await expect(page.locator(".town .move-drive").first()).toBeAttached();
+  const anim = await page.locator(".town .move-drive").first().evaluate((el) => getComputedStyle(el).animationName);
+  expect(anim).toBe("drive");
 });

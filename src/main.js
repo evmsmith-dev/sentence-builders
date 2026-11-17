@@ -14,6 +14,7 @@ import { districtSkills, mapDistricts, mapLayout, parkSvg, pipSays, pipSvg, town
 import { createTownMap } from "./ui/townmap.js";
 import { $, closeOverlay, esc, initBackButton, openOverlay, pick, showScreen, topOverlay } from "./ui/dom.js";
 import { renderItem } from "./ui/items.js";
+import { MAX_PEOPLE, cleanName, namesFor, personalize, registerNames } from "./lib/names.js";
 import { buzz, canSay, celebrate, say, sound, stopSaying } from "./ui/feel.js";
 import { registerServiceWorker } from "./ui/update.js";
 
@@ -50,6 +51,12 @@ function applyTheme() {
   const studio = themeFor(state.player) === "studio";
   document.body.classList.toggle("theme-studio", studio);
   document.querySelector('meta[name="theme-color"]')?.setAttribute("content", studio ? "#27324a" : "#1f5fbf");
+  // Reading support: a clearer font, bigger text and more space, for whoever is playing.
+  const s = state.player?.settings || {};
+  const setData = (el, key, value) => { if (value) el.dataset[key] = value; else delete el.dataset[key]; };
+  setData(document.body, "font", s.font && s.font !== "game" ? s.font : "");
+  setData(document.documentElement, "textSize", s.textSize && s.textSize !== "normal" ? s.textSize : "");
+  document.body.classList.toggle("spacing", Boolean(s.spacing));
 }
 
 /* ==================== Players ==================== */
@@ -229,7 +236,7 @@ function startHomework() {
     .map((h) => ({ h, last: stats[h.id]?.last ?? -1, r: Math.random() }))
     .sort((a, b) => a.last - b.last || a.r - b.r);
   const items = pool.slice(0, HOMEWORK_PER_ROUND).map(({ h }) => ({ ...h, skill: "proofread", level: 1 }));
-  state.play = { mode: "homework", skillId: "proofread", level: 1, items, index: 0, tries: 0, results: [], ctrl: null, done: false, startedAt: Date.now() };
+  state.play = { mode: "homework", skillId: "proofread", level: 1, items: withNames(items), index: 0, tries: 0, results: [], ctrl: null, done: false, startedAt: Date.now() };
   if (!state.sessionStart) state.sessionStart = Date.now();
   showScreen("play");
   showItem();
@@ -281,7 +288,7 @@ function startPractice(kind) {
       .map((item) => ({ ...item, prompt: "Which spelling is right?" }));
   if (!items.length) return;
   closeOverlay("result-overlay");
-  state.play = { mode: kind, skillId: items[0].skill, level: 1, items, index: 0, tries: 0, results: [], ctrl: null, done: false, startedAt: Date.now() };
+  state.play = { mode: kind, skillId: items[0].skill, level: 1, items: withNames(items), index: 0, tries: 0, results: [], ctrl: null, done: false, startedAt: Date.now() };
   if (!state.sessionStart) state.sessionStart = Date.now();
   showScreen("play");
   showItem();
@@ -355,10 +362,18 @@ function startLevel(skillId, level) {
     items: state.content.items, skill: skillId, level, stats: state.player.items, passedKeys: passedKeys(state.player),
     plan: skillById(skillId).levelPlan || null,
   });
-  state.play = { skillId, level, items, index: 0, tries: 0, results: [], ctrl: null, done: false, startedAt: Date.now() };
+  state.play = { skillId, level, items: withNames(items), index: 0, tries: 0, results: [], ctrl: null, done: false, startedAt: Date.now() };
   if (!state.sessionStart) state.sessionStart = Date.now();
   showScreen("play");
   showItem();
+}
+
+/** Some sentences use the player's own names (Settings → Names in sentences). */
+function withNames(items) {
+  const names = namesFor(state.player);
+  if (!names) return items;
+  registerNames(names);
+  return items.map((item) => personalize(item, names));
 }
 
 function showItem() {
@@ -444,7 +459,9 @@ function handleAnswer(right) {
     sound("wrong", s.sound);
     play.ctrl.retry();
     $("feedback").className = "feedback hint";
-    $("feedback").innerHTML = `${pipFace()}<div><p><strong>${esc(PIP.hint)}</strong> ${esc(item.hint)}</p><p class="try-again">Try again.</p></div>`;
+    // Typed answers can say exactly what slipped (a capital, a comma); otherwise the item's own hint.
+    const hintText = play.ctrl.missHint?.() || item.hint;
+    $("feedback").innerHTML = `${pipFace()}<div><p><strong>${esc(PIP.hint)}</strong> ${esc(hintText)}</p><p class="try-again">Try again.</p></div>`;
     updateCheck();
   } else {
     play.results.push({ id: item.id, type: item.type, tries: 2, correct: false });
@@ -1179,15 +1196,48 @@ function fillSettings() {
   $("set-pip").checked = s.pip;
   $("set-sound").checked = s.sound;
   $("set-theme").value = s.theme || "auto";
+  $("set-font").value = s.font || "game";
+  $("set-size").value = s.textSize || "normal";
+  $("set-spacing").checked = Boolean(s.spacing);
   $("set-autoread").closest("label").hidden = !canSay();
+  const names = s.names || {};
+  $("set-names-on").checked = Boolean(names.on);
+  $("names-fields").hidden = !names.on;
+  for (let i = 0; i < MAX_PEOPLE; i++) {
+    const person = names.people?.[i] || (i === 0 ? { name: state.player.name.split(" ")[0] } : {});
+    $(`set-name-${i}`).value = person.name || "";
+    $(`set-pron-${i}`).value = person.pronoun || "";
+  }
+  $("set-pet").value = names.pet || "";
+  $("names-status").textContent = "";
+}
+
+/** Names in sentences, from the Settings fields. A name that can't be used is left out, and the note says so. */
+function readNames() {
+  const people = [];
+  const skipped = [];
+  for (let i = 0; i < MAX_PEOPLE; i++) {
+    const raw = $(`set-name-${i}`).value.trim();
+    const name = cleanName(raw);
+    if (raw && !name) skipped.push(raw);
+    else if (name && !$(`set-pron-${i}`).value) skipped.push(`${name} (pick he or she)`);
+    people.push({ name: name || "", pronoun: $(`set-pron-${i}`).value });
+  }
+  const rawPet = $("set-pet").value.trim();
+  const pet = cleanName(rawPet);
+  if (rawPet && !pet) skipped.push(rawPet);
+  $("names-status").textContent = skipped.length ? `Not used yet: ${skipped.join(", ")}. Use one first name, letters only.` : "";
+  return { on: $("set-names-on").checked, people, pet };
 }
 
 function changeSetting() {
   const player = {
     ...state.player,
     settings: { ...state.player.settings, autoRead: $("set-autoread").checked, pip: $("set-pip").checked, sound: $("set-sound").checked,
-      theme: $("set-theme").value, breakMinutes: Number($("set-break").value) },
+      theme: $("set-theme").value, breakMinutes: Number($("set-break").value),
+      font: $("set-font").value, textSize: $("set-size").value, spacing: $("set-spacing").checked, names: readNames() },
   };
+  $("names-fields").hidden = !player.settings.names.on;
   savePlayer(player);
 }
 
@@ -1429,7 +1479,8 @@ function wire() {
     closeOverlay("result-overlay");
     renderHome();
   });
-  for (const id of ["set-autoread", "set-pip", "set-sound", "set-theme", "set-break"]) $(id).addEventListener("change", changeSetting);
+  for (const id of ["set-autoread", "set-pip", "set-sound", "set-theme", "set-break", "set-font", "set-size", "set-spacing", "set-names-on", "set-pet",
+    ...Array.from({ length: MAX_PEOPLE }, (_, i) => [`set-name-${i}`, `set-pron-${i}`]).flat()]) $(id).addEventListener("change", changeSetting);
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
       const open = [...document.querySelectorAll(".overlay")].find((o) => !o.hidden);

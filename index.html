@@ -14,6 +14,7 @@
   <link rel="icon" type="image/png" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="stylesheet" href="vendor/fonts/fredoka.css">
+  <link rel="stylesheet" href="vendor/fonts/reading.css">
   <link rel="stylesheet" href="src/styles.css">
   <script src="vendor/confetti.browser.js" defer></script>
   <script type="module" src="src/main.js"></script>
@@ -179,7 +180,7 @@
       <h2>What it's based on</h2>
       <p><strong>Minnesota standards.</strong> The skills follow the 2020 Minnesota K–12 Academic Standards in English Language Arts. Each skill lists the benchmarks it practices (for example, 4.2.1.1 is grade 4 punctuation, spelling, capitalization and grammar). The Tip Cards also use the words teachers and tests often use, like parenthetical and nonrestrictive.</p>
       <p><strong>Shurley English.</strong> Flow Factory follows the Shurley English method many schools teach: the Question and Answer Flow, its word labels (SN, V, Adj and the rest, including compound parts like CSN and CDO), the seven sentence patterns, the Skill Check mark-up (noun check, parentheses around prepositional phrases, a slash before the verb, the complete subject underlined once and the complete predicate twice) and sentence diagramming. Each Shurley level is assumed to match the player's grade.</p>
-      <p><strong>Grades.</strong> Grades 3–5 get Punctuation Port, Word Works (including word parts and word choice), Sentence Studio (including figurative language and revising) and Flow Factory (including compound labels and parts of speech). Sentence Diagramming opens in grade 5. Grade 6 adds Revision Ridge and Advanced Q&amp;A Flow for review and grades 6–8 skills.</p>
+      <p><strong>Grades.</strong> Grades 3–5 get Punctuation Port, Word Works (including word parts and word choice), Sentence Studio (including figurative language, revising and typed sentence combining) and Flow Factory (including compound labels and parts of speech). Sentence Diagramming opens in grade 5. Grade 6 adds Revision Ridge and Advanced Q&amp;A Flow for review and grades 6–8 skills.</p>
       <p class="note">Sentence Builders is a practice supplement for skills taught in class. Its sentences, hints, Tip Cards and drawings are original: it uses no text, examples or jingles from Shurley English or other curricula, and it isn't made by or connected to Shurley Instructional Materials or the Minnesota Department of Education.</p>
       <h2>Privacy</h2>
       <p>No accounts, no ads, and nothing is sent anywhere. Progress stays on this device; use Settings → Backup to move it to another one. After the first visit it works offline.</p>
@@ -276,6 +277,19 @@
         <option value="bright">Bright</option>
         <option value="studio">Studio</option>
       </select>
+      <label for="set-font">Reading font</label>
+      <select id="set-font">
+        <option value="game">Game font</option>
+        <option value="clear">Clear (Atkinson Hyperlegible)</option>
+        <option value="dyslexic">OpenDyslexic</option>
+      </select>
+      <label for="set-size">Text size</label>
+      <select id="set-size">
+        <option value="normal">Normal</option>
+        <option value="large">Large</option>
+        <option value="larger">Larger</option>
+      </select>
+      <label class="toggle"><input type="checkbox" id="set-spacing"> Extra space between letters and lines</label>
       <label for="set-break">Break reminder</label>
       <select id="set-break">
         <option value="0">Off</option>
@@ -284,6 +298,23 @@
         <option value="30">After 30 minutes</option>
         <option value="45">After 45 minutes</option>
       </select>
+      <section class="settings-names" aria-labelledby="names-title">
+        <h3 id="names-title">Names in sentences</h3>
+        <label class="toggle"><input type="checkbox" id="set-names-on"> Use our names in some sentences</label>
+        <div id="names-fields" class="names-fields">
+          <p class="note">First names only, letters only. Sentences call each person he or she.</p>
+          <div class="name-row"><input id="set-name-0" maxlength="12" autocomplete="off" aria-label="Your name" placeholder="Your name">
+            <select id="set-pron-0" aria-label="Pronoun for your name"><option value="">he or she?</option><option value="he">he</option><option value="she">she</option></select></div>
+          <div class="name-row"><input id="set-name-1" maxlength="12" autocomplete="off" aria-label="Family or friend 1" placeholder="Family, friend">
+            <select id="set-pron-1" aria-label="Pronoun for family or friend 1"><option value="">he or she?</option><option value="he">he</option><option value="she">she</option></select></div>
+          <div class="name-row"><input id="set-name-2" maxlength="12" autocomplete="off" aria-label="Family or friend 2" placeholder="Family, friend">
+            <select id="set-pron-2" aria-label="Pronoun for family or friend 2"><option value="">he or she?</option><option value="he">he</option><option value="she">she</option></select></div>
+          <div class="name-row"><input id="set-name-3" maxlength="12" autocomplete="off" aria-label="Family or friend 3" placeholder="Family, friend">
+            <select id="set-pron-3" aria-label="Pronoun for family or friend 3"><option value="">he or she?</option><option value="he">he</option><option value="she">she</option></select></div>
+          <div class="name-row"><input id="set-pet" maxlength="12" autocomplete="off" aria-label="A pet's name" placeholder="A pet's name"></div>
+          <p id="names-status" class="note" role="status"></p>
+        </div>
+      </section>
       <section class="settings-backup" aria-labelledby="backup-title">
         <h3 id="backup-title">Backup</h3>
         <p class="note">Saves every player on this device to a file. Save one before resetting or replacing this device, then restore it on the new one.</p>
