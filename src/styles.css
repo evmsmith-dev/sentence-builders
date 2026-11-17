@@ -1023,3 +1023,16 @@ body.theme-studio .pip-line { color: #4f5f80; }
 .bin-head { overflow-wrap: anywhere; hyphens: auto; }
 @media (max-width: 560px) { .sort-bins[style*="--bins:4"], .sort-bins[style*="--bins:5"], .sort-bins[style*="--bins:6"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .sort-bins[style*="--bins:4"] .sort-bin, .sort-bins[style*="--bins:5"] .sort-bin, .sort-bins[style*="--bins:6"] .sort-bin { min-height: 110px; } }
+
+/* Island Home at Grammar Peaks: its Summit Review and Spelling Lake buttons float at the top of the map. */
+body.island-home.peaks-open #home #map-panel { display: block; position: fixed; z-index: 5; top: calc(env(safe-area-inset-top) + 66px);
+  left: 92px; right: 66px; max-width: 520px; margin: 0; padding: 10px 12px; border-radius: 14px; background: var(--card); box-shadow: var(--shadow); }
+body.island-home.peaks-open #home #map-panel .map-hint { font-size: 0.9rem; margin: 4px 0 8px; }
+/* Compact there: two buttons side by side, titles only, so the map still shows. */
+body.island-home.peaks-open #home #map-panel .map-title, body.island-home.peaks-open #home #map-panel .peak-card strong + span,
+body.island-home.peaks-open #home #map-panel .map-hint, body.island-home.peaks-open #home #map-panel .link { display: none; }
+body.island-home.peaks-open #home #map-panel { padding: 8px; }
+body.island-home.peaks-open #home #map-panel .peak-activities { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0; }
+body.island-home.peaks-open #home #map-panel .peak-card { padding: 8px; gap: 6px; min-height: 0; margin: 0; }
+body.island-home.peaks-open #home #map-panel .peak-emoji { font-size: 1.5rem; }
+body.island-home.peaks-open #home #map-panel .peak-card small { font-size: 0.75rem; }

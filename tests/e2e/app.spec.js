@@ -1326,6 +1326,8 @@ test("Island Home: the island fills the screen; review first, the Notice Board o
   await expect(page.locator("#world-list")).toBeHidden();
   await expect(page.locator("#pip-home")).toContainText("Review first");
   await expect(page.locator(".town")).toContainText("Review Dock");
+  // At the peaks (where review opens), the rounds can be started from the map.
+  await expect(page.locator("#map-panel [data-practice='summit']")).toBeVisible();
   // Pip's message tucks away so the map can be tapped, and the Review button stays.
   await page.locator("[data-pip-min]").click();
   await expect(page.locator("#pip-home")).not.toContainText("Review first");

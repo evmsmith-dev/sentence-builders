@@ -993,6 +993,8 @@ function drawMapPanel() {
   if (!player) return;
   const districts = mapDistricts(player);
   const here = districts.find((d) => d.id === state.mapArea);
+  // Island Home hides this panel, except at Grammar Peaks: it has no lots to tap, so its rounds start from here.
+  document.body.classList.toggle("peaks-open", state.mapArea === "peaks");
   if (state.mapArea === "peaks") {
     const canClimb = summitItems(player).length > 0;
     const flags = player.summits || 0;
