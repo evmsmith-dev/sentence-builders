@@ -970,3 +970,12 @@ body.island-home #home #pip-home .link { margin-left: 8px; }
   body.island-home .island-bar { left: auto; right: 12px; width: 330px; }
   body.island-home #home .map-zoom { right: 354px; }
 }
+
+/* Island Home: Pip's message tucks away (–) to a small Pip and the Play button; tap Pip to bring it back. */
+body.island-home #home #pip-home .bubble { position: relative; padding-right: 44px; }
+.pip-min { position: absolute; top: 6px; right: 6px; width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--border);
+  background: var(--card); font-size: 1.3rem; font-weight: 700; line-height: 1; color: var(--muted); }
+body.island-home #home #pip-home.mini { left: 8px; right: auto; display: flex; align-items: center; gap: 8px; }
+.pip-mini { width: 56px; height: 56px; border-radius: 50%; border: 2px solid var(--border); background: var(--card); box-shadow: var(--shadow); display: grid; place-items: center; padding: 0; }
+.pip-mini .pip { width: 44px; height: 44px; }
+body.island-home #home #pip-home.mini .next-play { margin: 0; box-shadow: var(--shadow); }

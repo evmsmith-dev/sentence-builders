@@ -168,9 +168,17 @@ function renderHome() {
     // Open on the next lesson's part of the island (or the peaks, when review comes first).
     if (!state.mapArea && !state.rising) state.mapArea = due ? "peaks" : next?.skill.world || null;
   }
-  $("pip-home").innerHTML = settings().pip
-    ? pipSays(greeting, true, play)
-    : next ? `<p class="next-line">Next up: ${esc(next.skill.name)}, level ${next.level}. ${play}</p>` : "";
+  // Island Home: Pip's message can be tucked away so it doesn't cover the map; the Play (or Review) button stays.
+  const mainPlay = play.match(/^<button[^>]*>.*?<\/button>/)?.[0] || "";
+  if (island && state.pipMin) {
+    $("pip-home").innerHTML = `<button type="button" class="pip-mini" data-pip-expand aria-label="Show Pip's message">${settings().pip ? pipSvg(44) : "💬"}</button>${mainPlay}`;
+  } else {
+    const tuck = island ? '<button type="button" class="pip-min" data-pip-min aria-label="Make Pip\'s message smaller">–</button>' : "";
+    $("pip-home").innerHTML = settings().pip
+      ? pipSays(greeting, true, play + tuck)
+      : next || due ? `<p class="next-line">${due ? esc(greeting) : `Next up: ${esc(next.skill.name)}, level ${next.level}.`} ${play}${tuck}</p>` : "";
+  }
+  $("pip-home").classList.toggle("mini", Boolean(island && state.pipMin));
   // A building that just went up: the map opens on its district so the rise is seen.
   const risingSkill = state.rising && skillById(state.rising.replace(/-\d$/, ""));
   if (risingSkill) state.mapArea = risingSkill.world;
@@ -1538,6 +1546,8 @@ function wire() {
       const [skillId, level] = nextUpBtn.dataset.nextUp.split(/-(?=\d$)/);
       return openTip(skillId, Number(level));
     }
+    if (target.closest("[data-pip-min]")) { state.pipMin = true; return renderHome(); }
+    if (target.closest("[data-pip-expand]")) { state.pipMin = false; return renderHome(); }
     if (target.closest("#island-build")) {
       if (!playedToday(state.player)) {
         $("pip-home").innerHTML = pipSays("Let's do a lesson first! Then you can build with your bricks.", true, $("pip-home").querySelector(".next-play")?.outerHTML || "");

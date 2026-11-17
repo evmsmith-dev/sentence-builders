@@ -1326,6 +1326,12 @@ test("Island Home: the island fills the screen; review first, the Notice Board o
   await expect(page.locator("#world-list")).toBeHidden();
   await expect(page.locator("#pip-home")).toContainText("Review first");
   await expect(page.locator(".town")).toContainText("Review Dock");
+  // Pip's message tucks away so the map can be tapped, and the Review button stays.
+  await page.locator("[data-pip-min]").click();
+  await expect(page.locator("#pip-home")).not.toContainText("Review first");
+  await expect(page.locator("#pip-home [data-practice='summit']")).toBeVisible();
+  await page.locator("[data-pip-expand]").click();
+  await expect(page.locator("#pip-home")).toContainText("Review first");
   await expect(page.locator("#island-build")).toHaveClass(/locked/);
   await page.locator("#island-build").click();
   await expect(page.locator("#pip-home")).toContainText("lesson first");
