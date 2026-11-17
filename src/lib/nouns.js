@@ -12,7 +12,7 @@ export const PRONOUNS = new Set([
 export const PLURAL_NOUNS = new Set([
   "children", "cookies", "crows", "geese", "girls", "hands", "judges", "kids", "kittens", "parents", "puppies",
   "runners", "scissors", "trees", "voters", "apples", "boys", "cats", "dogs", "players", "students", "birds",
-  "people", "mice", "feet", "teeth", "men", "women", "ducks", "dishes", "friends", "flowers", "books", "games", "horses", "blocks", "trucks", "papers", "grapes", "snacks", "cousins", "helpers", "aunts", "fans", "teachers", "coaches", "cards", "photos", "pancakes", "captains", "carrots", "cheeks", "grandparents", "hikers", "fireworks", "partners", "sandwiches", "tomatoes",
+  "people", "mice", "feet", "teeth", "men", "women", "ducks", "dishes", "friends", "flowers", "books", "games", "horses", "blocks", "trucks", "papers", "grapes", "snacks", "cousins", "helpers", "aunts", "fans", "teachers", "coaches", "cards", "photos", "pancakes", "captains", "carrots", "cheeks", "grandparents", "hikers", "fireworks", "partners", "sandwiches", "tomatoes", "nachos", "neighbors", "skaters", "tacos", "bleachers", "defenders", "coaches",
 ]);
 
 export const SINGULAR_NOUNS = new Set([
@@ -28,7 +28,9 @@ export const SINGULAR_NOUNS = new Set([
   "shoe", "truck", "minneapolis", "uncle", "park", "breakfast", "river", "medal", "pizza", "wind", "birdhouse", "test",
   "maine", "stream", "neighbor", "pilot", "cookie",
   "june", "october", "bike", "blanket", "cake", "day", "drawing", "grass", "house", "ice", "mitten", "party", "principal",
-  "roof", "squirrel", "time", "garden"
+  "roof", "squirrel", "time", "garden",
+  "catcher", "concert", "crowd", "drone", "drummer", "field", "goalie", "lifeguard", "line", "locker", "mascot", "pass", "phone",
+  "playlist", "quiz", "reminder", "ride", "robot", "slice", "ticket", "garage", "blizzard", "bolt", "laptop", "band", "static", "lab", "stage", "website"
 ]);
 
 const clean = (word) => word.replace(/[.?!,]+$/, "");
