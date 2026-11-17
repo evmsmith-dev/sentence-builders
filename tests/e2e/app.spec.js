@@ -19,7 +19,9 @@ test("first visit: make a player and land in the town", { tag: "@layout" }, asyn
   // Pip introduces himself once: four short bubbles, then never again.
   await expect(page.locator("#pip-intro-overlay")).toBeVisible();
   await expect(page.locator("#pip-intro-text")).toContainText("Hi, Ava! I'm Pip");
-  for (let n = 0; n < 3; n++) await page.locator("#pip-intro-next").click();
+  for (let n = 0; n < 4; n++) await page.locator("#pip-intro-next").click();
+  // Grades 3-5: the last step is the home screen choice (Classic stays picked).
+  await expect(page.locator("#pip-intro-choice")).toBeVisible();
   await expect(page.locator("#pip-intro-next")).toHaveText("Let's build!");
   await page.locator("#pip-intro-next").click();
   await expect(page.locator("#pip-intro-overlay")).toBeHidden();
