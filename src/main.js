@@ -168,15 +168,8 @@ function renderHome() {
       <span class="world-emoji" aria-hidden="true">⛰️</span>
       <span class="world-text"><span class="world-name">Grammar Peaks</span><span class="world-blurb">Summit Review of the skills you've passed, and Spelling Lake</span></span>
       <span class="world-meta">🚩 ${player.summits || 0} · ⛵ ${player.lakeWins || 0}</span></button>`;
-  // The Town Square's Notice Board (Sentence of the Week) is a place to visit too.
-  if (currentWeek(player)) {
-    worldCards.unshift(`<button type="button" class="world-card" data-week>
-      <span class="world-emoji" aria-hidden="true">📌</span>
-      <span class="world-text"><span class="world-name">Notice Board</span><span class="world-blurb">In the Town Square: the Sentence of the Week</span></span>
-      <span class="world-meta">${weekProgressFor(player).done.length}/5</span></button>`);
-  }
-  const firstLocked = WORLDS.findIndex((w) => !worldOpenFor(w, player)) + (currentWeek(player) ? 1 : 0);
-  worldCards.splice(firstLocked < (currentWeek(player) ? 1 : 0) ? worldCards.length : firstLocked, 0, peaksCard);
+  const firstLocked = WORLDS.findIndex((w) => !worldOpenFor(w, player));
+  worldCards.splice(firstLocked < 0 ? worldCards.length : firstLocked, 0, peaksCard);
   $("world-list").innerHTML = worldCards.join("");
   showScreen("home");
 }
