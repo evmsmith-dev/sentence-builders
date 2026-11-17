@@ -13,7 +13,7 @@ import { createTownMap } from "./ui/townmap.js";
 import { $, closeOverlay, esc, initBackButton, openOverlay, pick, showScreen, topOverlay } from "./ui/dom.js";
 import { renderItem } from "./ui/items.js";
 import { reportText, teacherReport } from "./lib/report.js";
-import { WEEK_BONUS, WEEK_DAYS, nextDay, openDays, todayIndex, weekDayItems, weekFor, weekProgress, weekSentence } from "./lib/week.js";
+import { WEEK_BONUS, WEEK_DAYS, nextDay, openDays, todayIndex, weekDayItems, bandFor, weekFor, weekKey, weekProgress, weekSentence } from "./lib/week.js";
 import { MAX_PEOPLE, cleanName, namesFor, personalize, registerNames } from "./lib/names.js";
 import { buzz, canSay, celebrate, say, sound, stopSaying } from "./ui/feel.js";
 import { registerServiceWorker } from "./ui/update.js";
@@ -538,7 +538,14 @@ function finishHomework() {
 
 /* ==================== Sentence of the Week ==================== */
 
-const currentWeek = (player) => weekFor(state.content?.weeks || [], player.grade, Date.now());
+// A week already started keeps its sentence, even if new weeks were added to the list partway through it.
+const currentWeek = (player) => {
+  const weeks = state.content?.weeks || [];
+  const now = Date.now();
+  const saved = player.week;
+  const kept = saved && saved.key === weekKey(now) && weeks.find((w) => w.id === saved.id && w.band === bandFor(player.grade));
+  return kept || weekFor(weeks, player.grade, now);
+};
 const weekProgressFor = (player) => weekProgress(player, currentWeek(player), Date.now());
 /** The sentence without capitals or marks, as it's posted on the Notice Board (Thursday puts them in). */
 const boardText = (week) => weekSentence(week).toLowerCase().replace(/[.?!,]/g, "");

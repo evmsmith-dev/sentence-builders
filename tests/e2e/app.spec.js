@@ -1293,6 +1293,15 @@ test("Sentence of the Week: Today with Pip card, the Notice Board, a day's job, 
   await expect(page.locator("#week-btn .week-dots .done")).toHaveCount(1);
 });
 
+test("Sentence of the Week: a week already started keeps its sentence when new weeks are added", async ({ page }) => {
+  await page.clock.setFixedTime(new Date(2026, 10, 18, 10)); // a Wednesday; the week's key is that Monday
+  const week = { key: "2026-11-16", id: "week-3-4-05", done: [0] };
+  await openApp(page, { players: [{ ...player({ grade: 4 }), week }], current: "p1" });
+  await page.locator("#week-btn").click();
+  await expect(page.locator("#week-overlay")).toContainText("puppy is chewing on my shoe");
+  await expect(page.locator('#week-overlay [data-week-day]')).toHaveCount(2); // Monday is done; Tuesday and Wednesday wait
+});
+
 test("Sentence of the Week: Friday finishes the week with bonus bricks and a banner", async ({ page }) => {
   const friday = new Date(2026, 10, 20, 10).getTime();
   await page.clock.setFixedTime(friday);
