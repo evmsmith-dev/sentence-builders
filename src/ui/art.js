@@ -266,7 +266,7 @@ const pipOnMap = (x, y) => `<g pointer-events="none" transform="translate(${x - 
   <rect x="21" y="52" width="6" height="7" rx="2" fill="#3c6bc9"/><rect x="37" y="52" width="6" height="7" rx="2" fill="#3c6bc9"/><title>Pip</title></g></g>`;
 
 /** One area, drawn at 0,0 and 360 wide: a raised plateau with its path of levels, a park and a pond. */
-function districtSvg(player, district, { fresh, rising, week = null }) {
+function districtSvg(player, district, { fresh, rising, week = null, blueprint = null }) {
   const h = districtHeight(district, player);
   const theme = THEMES[district.id] || THEMES.square;
   const outline = plateauPath(360, h);
@@ -286,7 +286,8 @@ function districtSvg(player, district, { fresh, rising, week = null }) {
   const rows = pathRows(district, player);
   const park = rows ? SCENE.park + rows * ROW_H + 20 : SCENE.park;
   const water = park + PARK;
-  const placed = placedDecor(player, district.id);
+  // The blueprint (grades 6–8) is the plan of the buildings: no decorations, no Pip.
+  const placed = blueprint ? [] : placedDecor(player, district.id);
   const at = (p) => (p.y < SCENE.park ? p.y : park + (p.y - SCENE.park));
   const { nodes, d } = areaPath(district, player);
   // The level spots: a pad on the path, with its building once that level is passed.
@@ -295,7 +296,9 @@ function districtSvg(player, district, { fresh, rising, week = null }) {
     const stars = levelStars(player, n.skill.id, n.level);
     const open = isUnlocked(player, n.skill.id, n.level);
     const label = `${n.skill.name}, level ${n.level}, ${stars ? `${stars} star${stars === 1 ? "" : "s"}` : open ? "not built yet" : "locked"}`;
-    const pad = `<ellipse cx="${n.x}" cy="${n.ground + 4}" rx="20" ry="8" fill="${shade(theme.edge, 0.8)}"/>
+    const pad = blueprint
+      ? `<ellipse class="${stars ? "bp-built" : "bp-foot"}" cx="${n.x}" cy="${n.ground}" rx="20" ry="8"/>`
+      : `<ellipse cx="${n.x}" cy="${n.ground + 4}" rx="20" ry="8" fill="${shade(theme.edge, 0.8)}"/>
       <ellipse cx="${n.x}" cy="${n.ground}" rx="20" ry="8" fill="${open ? "#ffffff" : "#e2e4e9"}" stroke="${theme.edge}" stroke-width="1.5"/>`;
     const empty = `<text x="${n.x}" y="${n.ground + 4}" text-anchor="middle" font-size="10" font-weight="700" fill="${shade(theme.edge, 0.7)}">${open ? n.level : "🔒"}</text>`;
     let body = empty;
@@ -311,12 +314,17 @@ function districtSvg(player, district, { fresh, rising, week = null }) {
   }
   const skillGroups = [...bySkill.values()].map(({ skill, parts, xs, ground }) => {
     const mid = (Math.min(...xs) + Math.max(...xs)) / 2;
-    return `<g data-skill="${skill.id}">${parts.join("")}<text x="${mid}" y="${ground + 26}" text-anchor="middle" font-size="11" font-weight="700" fill="#2c3e5c" stroke="#fff" stroke-width="3" paint-order="stroke" pointer-events="none">${esc(skill.short)}</text></g>`;
+    // On the blueprint, each skill's label says how much is built and how often answers are right the first time.
+    const built = [1, 2, 3].filter((l) => levelStars(player, skill.id, l)).length;
+    const rate = blueprint?.rates?.[skill.id];
+    const name = blueprint ? `${skill.short} · ${built}/3${rate == null ? "" : ` · ${rate}%`}` : skill.short;
+    const weak = blueprint && rate != null && rate < 75 ? " bp-weak" : "";
+    return `<g data-skill="${skill.id}">${parts.join("")}<text class="skill-label${weak}" x="${mid}" y="${ground + 26}" text-anchor="middle" font-size="11" font-weight="700" fill="#2c3e5c" stroke="#fff" stroke-width="3" paint-order="stroke" pointer-events="none">${esc(name)}</text></g>`;
   }).join("");
   // Pip waits by the next level to play here (or at the end of the path once it's all built).
   const next = nodes.find((n) => isUnlocked(player, n.skill.id, n.level) && !levelStars(player, n.skill.id, n.level));
   const pipAt = next || nodes[nodes.length - 1];
-  const showPip = player.settings?.pip !== false;
+  const showPip = player.settings?.pip !== false && !blueprint;
   const pip = !showPip ? "" : pipAt ? pipOnMap(pipAt.x + (pipAt.x > 300 ? -26 : 26), pipAt.ground + 12) : pipOnMap(300, park + 50);
   const nameW = district.name.length * 13.5 + 46;
   const entry = ENTRY[district.id];
@@ -478,7 +486,7 @@ function peaksSvg(summits = 0, boats = 0) {
     <path d="M${x} ${base - h}L${x + w / 2} ${base}H${x + w * 0.08}z" fill="#5d6e5b"/>
     ${snow ? `<path d="M${x - w * 0.17} ${base - h * 0.66}L${x} ${base - h}L${x + w * 0.17} ${base - h * 0.66}l-${w * 0.06} 8l-${w * 0.06}-6l-${w * 0.05} 7z" fill="#fff"/>` : ""}`;
   const trees = [[500, 500], [540, 522], [800, 500], [770, 530], [560, 548], [740, 552]].map(([x, y]) =>
-    `<ellipse cx="${x + 4}" cy="${y - 1}" rx="11" ry="3.5" fill="#000" opacity=".15"/><text x="${x}" y="${y}" text-anchor="middle" font-size="28">🌲</text>`).join("");
+    `<ellipse cx="${x + 4}" cy="${y - 1}" rx="11" ry="3.5" fill="#000" opacity=".15"/><text class="tree" x="${x}" y="${y}" text-anchor="middle" font-size="28">🌲</text>`).join("");
   const [lx, ly] = LAKE;
   return `<g class="peaks" pointer-events="none" aria-hidden="true">
     ${mountain(560, 340, 190, 170, true)}${mountain(740, 330, 200, 190, true)}${mountain(650, 370, 230, 240, true)}
@@ -578,7 +586,7 @@ export function mapLayout(player) {
  * Grammar Island: a region for the Town Square and one for each world, around Grammar Peaks, joined by
  * roads. The home screen pans and zooms it by changing the viewBox.
  */
-export function townSvg(player, { fresh = null, rising = null, week = null, review = false } = {}) {
+export function townSvg(player, { fresh = null, rising = null, week = null, review = false, blueprint = null } = {}) {
   const layout = mapLayout(player);
   const open = layout.districts.filter((d) => !d.locked);
   const shownSkills = open.flatMap((d) => districtSkills(d, player));
@@ -596,17 +604,17 @@ export function townSvg(player, { fresh = null, rising = null, week = null, revi
   const boxes = layout.districts.map((d) => layout.areas[d.id]);
   const plots = layout.districts.map((d) => {
     const b = layout.areas[d.id];
-    return `<g class="district${d.locked ? " locked" : ""}" data-area="${d.id}" transform="translate(${b.x} ${b.y})">${districtSvg(player, d, { fresh, rising, week })}</g>`;
+    return `<g class="district${d.locked ? " locked" : ""}" data-area="${d.id}" transform="translate(${b.x} ${b.y})">${districtSvg(player, d, { fresh, rising, week, blueprint })}</g>`;
   }).join("");
   // Big name flags, for seeing the whole island at once (they fade once zoomed in).
   const flags = [...layout.districts.map((d) => ({ id: d.id, text: `${d.locked ? "🔒" : d.emoji} ${d.name}`, box: layout.areas[d.id] })),
-    { id: "peaks", text: review ? "🔁 Review Dock" : "⛰️ Grammar Peaks", box: { x: 470, y: 60, w: 360, h: 0 } }].map(({ id, text, box: b }) => {
+    { id: "peaks", text: review ? "🔁 Review Dock" : blueprint ? "⛰️ Review" : "⛰️ Grammar Peaks", box: { x: 470, y: 60, w: 360, h: 0 } }].map(({ id, text, box: b }) => {
     const w = text.length * 21 + 40;
     const cy = id === "peaks" ? 150 : b.y + Math.min(b.h / 2, 150);
     return `<g class="region-label" pointer-events="none"><rect x="${b.x + 180 - w / 2}" y="${cy - 34}" width="${w}" height="64" rx="32" fill="#fff" opacity=".92"/>
       <text x="${b.x + 180}" y="${cy + 12}" text-anchor="middle" font-size="38" font-weight="700" fill="#1d2b4f">${esc(text)}</text></g>`;
   }).join("");
-  return `<svg class="town town-map" viewBox="0 0 ${MAP_W} ${MAP_H}" role="img" aria-label="Grammar Island: ${built} of ${total} buildings built">
+  return `<svg class="town town-map${blueprint ? " blueprint" : ""}" viewBox="0 0 ${MAP_W} ${MAP_H}" role="img" aria-label="Grammar Island: ${built} of ${total} buildings built">
     <defs><clipPath id="island"><path d="${coast}"/></clipPath>
       <radialGradient id="sun" cx=".3" cy=".2" r=".9"><stop offset="0" stop-color="#fff" stop-opacity=".25"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs>
     <rect x="-3000" y="-3000" width="${MAP_W + 6000}" height="${MAP_H + 6000}" fill="#5aa7de"/>
@@ -617,7 +625,7 @@ export function townSvg(player, { fresh = null, rising = null, week = null, revi
     <g clip-path="url(#island)">${regions}
       <g fill="none" stroke="#ffffff" stroke-opacity=".75" stroke-width="5" stroke-dasharray="14 10" stroke-linecap="round" pointer-events="none">${borders}</g>
       ${peaksSvg(player.summits || 0, player.lakeWins || 0)}${roadsSvg(curves)}
-      <g class="scenery" pointer-events="none" aria-hidden="true">${layout.districts.map((d) => scenerySvg(d.id, REGIONS[d.id].poly, boxes, roadPts)).join("")}</g></g>
+      ${blueprint ? "" : `<g class="scenery" pointer-events="none" aria-hidden="true">${layout.districts.map((d) => scenerySvg(d.id, REGIONS[d.id].poly, boxes, roadPts)).join("")}</g>`}</g>
     <path d="${coast}" fill="none" stroke="#f3e2ae" stroke-width="16"/>
     <path d="${coast}" fill="none" stroke="#ffffff" stroke-opacity=".6" stroke-width="3" transform="translate(0 -1)"/>
     <rect width="${MAP_W}" height="${MAP_H}" fill="url(#sun)" pointer-events="none"/>

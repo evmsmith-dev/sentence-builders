@@ -75,8 +75,13 @@
     </section>
     <section class="card town-card" aria-labelledby="town-title">
       <h2 id="town-title">🏝️ Grammar Island</h2>
+      <div id="bp-head" class="bp-head" hidden>
+        <p id="bp-summary" class="bp-summary"></p>
+        <button type="button" id="bp-toggle" class="link"></button>
+      </div>
       <div class="map-wrap">
         <div id="town" class="town-view"></div>
+        <button type="button" id="map-expand" class="map-expand" hidden aria-label="Open the full plan of the island"></button>
         <div class="map-zoom" role="group" aria-label="Zoom the map">
           <button type="button" id="map-in" aria-label="Zoom in">+</button>
           <button type="button" id="map-out" aria-label="Zoom out">−</button>
@@ -310,6 +315,7 @@
       <label class="toggle"><input type="checkbox" id="set-pip"> Comments and greeting</label>
       <label class="toggle"><input type="checkbox" id="set-sound"> Sounds</label>
       <label class="toggle" id="island-toggle"><input type="checkbox" id="set-island"> Island Home: the island fills the screen (grades 3–5)</label>
+      <label class="toggle" id="showisland-toggle"><input type="checkbox" id="set-showisland"> Show Grammar Island in color, with decorations and building (instead of the blueprint)</label>
       <label class="toggle"><input type="checkbox" id="set-calm"> Calm island: decorations stay still</label>
       <label for="set-theme">Look</label>
       <select id="set-theme">

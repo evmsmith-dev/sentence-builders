@@ -1350,3 +1350,26 @@ test("Island Home is off by default and not offered from grade 6", async ({ page
   await page.locator("#settings-btn").click();
   await expect(page.locator("#island-toggle")).toBeHidden();
 });
+
+test("Grades 6-8: the island as a blueprint, Worlds first, no brick shop; Settings brings the colors back @layout", async ({ page }) => {
+  const p = player({ grade: 7, levels: { "commas-1": { best: 7, stars: 2, plays: 1 } } });
+  p.items = Object.fromEntries(Array.from({ length: 8 }, (_, i) => [`commas-2-0${i + 1}`, { seen: 1, misses: i < 4 ? 1 : 0, last: 1 }]));
+  await openApp(page, { players: [p], current: "p1" });
+  await expect(page.locator("body")).toHaveClass(/blueprint-home/);
+  await expect(page.locator("#town-title")).toHaveText("📐 Island plan");
+  await expect(page.locator("#bp-summary")).toContainText("1 of 78 levels built · 1 skill under 75%");
+  await expect(page.locator("#build-btn")).toBeHidden();
+  // The Worlds list comes before the plan.
+  const listY = (await page.locator("#world-list").boundingBox()).y;
+  const mapY = (await page.locator("#home .town-card").boundingBox()).y;
+  expect(listY).toBeLessThan(mapY);
+  await expect(page.locator(".town.blueprint")).toBeAttached();
+  await expect(page.locator(".town .skill-label.bp-weak")).toContainText("Commas · 1/3 · 50%");
+  await page.locator("#map-expand").click();
+  await expect(page.locator("#bp-toggle")).toHaveText("Smaller");
+  await page.locator("#settings-btn").click();
+  await page.locator("#set-showisland").check();
+  await page.locator("#settings-overlay [data-close]").click();
+  await expect(page.locator("body")).not.toHaveClass(/blueprint-home/);
+  await expect(page.locator("#build-btn")).toBeVisible();
+});

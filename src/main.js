@@ -135,6 +135,35 @@ function reviewDue(player) {
   return missed >= 4 ? missed : 0;
 }
 
+/* ==================== The blueprint (grades 6–8) ==================== */
+// Following the teaching and UI experts: older players see the same island as an architect's plan, with each
+// skill's levels and first-try rate, and no decorations or brick shop (Settings can bring the colors back).
+
+const BLUEPRINT_FROM_GRADE = 6;
+const blueprintOn = (player) => player.grade >= BLUEPRINT_FROM_GRADE && !player.settings?.showIsland;
+
+/** First-try rate (0–100) per skill, from every answer so far; skills not practiced yet are left out. */
+function skillRates(player) {
+  const byId = new Map(state.content.items.map((item) => [item.id, item.skill]));
+  const sums = {};
+  for (const [id, st] of Object.entries(player.items || {})) {
+    const skill = byId.get(id);
+    if (!skill) continue;
+    const row = (sums[skill] ||= { seen: 0, misses: 0 });
+    row.seen += st.seen;
+    row.misses += st.misses;
+  }
+  return Object.fromEntries(Object.entries(sums).filter(([, r]) => r.seen).map(([k, r]) => [k, Math.round(((r.seen - r.misses) / r.seen) * 100)]));
+}
+
+function blueprintSummary(player, rates) {
+  const skills = visibleSkills(player);
+  const built = skills.reduce((n, s) => n + [1, 2, 3].filter((l) => isPassed(player, s.id, l)).length, 0);
+  const weak = skills.filter((s) => rates[s.id] != null && rates[s.id] < 75).length;
+  const missed = Object.values(player.items || {}).filter((st) => st.misses > 0).length;
+  return [`${built} of ${skills.length * 3} levels built`, weak ? `${weak} skill${weak === 1 ? "" : "s"} under 75%` : "", missed ? `${missed} to review` : ""].filter(Boolean).join(" · ");
+}
+
 function islandBarHtml(player) {
   const info = weekMapInfo(player);
   $("island-board").innerHTML = `<span aria-hidden="true">📌</span> Notice Board${info?.waiting ? ' <span class="island-dot" aria-label="something is waiting">!</span>' : ""}`;
@@ -150,6 +179,19 @@ function renderHome() {
   const island = islandOn(player);
   document.body.classList.toggle("island-home", island);
   $("island-bar").hidden = !island;
+  const blueprint = blueprintOn(player);
+  const rates = blueprint ? skillRates(player) : null;
+  document.body.classList.toggle("blueprint-home", blueprint);
+  $("build-btn").hidden = blueprint;
+  $("bp-head").hidden = !blueprint;
+  const preview = blueprint && !state.mapOpen;
+  $("town").closest(".town-card").classList.toggle("bp-preview", preview);
+  $("map-expand").hidden = !preview;
+  if (blueprint) {
+    $("town-title").textContent = "📐 Island plan";
+    $("bp-summary").textContent = blueprintSummary(player, rates);
+    $("bp-toggle").textContent = state.mapOpen ? "Smaller" : "Open the plan";
+  } else $("town-title").textContent = "🏝️ Grammar Island";
   $("who-btn").innerHTML = `<span class="avatar" aria-hidden="true">${player.avatar}</span> ${esc(player.name)}`;
   const next = nextUp(player);
   const due = island ? reviewDue(player) : 0;
@@ -183,7 +225,7 @@ function renderHome() {
   const risingSkill = state.rising && skillById(state.rising.replace(/-\d$/, ""));
   if (risingSkill) state.mapArea = risingSkill.world;
   const open = state.mapArea === "peaks" || mapDistricts(player).some((d) => d.id === state.mapArea);
-  state.map.show(townSvg(player, { rising: state.rising, week: weekMapInfo(player), review: due > 0 }), mapLayout(player), open ? state.mapArea : null);
+  state.map.show(townSvg(player, { rising: state.rising, week: weekMapInfo(player), review: due > 0, blueprint: blueprint ? { rates } : null }), mapLayout(player), open ? state.mapArea : null);
   if (state.rising) {
     const card = $("town").closest(".town-card");
     if (!matchMedia("(prefers-reduced-motion: reduce)").matches) setTimeout(() => card.scrollIntoView({ block: "center", behavior: "smooth" }), 150);
@@ -957,7 +999,7 @@ function drawMapPanel() {
     $("map-panel").innerHTML = '<p class="map-hint">Tap a place on the island to zoom in. Drag to look around.</p>';
     return;
   }
-  const decorate = `<button type="button" class="secondary" data-decorate="${here.id}">🧱 Decorate here</button>`;
+  const decorate = blueprintOn(player) ? "" : `<button type="button" class="secondary" data-decorate="${here.id}">🧱 Decorate here</button>`;
   const whole = '<button type="button" class="link" data-map-fit>See the whole island</button>';
   if (here.locked) {
     const world = WORLDS.find((w) => w.id === here.world);
@@ -1448,6 +1490,8 @@ function fillSettings() {
   $("set-showwords").checked = Boolean(s.showWords);
   $("set-island").checked = Boolean(s.islandHome);
   $("set-calm").checked = Boolean(s.calm);
+  $("set-showisland").checked = Boolean(s.showIsland);
+  $("showisland-toggle").hidden = state.player.grade < BLUEPRINT_FROM_GRADE;
   $("island-toggle").hidden = state.player.grade > ISLAND_HOME_MAX_GRADE;
   $("set-autoread").closest("label").hidden = !canSay();
   const names = s.names || {};
@@ -1486,7 +1530,7 @@ function changeSetting() {
     settings: { ...state.player.settings, autoRead: $("set-autoread").checked, pip: $("set-pip").checked, sound: $("set-sound").checked,
       theme: $("set-theme").value, breakMinutes: Number($("set-break").value),
       font: $("set-font").value, textSize: $("set-size").value, spacing: $("set-spacing").checked, names: readNames(),
-      showWords: $("set-showwords").checked, islandHome: $("set-island").checked, calm: $("set-calm").checked },
+      showWords: $("set-showwords").checked, islandHome: $("set-island").checked, calm: $("set-calm").checked, showIsland: $("set-showisland").checked },
   };
   $("names-fields").hidden = !player.settings.names.on;
   savePlayer(player);
@@ -1546,6 +1590,7 @@ function wire() {
       const [skillId, level] = nextUpBtn.dataset.nextUp.split(/-(?=\d$)/);
       return openTip(skillId, Number(level));
     }
+    if (target.closest("#map-expand, #bp-toggle")) { state.mapOpen = !state.mapOpen; return renderHome(); }
     if (target.closest("[data-pip-min]")) { state.pipMin = true; return renderHome(); }
     if (target.closest("[data-pip-expand]")) { state.pipMin = false; return renderHome(); }
     if (target.closest("#island-build")) {
@@ -1757,7 +1802,7 @@ function wire() {
     closeOverlay("result-overlay");
     renderHome();
   });
-  for (const id of ["set-autoread", "set-pip", "set-sound", "set-theme", "set-break", "set-font", "set-size", "set-spacing", "set-showwords", "set-island", "set-calm", "set-names-on", "set-pet",
+  for (const id of ["set-autoread", "set-pip", "set-sound", "set-theme", "set-break", "set-font", "set-size", "set-spacing", "set-showwords", "set-island", "set-calm", "set-showisland", "set-names-on", "set-pet",
     ...Array.from({ length: MAX_PEOPLE }, (_, i) => [`set-name-${i}`, `set-pron-${i}`]).flat()]) $(id).addEventListener("change", changeSetting);
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {

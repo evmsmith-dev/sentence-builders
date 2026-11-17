@@ -979,3 +979,37 @@ body.island-home #home #pip-home.mini { left: 8px; right: auto; display: flex; a
 .pip-mini { width: 56px; height: 56px; border-radius: 50%; border: 2px solid var(--border); background: var(--card); box-shadow: var(--shadow); display: grid; place-items: center; padding: 0; }
 .pip-mini .pip { width: 44px; height: 44px; }
 body.island-home #home #pip-home.mini .next-play { margin: 0; box-shadow: var(--shadow); }
+
+/* ---------- The blueprint (grades 6–8): the island as an architect's plan ---------- */
+body.blueprint-home #home { display: flex; flex-direction: column; }
+body.blueprint-home #home > .top { order: 0; } body.blueprint-home #home > #pip-home { order: 1; }
+body.blueprint-home #home > .home-tools { order: 2; } body.blueprint-home #home > .today-card { order: 3; }
+body.blueprint-home #home > .section-title { order: 4; margin-top: 4px; } body.blueprint-home #home > #world-list { order: 5; }
+body.blueprint-home #home > .town-card { order: 6; margin-top: 16px; }
+.bp-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin: -4px 0 8px; }
+.bp-summary { margin: 0; color: var(--muted); font-size: 0.92rem; }
+.bp-head .link { white-space: nowrap; }
+.town-card.bp-preview .town-view { height: 170px; min-height: 0; }
+.town-card.bp-preview .map-zoom, .town-card.bp-preview #map-panel { display: none; }
+.map-expand { position: absolute; inset: 0; border: 0; background: transparent; cursor: pointer; border-radius: 12px; }
+.map-expand:focus-visible { outline: 3px solid var(--accent); }
+
+.town.blueprint { background-color: #1d3557;
+  background-image: linear-gradient(rgba(255,255,255,.07) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.07) 1px, transparent 1px),
+    linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+  background-size: 60px 60px, 60px 60px, 12px 12px, 12px 12px; filter: none !important; }
+.town.blueprint :is(path, rect, ellipse, circle, polygon, line) { fill: none !important; stroke: rgba(214, 230, 255, 0.72) !important; stroke-width: 1px !important; vector-effect: non-scaling-stroke; }
+.town.blueprint [opacity], .town.blueprint .rise > *[opacity] { display: none; }
+.town.blueprint :is(.lot-hit, .board-hit), .town.blueprint clipPath * { stroke: none !important; }
+.town.blueprint .region-label rect, .town.blueprint .district-sign rect { fill: #1d3557 !important; stroke: rgba(214, 230, 255, 0.9) !important; }
+.town.blueprint text { fill: #e8f1ff !important; stroke: none !important; }
+.town.blueprint .skill-label { fill: #cfe3ff !important; font-weight: 600; }
+.town.blueprint .skill-label.bp-weak { fill: #ffd27a !important; }
+.town.blueprint .bp-foot { stroke-dasharray: 3 3; stroke: rgba(214, 230, 255, 0.45) !important; }
+.town.blueprint .bp-built { stroke: #9fd0ff !important; stroke-width: 1.6px !important; }
+.town.blueprint .banners, .town.blueprint .notice-board text { opacity: 1; }
+/* One clean line per edge: drop the stacked shadow and cliff copies, the trees and the park's "build here" sign. */
+.town.blueprint path[transform^="translate("], .town.blueprint .tree, .town.blueprint .park-sign { display: none; }
+/* Outlines have no fill, so taps still need to land on regions, lots and the board. */
+.town.blueprint :is(.lot-hit, .board-hit, path.region) { pointer-events: all; }
+.town.blueprint g.district > path:not([transform]) { pointer-events: all; }
