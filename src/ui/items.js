@@ -163,6 +163,7 @@ function renderWhich(root, item, { answer, onTap }) {
   const parsed = parseWhich(item);
   const choices = shuffle(parsed.choices);
   let locked = false;
+  let picked = null; // the last wrong choice, for "You chose" in the feedback and the results
   const blank = parsed.kind === "blank"
     ? `<p class="sentence">${esc(parsed.before)}<span class="blank" aria-label="blank">&nbsp;</span>${esc(parsed.after)}</p>` : "";
   root.innerHTML = `${blank}<div class="choices-list ${parsed.kind}" data-type="which">${choices.map((choice) =>
@@ -175,6 +176,7 @@ function renderWhich(root, item, { answer, onTap }) {
     if (!right) {
       choice.disabled = true;
       choice.classList.add("wrong");
+      picked = choice.dataset.choice;
     }
     answer(right);
   });
@@ -194,6 +196,9 @@ function renderWhich(root, item, { answer, onTap }) {
     prompt: item.prompt || (parsed.kind === "blank" ? "Which one fits in the blank?" : "Which sentence is written correctly?"),
     usesCheck: false,
     choicesText: choices,
+    // With only two choices, a miss leaves just the answer, so there's no second try: it's shown and counts as missed.
+    oneShot: choices.length <= 2,
+    chosen: () => picked,
     retry: () => {},
     reveal: markRight,
     lock: markRight,

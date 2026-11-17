@@ -111,7 +111,32 @@ function choosePlayer(id) {
 /** Skills this player can play: in an open world and not waiting for a higher grade. */
 const visibleSkills = (player) => SKILLS.filter((sk) => worldOpenFor(WORLDS.find((w) => w.id === sk.world), player) && skillOpenFor(sk, player));
 
+/** Grades 6–8 see their own work first: Revision Ridge and Flow Factory lead the list, Advanced Q&A Flow first in it. */
+const OLDER_FROM_GRADE = 6;
+const LEAD_WORLDS = ["desk", "flow"];
+const LEAD_SKILLS = ["flow2"];
+const worldsFor = (player) => (player.grade < OLDER_FROM_GRADE ? WORLDS
+  : [...LEAD_WORLDS.map((id) => WORLDS.find((w) => w.id === id)), ...WORLDS.filter((w) => !LEAD_WORLDS.includes(w.id))]);
+const skillsInWorldOrdered = (worldId, player) => {
+  const list = skillsInWorldFor(worldId, player);
+  return player.grade < OLDER_FROM_GRADE ? list : [...list.filter((s) => LEAD_SKILLS.includes(s.id)), ...list.filter((s) => !LEAD_SKILLS.includes(s.id))];
+};
+
+/**
+ * The next level to play. Grades 3–5: the first one not passed, in list order. Grades 6–8 (following the UI expert,
+ * the product owner and an 8th-grade playtester): middle-school levels up to their grade first (in each skill's
+ * order, so level 1 still comes before level 2), then a grade ahead, and only then the grade 3–5 levels, as review.
+ */
 function nextUp(player) {
+  if (player.grade >= OLDER_FROM_GRADE) {
+    const g = player.grade;
+    const rank = (lg) => (lg >= OLDER_FROM_GRADE && lg <= g ? 0 : lg > g ? 1 : 2 + (g - lg));
+    const order = worldsFor(player).flatMap((w) => skillsInWorldOrdered(w.id, player)).filter((sk) => visibleSkills(player).includes(sk));
+    const open = order.flatMap((skill) => [1, 2, 3].map((level) => ({ skill, level, r: rank(skill.grades[level - 1]) })))
+      .filter(({ skill, level }) => isUnlocked(player, skill.id, level) && !isPassed(player, skill.id, level));
+    const best = open.reduce((a, b) => (b.r < a.r ? b : a), open[0]);
+    return best ? { skill: best.skill, level: best.level } : null;
+  }
   for (const skill of visibleSkills(player)) {
     for (const level of [1, 2, 3]) {
       if (isUnlocked(player, skill.id, level) && !isPassed(player, skill.id, level)) return { skill, level };
@@ -179,6 +204,9 @@ function renderHome() {
   document.body.classList.toggle("island-home", island);
   $("island-bar").hidden = !island;
   const blueprint = blueprintOn(player);
+  // The blueprint is a plan, not an island: grades 6–8 go "Back to home".
+  $("result-town").textContent = blueprint ? "Back to home" : "Back to the island";
+  document.querySelectorAll('.back[data-go="home"]').forEach((b) => b.setAttribute("aria-label", blueprint ? "Back to home" : "Back to the island"));
   const rates = blueprint ? skillRates(player) : null;
   document.body.classList.toggle("blueprint-home", blueprint);
   $("build-btn").hidden = blueprint;
@@ -262,7 +290,7 @@ function renderHome() {
     savePlayer({ ...player, boardSeenOn: localDate(Date.now()) });
     setTimeout(() => !$("home").hidden && !topOverlay() && openWeek(), 300);
   }
-  const worldCards = WORLDS.map((world) => {
+  const worldCards = worldsFor(player).map((world) => {
     const skills = skillsInWorldFor(world.id, player);
     const built = skills.reduce((n, s) => n + [1, 2, 3].filter((l) => isPassed(player, s.id, l)).length, 0);
     const open = worldOpenFor(world, player);
@@ -278,7 +306,7 @@ function renderHome() {
       <span class="world-emoji" aria-hidden="true">⛰️</span>
       <span class="world-text"><span class="world-name">Grammar Peaks</span><span class="world-blurb">Summit Review of the skills you've passed, and Spelling Lake</span></span>
       <span class="world-meta">🚩 ${player.summits || 0} · ⛵ ${player.lakeWins || 0}</span></button>`;
-  const firstLocked = WORLDS.findIndex((w) => !worldOpenFor(w, player));
+  const firstLocked = worldsFor(player).findIndex((w) => !worldOpenFor(w, player));
   worldCards.splice(firstLocked < 0 ? worldCards.length : firstLocked, 0, peaksCard);
   $("world-list").innerHTML = worldCards.join("");
   showScreen("home");
@@ -291,7 +319,7 @@ function renderWorld(worldId) {
   const world = WORLDS.find((w) => w.id === worldId);
   const player = state.player;
   $("world-title").textContent = `${world.emoji} ${world.name}`;
-  $("skill-list").innerHTML = skillsInWorldFor(worldId, player).map((skill) => skillCardHtml(skill)).join("")
+  $("skill-list").innerHTML = skillsInWorldOrdered(worldId, player).map((skill) => skillCardHtml(skill)).join("")
     + (world.comingSoon ? `<p class="note coming-soon">${esc(world.comingSoon)}</p>` : "");
   showScreen("world");
 }
@@ -323,7 +351,7 @@ function skillCardHtml(skill) {
     return `<section class="skill-card" style="--skill:${skill.color}">
       <div class="skill-head"><h2>${esc(skill.name)}</h2>
         <span class="tier${tier ? "" : " none"}">${skill.badge.emoji} ${tier ? TIER_NAMES[tier - 1] : "No badge yet"}</span></div>
-      <p class="skill-sub">${esc(skill.benchmarks)}</p>
+      ${player.grade >= OLDER_FROM_GRADE ? "" : `<p class="skill-sub">${esc(skill.benchmarks)}</p>`}
       <div class="levels">${levels}</div>
       ${trail ? `<p class="trail-note">${esc(trail)}</p>` : ""}
       ${gold ? `<p class="gold-note">${esc(gold)}</p>` : ""}
@@ -343,7 +371,7 @@ function openTip(skillId, level, { review = false } = {}) {
   const skill = skillById(skillId);
   const tip = state.content.tips[`${skillId}-${level}`];
   state.tip = { skillId, level, tip, review };
-  $("tip-start").textContent = review ? "Back to my results" : "Let's build";
+  $("tip-start").textContent = review ? "Back to my results" : grownPip() ? "Start" : "Let's build";
   $("tip-close").hidden = review;
   $("tip-level").textContent = `${skill.name} · Level ${level} · Grade ${skill.grades[level - 1]}`;
   $("tip-pip").innerHTML = settings().pip ? pipArt(48) : "";
@@ -490,7 +518,7 @@ function finishPractice() {
     ? (summit ? `Flag number ${out.player.summits} is flying on Grammar Peaks. You remembered your rules!` : `Boat number ${out.player.lakeWins} is out on the lake. Great spelling!`)
     : `${goal} Look at the ones below, then try again.`;
   $("result-pip").innerHTML = pipRemark(line);
-  $("result-badges").innerHTML = newBadges.map((b) => `<p class="new-badge"><span aria-hidden="true">${b.emoji}</span> New badge: <strong>${esc(b.name)}</strong></p>`).join("");
+  $("result-badges").innerHTML = newBadges.map((b) => `<p class="new-badge"><span aria-hidden="true">${b.emoji}</span> New badge: <strong>${esc(badgeName(b))}</strong></p>`).join("");
   $("result-review").innerHTML = reviewHtml(play);
   state.resultNext = { practice: play.mode };
   $("result-next").textContent = summit ? "Climb again" : "Another round";
@@ -500,7 +528,7 @@ function finishPractice() {
   openOverlay("result-overlay");
   if (out.reached) {
     sound("done", settings().sound);
-    celebrate(out.right === play.results.length ? 3 : 2);
+    cheer(out.right === play.results.length ? 3 : 2);
   }
   state.play = null;
 }
@@ -531,7 +559,7 @@ function finishHomework() {
   openOverlay("result-overlay");
   if (out.grade === "A+" || out.grade === "A") {
     sound("done", settings().sound);
-    celebrate(out.grade === "A+" ? 3 : 2);
+    cheer(out.grade === "A+" ? 3 : 2);
   }
   state.play = null;
 }
@@ -654,7 +682,7 @@ function finishWeekDay() {
   openOverlay("result-overlay");
   if (out.weekDone) {
     sound("done", settings().sound);
-    celebrate(3);
+    cheer(3);
   }
   state.play = null;
 }
@@ -748,6 +776,9 @@ function showResultBricks(out, html) {
   $("result-bricks").innerHTML = html;
 }
 
+/** Confetti: every pass for grades 3–5; only a perfect score from grade 6, so it still means something. */
+const cheer = (stars) => (grownPip() && stars < 3 ? null : celebrate(stars));
+
 /** Grades 6–8 get Pip as a coworker: a small line drawing, drier words, no home-page greeting. */
 const grownPip = () => (state.player?.grade || 0) >= GROWN_PIP_FROM_GRADE;
 const pipWords = () => (grownPip() ? PIP_GROWN : PIP);
@@ -757,6 +788,12 @@ const pipRemark = (text, action = "") => pipSays(text, settings().pip, action, {
 
 /** Pip's small face beside a hint (nothing when Pip is turned off). */
 const pipFace = () => (settings().pip ? `<span class="feedback-pip" aria-hidden="true">${pipArt(36)}</span>` : "");
+
+/** "You chose: …" when we know the wrong choice (Which is right?). */
+const chosenLine = (chosen) => (chosen ? `<p class="chosen-line"><span class="answer-tag">You chose:</span> ${esc(chosen)}</p>` : "");
+/** Grades 6–8: one line on why, after a right answer too, for items whose hint states the rule. */
+const WHY_TYPES = new Set(["which", "mark", "fix", "sort", "check", "join", "build"]);
+const whyLine = (item) => (grownPip() && WHY_TYPES.has(item.type) && item.hint ? `<p class="why-line"><span class="answer-tag">Why:</span> ${esc(item.hint)}</p>` : "");
 
 function handleAnswer(right) {
   const play = state.play;
@@ -771,8 +808,8 @@ function handleAnswer(right) {
     buzz(10);
     const line = play.tries === 1 ? pick(pipWords().right) : pick(pipWords().secondTry);
     $("feedback").className = "feedback good";
-    $("feedback").innerHTML = `<p><strong>✓ ${esc(line)}</strong></p>`;
-  } else if (play.tries === 1) {
+    $("feedback").innerHTML = `<p><strong>✓ ${esc(line)}</strong></p>${whyLine(item)}`;
+  } else if (play.tries === 1 && !play.ctrl.oneShot) {
     play.tries = 2;
     sound("wrong", s.sound);
     play.ctrl.retry();
@@ -782,11 +819,14 @@ function handleAnswer(right) {
     $("feedback").innerHTML = `${pipFace()}<div><p><strong>${esc(pipWords().hint)}</strong> ${esc(hintText)}</p><p class="try-again">Try again.</p></div>`;
     updateCheck();
   } else {
-    play.results.push({ id: item.id, type: item.type, tries: 2, correct: false });
+    const chosen = play.ctrl.chosen?.() || null;
+    play.results.push({ id: item.id, type: item.type, tries: play.tries, correct: false, chosen });
     finishItem();
     play.ctrl.reveal();
+    if (play.tries === 1) sound("wrong", s.sound); // a two-choice miss: the answer is shown right away
     $("feedback").className = "feedback shown";
-    $("feedback").innerHTML = `${pipFace()}<div><p><strong>${esc(pipWords().shown)}</strong></p><p class="answer-line">${esc(answerText(item))}</p><p class="hint-line">${esc(item.hint)}</p></div>`;
+    $("feedback").innerHTML = `${pipFace()}<div><p><strong>${esc(play.tries === 1 ? pipWords().oneShot : pipWords().shown)}</strong></p>${chosenLine(chosen)}`
+      + `<p class="answer-line">${chosen ? '<span class="answer-tag">Correct:</span> ' : ""}${esc(answerText(item))}</p><p class="hint-line">${esc(item.hint)}</p></div>`;
   }
 }
 
@@ -892,7 +932,7 @@ function finishLevel() {
   $("result-badges").innerHTML = out.newBadges.map(({ id, tier }) => {
     const badge = SKILLS.find((sk) => sk.badge.id === id)?.badge || [...WORLD_BADGES, ...HABIT_BADGES].find((b) => b.id === id);
     const tierName = SKILLS.some((sk) => sk.badge.id === id) ? ` · ${TIER_NAMES[tier - 1]}` : "";
-    return `<p class="new-badge"><span aria-hidden="true">${badge.emoji}</span> New badge: <strong>${esc(badge.name)}</strong>${tierName}</p>`;
+    return `<p class="new-badge"><span aria-hidden="true">${badge.emoji}</span> New badge: <strong>${esc(badgeName(badge))}</strong>${tierName}</p>`;
   }).join("");
   state.lastPlayed = { skillId: play.skillId, level: play.level };
   $("result-review").innerHTML = reviewHtml(play);
@@ -903,7 +943,7 @@ function finishLevel() {
   openOverlay("result-overlay");
   if (out.passed) {
     sound("done", s.sound);
-    celebrate(out.stars);
+    cheer(out.stars);
     buzz(out.stars === 3 ? [30, 60, 30, 60, 60] : [30, 60, 30]);
     // A new building (or a better one) rises when the town is next shown.
     if (out.stars > starsBefore) state.rising = `${play.skillId}-${play.level}`;
@@ -919,7 +959,8 @@ function reviewHtml(play) {
     const item = play.items.find((i) => i.id === r.id);
     const status = r.correct ? "Fixed on the second try" : "Answer shown";
     return `<li class="review-row ${r.correct ? "second" : "missed"}"><span class="review-status">${status}</span>
-      <span class="review-answer">${esc(answerText(item))}</span><span class="review-rule">${esc(item.hint)}</span></li>`;
+      ${r.chosen ? `<span class="review-chosen">You chose: ${esc(r.chosen)}</span>` : ""}
+      <span class="review-answer">${r.chosen ? "Correct: " : ""}${esc(answerText(item))}</span><span class="review-rule">${esc(item.hint)}</span></li>`;
   });
   if (!rows.length) return '<p class="review-none">No mistakes this round. ✓</p>';
   return `<h3 class="review-title">Look again (${rows.length})</h3><ol class="review-list">${rows.join("")}</ol>`;
@@ -1297,20 +1338,29 @@ function visibleBadgeIds(player) {
   ]);
 }
 
+/** Grades 6–8: plain badge names (the skill or world), not "Comma Captain" or "Works Wizard". */
+function badgeName(badge) {
+  if ((state.player?.grade || 0) < OLDER_FROM_GRADE) return badge.name;
+  const skill = SKILLS.find((sk) => sk.badge.id === badge.id);
+  if (skill) return skill.name;
+  const world = badge.world && WORLDS.find((w) => w.id === badge.world);
+  return world ? `${world.name}: all Silver` : badge.name;
+}
+
 function renderBadges() {
   const player = state.player;
   const earned = currentBadges(player);
   const skillRows = visibleSkills(player).map((skill) => {
     const tier = earned[skill.badge.id];
     return `<li class="badge${tier ? " earned" : ""}"><span class="badge-emoji" aria-hidden="true">${skill.badge.emoji}</span>
-      <span><strong>${esc(skill.badge.name)}</strong> ${tier ? `<span class="tier-tag t${tier}">${TIER_NAMES[tier - 1]}</span>` : ""}
+      <span><strong>${esc(badgeName(skill.badge))}</strong> ${tier ? `<span class="tier-tag t${tier}">${TIER_NAMES[tier - 1]}</span>` : ""}
       <span class="badge-how">${esc(skill.name)}: Bronze = pass level 1, Silver = pass level 2, Gold = 7+ on level 3 on two days.</span></span></li>`;
   }).join("");
   const other = [...WORLD_BADGES.filter((b) => worldOpenFor(WORLDS.find((w) => w.id === b.world), player)), ...HABIT_BADGES].map((badge) => {
     const got = earned[badge.id];
     const progress = badge.measure ? ` (${Math.min(habitValue(player, badge.measure), badge.goal)}/${badge.goal})` : "";
     return `<li class="badge${got ? " earned" : ""}"><span class="badge-emoji" aria-hidden="true">${badge.emoji}</span>
-      <span><strong>${esc(badge.name)}</strong><span class="badge-how">${esc(badge.how)}${got ? "" : progress}</span></span></li>`;
+      <span><strong>${esc(badgeName(badge))}</strong><span class="badge-how">${esc(badge.how)}${got ? "" : progress}</span></span></li>`;
   }).join("");
   $("badge-list").innerHTML = `<h2 class="section-title">Skills</h2><ul>${skillRows}</ul><h2 class="section-title">More badges</h2><ul>${other}</ul>`;
   showScreen("badges");

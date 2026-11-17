@@ -198,3 +198,10 @@ Settings → **Island Home** makes Grammar Island the whole home screen (new pla
 ## Original content
 
 Sentence Builders is a practice supplement for skills students have already been taught, or are assumed to have been taught, in class. Every sentence, hint, Tip Card and explanation is written for this game. It follows the Shurley English method (the Q&A Flow, its label abbreviations, the sentence patterns and the Skill Check steps) and the 2020 Minnesota standards, but copies no text, examples or jingles from Shurley's books or any other curriculum, and isn't made by or connected to Shurley Instructional Materials or the Minnesota Department of Education. The app icon and drawings are original too; the decorations are the device's own emoji.
+
+## Grades 6–8: starting at their own grade (UI expert, product owner and 8th-grade playtester review)
+
+- **Next up** for grades 6–8 picks middle-school levels up to the player's grade first (each skill in order), then a grade ahead, and only then grade 3–5 levels as review. Revision Ridge and Flow Factory lead the world list, with Advanced Q&A Flow first in Flow Factory (`worldsFor`, `skillsInWorldOrdered`, `nextUp` in `src/main.js`).
+- **Two-choice questions** (every grade): a miss leaves only the answer, so there's no second try; the answer is shown right away and counts as missed (`oneShot` from the Which renderer).
+- **You chose / Correct / Why:** when a Which question is missed, the feedback and the results' Look again list show the choice the player made, crossed out, above the correct one. Grades 6–8 also get a "Why:" line with the rule after a right answer on rule-based items.
+- **Less babyish for 13–14 year olds:** confetti only for a perfect score, "Start" instead of "Let's build", "Back to home" instead of "Back to the island" on the blueprint, plain badge names (the skill's name, or "Revision Ridge: all Silver") instead of nicknames, and no standards codes on skill cards (they stay in the teacher report).

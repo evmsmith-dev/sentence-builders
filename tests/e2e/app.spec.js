@@ -1269,6 +1269,48 @@ test("Listen and Write: Show the words setting @layout", async ({ page }) => {
   await expect(page.locator("#item .dictate-words")).toContainText(first.text.split(" ")[0].toLowerCase());
 });
 
+test("Grades 6–8: Next up starts at middle-school work, Revision Ridge leads, and no standards codes or nicknames", async ({ page }) => {
+  await openApp(page, { players: [player({ grade: 7 })], current: "p1" });
+  await expect(page.locator("#pip-home")).toContainText("Next up: Pronoun case and clarity, level 1");
+  await expect(page.locator("#world-list .world-card").first()).toHaveAttribute("data-world", "desk");
+  await page.locator('[data-world="desk"]').click();
+  await expect(page.locator(".skill-sub")).toHaveCount(0);
+  await page.locator('[data-go="home"]').first().click();
+  await page.locator('[data-world="flow"]').click();
+  await expect(page.locator(".skill-card h2").first()).toHaveText("Advanced Q&A Flow");
+});
+
+test("Grades 6–8: Next up skips grade 3–5 levels until the middle-school ones are passed", async ({ page }) => {
+  const passed = { stars: 2, best: 7, plays: 1 };
+  const levels = {};
+  for (const id of ["case", "proofread", "aside", "types", "modifiers", "flow2"]) for (const l of [1, 2]) levels[`${id}-${l}`] = passed;
+  levels["diagram-2"] = passed; levels["diagram-3"] = passed;
+  await openApp(page, { players: [player({ grade: 7, levels })], current: "p1" });
+  await expect(page.locator("#pip-home")).toContainText("level 3"); // a grade 8 level comes before grade 3 commas
+  await expect(page.locator("#pip-home")).not.toContainText("Commas");
+});
+
+test("Two choices: a miss shows the answer right away, says what was chosen, and counts as missed", async ({ page }) => {
+  await openApp(page, { players: [player({ grade: 7 })], current: "p1" });
+  await startLevel(page, "modifiers", 2, "desk"); // all two-choice questions
+  const item = await currentItem(page);
+  expect(item.options.length).toBe(2);
+  await miss(page);
+  await expect(page.locator("#feedback")).toContainText("Not this time");
+  await expect(page.locator("#feedback .chosen-line")).toContainText(item.options[1]);
+  await expect(page.locator("#feedback .answer-line")).toContainText(item.options[0]);
+  await expect(page.locator("#next-btn")).toBeVisible();
+  await page.locator("#next-btn").click();
+  for (let n = 1; n < 8; n++) {
+    await answer(page);
+    if (n === 1) await expect(page.locator("#feedback .why-line")).toBeVisible(); // grades 6–8: why, after a right answer too
+    await page.locator("#next-btn").click();
+  }
+  await expect(page.locator("#result-overlay")).toBeVisible();
+  await expect(page.locator(".review-row.missed .review-chosen")).toContainText(item.options[1]);
+  await expect(page.locator("#result-town")).toHaveText("Back to home");
+});
+
 test("Sentence of the Week: Today with Pip card, the Notice Board, a day's job, and the week's banner @layout", async ({ page }) => {
   await page.clock.setFixedTime(new Date(2026, 10, 18, 10)); // a Wednesday
   await openApp(page, { players: [player({ grade: 4 })], current: "p1" });

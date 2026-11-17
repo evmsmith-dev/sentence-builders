@@ -28,7 +28,7 @@ export const WORLDS = [
   { id: "flow", tab: "Q&A Flow", name: "Flow Factory", emoji: "🏭", ready: true, blurb: "Label every word with the Q&A Flow and the parts of speech, then mark it up (and diagram it, from grade 5)" },
   {
     id: "desk", tab: "Revision", name: "Revision Ridge", emoji: "📝", ready: true, minGrade: 6,
-    blurb: "Grades 6–8: pronouns, punctuation, sentence types, modifiers and proofreading",
+    blurb: "Pronouns, punctuation, sentence types, modifiers and proofreading",
   },
 ];
 
@@ -385,6 +385,7 @@ export const PIP = {
   secondTry: ["Fixed it. Good recovery.", "That's it this time.", "Good fix."],
   hint: "Not quite. Here's a tip:",
   shown: "Here's how it goes. This one will come back later.",
+  oneShot: "Not quite. Here's the answer. This one will come back later.",
   passed: ["New building unlocked!", "The island just grew.", "Another one built."],
   notYet: "Let's build that one again. Nothing is lost.",
 };
@@ -394,6 +395,7 @@ export const PIP_GROWN = {
   secondTry: ["Correct on the second try.", "Fixed.", "Got it."],
   hint: "Not yet. Hint:",
   shown: "Here's the answer. It will come back later.",
+  oneShot: "Not this time. Here's the answer; it will come back later.",
   passed: ["Level passed.", "Passed. On to the next.", "Another level done."],
   notYet: "Not passed yet. Try it again; nothing is lost.",
 };

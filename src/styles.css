@@ -307,6 +307,10 @@ span.proof-word.shown { background: var(--shown-soft); color: var(--shown); font
 .feedback.hint { background: var(--hint-soft); color: #5c3d00; padding: 10px 14px; animation: wobble 0.35s; }
 .feedback.shown { background: var(--shown-soft); color: #4b1d59; padding: 10px 14px; }
 .answer-line { font-size: 1.25rem; font-weight: 700; color: var(--text); }
+.chosen-line { color: var(--muted); text-decoration: line-through; text-decoration-color: #c62828; margin: 0.2rem 0; }
+.answer-tag { font-weight: 700; text-decoration: none; display: inline-block; margin-right: 0.25rem; color: var(--muted); font-size: 0.85em; }
+.chosen-line .answer-tag { text-decoration: none; }
+.why-line { margin: 0.35rem 0 0; color: var(--muted); font-size: 0.95rem; }
 .try-again { font-weight: 700; }
 @keyframes wobble { 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
 .play-actions { display: flex; justify-content: center; margin-top: 16px; }
@@ -398,6 +402,7 @@ span.proof-word.shown { background: var(--shown-soft); color: var(--shown); font
 .review-row.missed { border-left-color: var(--shown); background: var(--shown-soft); }
 .review-status { font-size: 0.8rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; }
 .review-answer { font-size: 1.1rem; font-weight: 700; }
+.review-chosen { color: var(--muted); text-decoration: line-through; text-decoration-color: #c62828; }
 .review-rule { font-size: 0.95rem; color: var(--muted); }
 .jump { justify-content: flex-start; margin: 8px 0 4px; }
 .rule-world { scroll-margin-top: 12px; }
