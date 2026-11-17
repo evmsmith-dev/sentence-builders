@@ -342,6 +342,41 @@ function startHomework() {
 /* ==================== Meet Pip ==================== */
 
 /** Pip's welcome: a few short bubbles, shown once per player (and again from About). */
+/* Grades 3–5: the intro ends by letting the player pick a home screen (the same choice as Settings → Island Home). */
+const CHOOSE_HOME = "choose-home";
+const introSteps = (player) => [...PIP_INTRO, ...(player.grade <= ISLAND_HOME_MAX_GRADE ? [CHOOSE_HOME] : [])];
+
+/** Small pictures of the two home screens, for the choice. */
+const HOME_PICTURES = {
+  island: `<svg viewBox="0 0 90 150" aria-hidden="true"><rect width="90" height="150" rx="8" fill="#6fb6e8"/>
+    <path d="M14 30q30-14 62 0q14 40 2 92q-30 12-62 0q-12-50-2-92z" fill="#a9d68f" stroke="#f3e2b0" stroke-width="3"/>
+    <path d="M30 60l10-16l10 16zM46 64l10-18l10 18z" fill="#7d8f7a"/><ellipse cx="46" cy="88" rx="12" ry="5" fill="#4f9fdc"/>
+    <rect x="22" y="96" width="14" height="10" rx="2" fill="#fff"/><rect x="50" y="100" width="14" height="10" rx="2" fill="#fff"/>
+    <rect x="6" y="6" width="26" height="10" rx="5" fill="#fff"/><rect x="74" y="6" width="10" height="10" rx="3" fill="#fff"/>
+    <rect x="6" y="118" width="78" height="12" rx="6" fill="#fff"/><rect x="6" y="134" width="37" height="10" rx="4" fill="#fff"/><rect x="47" y="134" width="37" height="10" rx="4" fill="#fff"/></svg>`,
+  classic: `<svg viewBox="0 0 90 150" aria-hidden="true"><rect width="90" height="150" rx="8" fill="#eef4fc"/>
+    <rect x="6" y="6" width="26" height="10" rx="5" fill="#fff" stroke="#cfdbef"/><rect x="74" y="6" width="10" height="10" rx="3" fill="#fff" stroke="#cfdbef"/>
+    <rect x="6" y="22" width="78" height="18" rx="5" fill="#fff" stroke="#cfdbef"/><rect x="36" y="31" width="18" height="6" rx="3" fill="#3949ab"/>
+    <rect x="6" y="45" width="24" height="12" rx="3" fill="#fff" stroke="#cfdbef"/><rect x="33" y="45" width="24" height="12" rx="3" fill="#fff" stroke="#cfdbef"/><rect x="60" y="45" width="24" height="12" rx="3" fill="#fff" stroke="#cfdbef"/>
+    <rect x="6" y="62" width="78" height="20" rx="5" fill="#fff" stroke="#cfdbef"/>
+    <rect x="6" y="87" width="78" height="40" rx="5" fill="#fff" stroke="#cfdbef"/><rect x="10" y="91" width="70" height="32" rx="3" fill="#a9d68f"/>
+    <rect x="6" y="132" width="78" height="6" rx="3" fill="#dfe7f5"/><rect x="6" y="141" width="78" height="6" rx="3" fill="#dfe7f5"/></svg>`,
+};
+
+function homeChoiceHtml() {
+  const island = Boolean(settings().islandHome);
+  const option = (value, on, title, line) => `<button type="button" class="home-option${on ? " on" : ""}" role="radio" aria-checked="${on}" data-home-choice="${value}">
+      ${HOME_PICTURES[value]}<strong>${title}</strong><span>${line}</span></button>`;
+  return option("island", island, "🏝️ Island Home", "The island fills the whole screen.")
+    + option("classic", !island, "📄 Classic", "A page with me, your jobs and the island map.");
+}
+
+function chooseHome(value) {
+  // The same as checking or unchecking Settings → Island Home.
+  savePlayer({ ...state.player, settings: { ...settings(), islandHome: value === "island" } });
+  $("pip-intro-choice").innerHTML = homeChoiceHtml();
+}
+
 function openPipIntro() {
   state.pipIntro = 0;
   $("pip-intro-face").innerHTML = grownPip() ? pipSvg(72, { line: true }) : pipSvg(96);
@@ -351,14 +386,20 @@ function openPipIntro() {
 
 function drawPipIntro() {
   const step = state.pipIntro;
+  const steps = introSteps(state.player);
   const older = state.player.grade >= STUDIO_FROM_GRADE;
+  const choosing = steps[step] === CHOOSE_HOME;
   // On the grades 6–8 blueprint there's nothing to build with bricks, so the last step is about the plan instead.
-  const text = older && blueprintOn(state.player) && step === PIP_INTRO.length - 1
-    ? "Your island plan shows every skill: levels built, and how often you're right the first time."
-    : PIP_INTRO[step][older ? 1 : 0];
+  const text = choosing
+    ? "One more thing, {name}: how should your home screen look? Island Home puts the whole island on your screen, with buttons on top. Classic is a page with me, your jobs for today and the island map. Tap one. You can change it any time in ⚙️ Settings."
+    : older && blueprintOn(state.player) && step === PIP_INTRO.length - 1
+      ? "Your island plan shows every skill: levels built, and how often you're right the first time."
+      : PIP_INTRO[step][older ? 1 : 0];
   $("pip-intro-text").textContent = text.replace("{name}", state.player.name);
-  $("pip-intro-dots").innerHTML = PIP_INTRO.map((_, k) => `<span class="${k === step ? "on" : ""}"></span>`).join("");
-  const last = step === PIP_INTRO.length - 1;
+  $("pip-intro-choice").hidden = !choosing;
+  if (choosing) $("pip-intro-choice").innerHTML = homeChoiceHtml();
+  $("pip-intro-dots").innerHTML = steps.map((_, k) => `<span class="${k === step ? "on" : ""}"></span>`).join("");
+  const last = step === steps.length - 1;
   $("pip-intro-next").textContent = last ? "Let's build!" : "Next";
   $("pip-intro-skip").hidden = last;
   if (settings().autoRead) say($("pip-intro-text").textContent);
@@ -368,6 +409,7 @@ function closePipIntro() {
   closeOverlay("pip-intro-overlay");
   stopSaying();
   if (!state.player.introSeen) savePlayer({ ...state.player, introSeen: true });
+  if (!$("home").hidden) renderHome(); // a new home screen choice shows right away
 }
 
 /* ==================== Grammar Peaks: Summit Review and Spelling Lake ==================== */
@@ -1698,12 +1740,23 @@ function wire() {
 
   $("who-btn").addEventListener("click", renderPlayers);
   $("pip-intro-next").addEventListener("click", () => {
-    if (state.pipIntro + 1 < PIP_INTRO.length) {
+    if (state.pipIntro + 1 < introSteps(state.player).length) {
       state.pipIntro += 1;
       drawPipIntro();
     } else closePipIntro();
   });
-  $("pip-intro-skip").addEventListener("click", closePipIntro);
+  // Skip goes straight to the home screen choice (grades 3–5), or closes.
+  $("pip-intro-skip").addEventListener("click", () => {
+    const steps = introSteps(state.player);
+    if (steps.at(-1) === CHOOSE_HOME && state.pipIntro < steps.length - 1) {
+      state.pipIntro = steps.length - 1;
+      drawPipIntro();
+    } else closePipIntro();
+  });
+  $("pip-intro-choice").addEventListener("click", (event) => {
+    const btn = event.target.closest("[data-home-choice]");
+    if (btn) chooseHome(btn.dataset.homeChoice);
+  });
   // About goes back where it came from: Settings (over the town) or Who's playing?
   $("build-back").addEventListener("click", () => renderHome());
   initBuildDragging();

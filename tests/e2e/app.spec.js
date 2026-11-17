@@ -1400,3 +1400,30 @@ test("Grammar Peaks on the map: tap the lake to start Spelling Lake @layout", as
   await lake.click({ force: true }); // there: start the round
   await expect(page.locator("#play-skill")).toContainText("Spelling Lake");
 });
+
+test("Pip's intro (grades 3-5) ends with a choice of home screen, the same as the Settings switch @layout", async ({ page }) => {
+  const p = player({ grade: 4 });
+  p.introSeen = false;
+  await openApp(page, { players: [p], current: "p1" });
+  await expect(page.locator("#pip-intro-overlay")).toBeVisible();
+  await page.locator("#pip-intro-skip").click(); // skip goes to the choice
+  await expect(page.locator("#pip-intro-choice")).toBeVisible();
+  await expect(page.locator("[data-home-choice='classic']")).toHaveAttribute("aria-checked", "true");
+  await page.locator("[data-home-choice='island']").click();
+  await expect(page.locator("[data-home-choice='island']")).toHaveAttribute("aria-checked", "true");
+  await page.locator("#pip-intro-next").click();
+  await expect(page.locator("body")).toHaveClass(/island-home/);
+  await page.locator("#settings-btn").click();
+  await expect(page.locator("#set-island")).toBeChecked();
+});
+
+test("Pip's intro for grades 6-8 has no home screen choice", async ({ page }) => {
+  const p = player({ grade: 7 });
+  p.introSeen = false;
+  await openApp(page, { players: [p], current: "p1" });
+  for (let n = 0; n < 4; n++) {
+    await expect(page.locator("#pip-intro-choice")).toBeHidden();
+    await page.locator("#pip-intro-next").click();
+  }
+  await expect(page.locator("#pip-intro-overlay")).toBeHidden();
+});

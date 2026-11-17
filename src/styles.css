@@ -1041,3 +1041,13 @@ body.island-home.peaks-open #home #map-panel .peak-card small { font-size: 0.75r
 body.island-home.peaks-open #home #map-panel { display: none; }
 .town .peak-hit { cursor: pointer; }
 .town.blueprint .peak-hit rect { fill: #1d3557 !important; }
+
+/* Pip's intro, grades 3–5: pick a home screen by its picture. */
+.home-choice { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0 4px; }
+.home-option { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 8px; border: 3px solid var(--border);
+  border-radius: 14px; background: var(--card); color: var(--text); text-align: center; }
+.home-option svg { width: 72px; height: 120px; border-radius: 8px; box-shadow: var(--shadow); }
+.home-option strong { font-size: 1rem; }
+.home-option span { font-size: 0.85rem; color: var(--muted); line-height: 1.3; }
+.home-option.on { border-color: var(--primary); background: var(--primary-soft); }
+.home-option.on strong::after { content: " ✓"; color: var(--primary); }
