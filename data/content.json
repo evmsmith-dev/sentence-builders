@@ -137,7 +137,7 @@
    },
    "flow-1": {
      "title": "The Q&A Flow",
-     "rule": "Ask questions to find each word's job. Find the subject first: who or what? Then the verb: what is being said about it? Then adverbs (how? when? where?), adjectives (what kind? which one? how many?) and articles (a, an, the). In a command, the subject is the understood (You): (You) Sit down.",
+     "rule": "Q&A stands for Question and Answer. You ask a question about the sentence, and the word that answers it gets a label. It's called a flow because the questions always go in the same order, from the subject to the verb to the rest of the words. In class you may say it out loud as you go. Ask questions to find each word's job. Find the subject first: who or what? Then the verb: what is being said about it? Then adverbs (how? when? where?), adjectives (what kind? which one? how many?) and articles (a, an, the). In a command, the subject is the understood (You): (You) Sit down.",
      "example": "The happy baby giggled. → A Adj SN V"
    },
    "flow-2": {
