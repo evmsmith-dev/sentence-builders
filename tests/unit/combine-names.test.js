@@ -172,3 +172,13 @@ test("Challenge Trails (grades 3-5): mastery opens the next level, one a day; ga
   const g7 = normalizePlayer({ id: "p", name: "A", grade: 7, avatar: "x" });
   assert.equal(isChallenge(g7, "case", 3), false);
 });
+
+test("Listen and Write: a name that sounds like another (Mia, Maya) isn't counted; its capital still is", async () => {
+  const { checkDictation } = await import("../../src/lib/parse.js");
+  const t = "Maya was born on May 4, 2016.";
+  const heard = checkDictation(t, "Mia was born on May 4, 2016.");
+  assert.equal(heard.right, true);
+  assert.deepEqual(heard.spelling, [{ typed: "Mia", word: "Maya", name: true }]);
+  assert.match(checkDictation(t, "mia was born on May 4, 2016.").hint, /capital/);
+  assert.match(checkDictation("Ben and I went to the park.", "Ben and I went to the zoo.").hint, /different/);
+});

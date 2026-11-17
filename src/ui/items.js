@@ -1243,9 +1243,15 @@ function renderDictate(root, item, { onChange, showWords }) {
     }
   });
   if (voice) setTimeout(() => { if (!locked && root.isConnected) play("play"); }, 350);
-  const spellingNote = () => (result?.spelling.length
-    ? `<p class="dictate-spelling">Spelling to practice (it doesn't count here): ${result.spelling.map((s) =>
-      `<span class="spell-fix"><s>${esc(s.typed)}</s> → <strong>${esc(s.word)}</strong></span>`).join(" ")}</p>` : "");
+  const fixes = (list) => list.map((s) => `<span class="spell-fix"><s>${esc(s.typed)}</s> → <strong>${esc(s.word)}</strong></span>`).join(" ");
+  const spellingNote = () => {
+    if (!result) return "";
+    const names = result.spelling.filter((s) => s.name);
+    const words = result.spelling.filter((s) => !s.name);
+    // A name heard aloud can be spelled many ways (Mia, Maya), so it's only shown, never counted.
+    return (names.length ? `<p class="dictate-spelling">How the name is spelled here: ${fixes(names)}</p>` : "")
+      + (words.length ? `<p class="dictate-spelling">Spelling to practice (it doesn't count here): ${fixes(words)}</p>` : "");
+  };
   const finish = (cls) => {
     locked = true;
     box.readOnly = true;

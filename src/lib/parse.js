@@ -2,7 +2,7 @@
 // Pure functions, unit-tested. The formats are described in data/README.md.
 import { FLOW_LABELS, FLOW_PATTERNS, MARK_ORDER, PALETTES, PATTERNS, SENTENCE_KINDS } from "../config.js";
 import { buildDiagram } from "./diagram.js";
-import { isPronoun, nounInfo } from "./nouns.js";
+import { NAMES, isPronoun, nounInfo } from "./nouns.js";
 
 const flowLabels = (item) => (FLOW_LABELS[item.skill] || FLOW_LABELS.flow)[item.level - 1];
 const flowPatterns = (item) => (FLOW_PATTERNS[item.skill] || FLOW_PATTERNS.flow)[item.level - 1];
@@ -370,13 +370,22 @@ function dictToken(raw) {
   const core = m[2] || "";
   return { raw, lead: m[1] || "", core, trail: m[3] || "", key: core.toLowerCase().replace(/'/g, "") };
 }
-const dictTokens = (text) => String(text || "").replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/\s+([,.!?;:])/g, "$1")
-  .trim().split(/\s+/).filter(Boolean).map(dictToken);
+const dictTokens = (text) => {
+  const toks = String(text || "").replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/\s+([,.!?;:])/g, "$1")
+    .trim().split(/\s+/).filter(Boolean).map(dictToken);
+  // Names (a capital mid-sentence, or a name the game knows): heard, they can't always be spelled.
+  toks.forEach((tok, i) => {
+    const first = i === 0 || /[.!?]"?$/.test(toks[i - 1].trail) || /^"/.test(tok.lead);
+    tok.name = tok.core !== "I" && /^[A-Z]/.test(tok.core) && (!first || NAMES.has(tok.key));
+  });
+  return toks;
+};
 const similar = (a, b) => a === b || editDistance(a, b) <= Math.max(1, Math.floor(Math.max(a.length, b.length) / 3));
 
 /** Lines up two word lists (a typo still lines up with its word). [[targetIndex|null, typedIndex|null], ...] */
 function alignWords(t, u) {
-  const cost = (i, j) => (t[i].key === u[j].key ? 0 : similar(t[i].key, u[j].key) ? 0.4 : 1.2);
+  // A name can sound like another (Mia, Maya), so any word in a name's place lines up with it.
+  const cost = (i, j) => (t[i].key === u[j].key ? 0 : similar(t[i].key, u[j].key) || t[i].name ? 0.4 : 1.2);
   const d = Array.from({ length: t.length + 1 }, (_, i) => Array.from({ length: u.length + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0)));
   for (let i = 1; i <= t.length; i++) {
     for (let j = 1; j <= u.length; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + cost(i - 1, j - 1));
@@ -412,6 +421,7 @@ export function checkDictation(target, typed) {
     const got = u[j];
     if (want.key !== got.key) {
       if (homophones(want.key, got.key) && want.core.includes("'") === got.core.includes("'")) spelling.push({ typed: got.core, word: want.core, homophone: true });
+      else if (want.name && /^[A-Za-z]+$/.test(got.core)) spelling.push({ typed: got.core, word: want.core, name: true }); // Mia for Maya
       else if (!similar(want.key, got.key)) { add(i, `Listen again: one word is different from "${got.core}".`, true); continue; }
       else spelling.push({ typed: got.core, word: want.core });
     }
