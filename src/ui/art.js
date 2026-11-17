@@ -348,8 +348,8 @@ function districtSvg(player, district, { fresh, rising, week = null }) {
  * flyer (until his homework is checked today), with a "!" when either is waiting.
  */
 function noticeBoardSvg({ done, waiting, tutor, today }) {
-  const x = 232;
-  const y = 8;
+  const x = 230;
+  const y = 16; // low and in enough that the ! stays inside the plateau's edge
   const stamps = ["M", "T", "W", "T", "F"].map((d, i) => {
     const cx = x + 12 + i * 13;
     const on = done.includes(i);
@@ -369,8 +369,8 @@ function noticeBoardSvg({ done, waiting, tutor, today }) {
     <rect x="${x + 10}" y="${y + 42}" width="5" height="16" fill="#7a5233"/><rect x="${x + 101}" y="${y + 42}" width="5" height="16" fill="#7a5233"/>
     <rect x="${x}" y="${y}" width="116" height="46" rx="5" fill="#a8774c"/><rect x="${x + 4}" y="${y + 4}" width="108" height="38" rx="3" fill="#f6e7c4"/>
     <text x="${x + 38}" y="${y + 16}" text-anchor="middle" font-size="8.5" font-weight="700" fill="#5b4126">📌 This week</text>${stamps}${flyer}
-    ${waiting ? `<g class="board-alert"><circle cx="${x + 114}" cy="${y + 2}" r="9" fill="#e5484d"/><text x="${x + 114}" y="${y + 6}" text-anchor="middle" font-size="12" font-weight="800" fill="#fff">!</text></g>` : ""}
-    <rect class="board-hit" x="${x - 4}" y="${y - 8}" width="128" height="70" fill="transparent"><title>Notice Board: Sentence of the Week and Pip's homework</title></rect></g>`;
+    ${waiting ? `<g class="board-alert"><circle cx="${x + 106}" cy="${y + 1}" r="8.5" fill="#e5484d" stroke="#fff" stroke-width="1.5"/><text x="${x + 106}" y="${y + 5}" text-anchor="middle" font-size="12" font-weight="800" fill="#fff">!</text></g>` : ""}
+    <rect class="board-hit" x="${x - 4}" y="${y - 12}" width="128" height="72" fill="transparent"><title>Notice Board: Sentence of the Week and Pip's homework</title></rect></g>`;
 }
 
 /** A string of pennants along the top of the Town Square, one for each finished week (the latest 12). */
