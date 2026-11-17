@@ -329,13 +329,13 @@ function districtSvg(player, district, { fresh, rising, week = null, blueprint =
   const nameW = district.name.length * 13.5 + 46;
   const entry = ENTRY[district.id];
   const signX = entry?.side === "top" && entry.x < 180 ? 350 - nameW : 10;
+  // Something in the sky (a balloon, a kite) that would sit behind the place's name floats just under it instead.
+  const skyAt = (p) => (p.y < SCENE.park && p.x > signX - 14 && p.x < signX + nameW + 14 && p.y < 62 ? p.y + 46 : at(p));
   const board = district.id === "square" && week ? noticeBoardSvg(week) + bannersSvg(player.banners || []) : "";
   const sign = district.id === "square" && !placed.length
     ? `<text x="180" y="${park + 42}" text-anchor="middle" class="park-sign">Town Square: build here with 🧱 bricks</text>` : "";
   return `${base}<g clip-path="url(#${clip})">
     <path d="${outline}" fill="${theme.top}"/>
-    <g class="district-sign"><rect x="${signX}" y="14" width="${nameW}" height="38" rx="19" fill="#fff" opacity=".92"/>
-      <text x="${signX + 12}" y="41" font-size="22" font-weight="700" fill="#2c3e5c" class="district-name">${district.emoji} ${esc(district.name)}</text></g>
     ${d ? `<g fill="none" stroke-linecap="round" stroke-linejoin="round" pointer-events="none">
       <path d="${d}" stroke="${shade(theme.edge, 0.75)}" stroke-width="22" transform="translate(0 4)"/>
       <path d="${d}" stroke="${theme.edge}" stroke-width="22"/><path d="${d}" stroke="${theme.path}" stroke-width="16"/>
@@ -346,7 +346,9 @@ function districtSvg(player, district, { fresh, rising, week = null, blueprint =
     <rect x="8" y="${water + 6}" width="344" height="${BAND - 10}" rx="14" fill="${district.water}"/>${wave(water + 16, 20, 340)}
     ${skillGroups}
     ${board}
-    ${placed.map((p) => decorSvg(p, at(p), { fresh })).join("")}
+    ${placed.map((p) => decorSvg(p, skyAt(p), { fresh })).join("")}
+    <g class="district-sign" pointer-events="none"><rect x="${signX}" y="14" width="${nameW}" height="38" rx="19" fill="#fff" opacity=".92"/>
+      <text x="${signX + 12}" y="41" font-size="22" font-weight="700" fill="#2c3e5c" class="district-name">${district.emoji} ${esc(district.name)}</text></g>
     ${pip}
   </g>`;
 }
