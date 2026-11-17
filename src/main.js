@@ -352,7 +352,11 @@ function openPipIntro() {
 function drawPipIntro() {
   const step = state.pipIntro;
   const older = state.player.grade >= STUDIO_FROM_GRADE;
-  $("pip-intro-text").textContent = PIP_INTRO[step][older ? 1 : 0].replace("{name}", state.player.name);
+  // On the grades 6–8 blueprint there's nothing to build with bricks, so the last step is about the plan instead.
+  const text = older && blueprintOn(state.player) && step === PIP_INTRO.length - 1
+    ? "Your island plan shows every skill: levels built, and how often you're right the first time."
+    : PIP_INTRO[step][older ? 1 : 0];
+  $("pip-intro-text").textContent = text.replace("{name}", state.player.name);
   $("pip-intro-dots").innerHTML = PIP_INTRO.map((_, k) => `<span class="${k === step ? "on" : ""}"></span>`).join("");
   const last = step === PIP_INTRO.length - 1;
   $("pip-intro-next").textContent = last ? "Let's build!" : "Next";
@@ -403,8 +407,7 @@ function finishPractice() {
   $("result-stars").innerHTML = "";
   $("result-title").textContent = summit ? (out.reached ? "You reached the summit!" : "Almost to the top") : (out.reached ? "A new boat on the lake!" : "Nice paddling");
   $("result-score").textContent = `${out.right} of ${play.results.length} right on the first try`;
-  $("result-bricks").hidden = !out.bricks;
-  $("result-bricks").innerHTML = `+${out.bricks} 🧱 bricks <span class="note">· ${out.player.bricks} to build with</span>`;
+  showResultBricks(out, `+${out.bricks} 🧱 bricks <span class="note">· ${out.player.bricks} to build with</span>`);
   const goal = `Get ${PRACTICE_GOAL} right on the first try to ${summit ? "plant a flag at the top" : "float a boat on the lake"}.`;
   const line = out.reached
     ? (summit ? `Flag number ${out.player.summits} is flying on Grammar Peaks. You remembered your rules!` : `Boat number ${out.player.lakeWins} is out on the lake. Great spelling!`)
@@ -438,8 +441,7 @@ function finishHomework() {
   $("result-stars").innerHTML = "";
   $("result-title").textContent = `Pip's grade: ${out.grade}`;
   $("result-score").textContent = `${out.right} of ${play.results.length} paragraphs right on the first try`;
-  $("result-bricks").hidden = !out.bricks;
-  $("result-bricks").innerHTML = `+${out.bricks} 🧱 bricks <span class="note">· ${out.player.bricks} to build with</span>`;
+  showResultBricks(out, `+${out.bricks} 🧱 bricks <span class="note">· ${out.player.bricks} to build with</span>`);
   const lines = { "A+": "An A+! Thank you, teacher. I'll fix those mistakes for good.", A: "An A! Thanks for checking my work so carefully.",
     B: "A B. Not bad! Thanks for catching my mistakes.", C: "A C. Hmm, some of those mistakes were sneaky.", "Try again": "Those were tricky. Want to check another one?" };
   $("result-pip").innerHTML = pipRemark((grownPip() ? GROWN_HOMEWORK : lines)[out.grade]);
@@ -520,7 +522,7 @@ function openWeek() {
     <section class="board-notice" aria-labelledby="sow-title">
       <h3 id="sow-title">📌 Sentence of the Week</h3>
       <p class="week-board" aria-label="This week's sentence">${esc(boardText(week))}</p>
-      <p class="note">One sentence all week, a short job each day. Missed a day? Catch up any time before Monday. Finish all five for ${WEEK_BONUS} bonus bricks and a banner in the Town Square.</p>
+      <p class="note">One sentence all week, a short job each day. Missed a day? Catch up any time before Monday. Finish all five for ${blueprintOn(player) ? "a banner on your island plan" : `${WEEK_BONUS} bonus bricks and a banner in the Town Square`}.</p>
       <ol class="week-days">${rows}</ol>
       ${banners ? `<p class="note">🎏 ${banners} banner${banners === 1 ? "" : "s"} flying in the Town Square.</p>` : ""}
     </section>`;
@@ -554,10 +556,9 @@ function finishWeekDay() {
   $("result-stars").innerHTML = "";
   $("result-title").textContent = out.weekDone ? "Week complete! 🎏" : `${WEEK_DAYS[play.day].name} done!`;
   $("result-score").textContent = `${out.right} of ${play.results.length} right on the first try · ${after.done.length} of 5 days`;
-  $("result-bricks").hidden = !out.bricks;
-  $("result-bricks").innerHTML = `+${out.bricks} 🧱 bricks${out.weekDone ? ` (${WEEK_BONUS} for the week)` : ""} <span class="note">· ${out.player.bricks} to build with</span>`;
+  showResultBricks(out, `+${out.bricks} 🧱 bricks${out.weekDone ? ` (${WEEK_BONUS} for the week)` : ""} <span class="note">· ${out.player.bricks} to build with</span>`);
   $("result-pip").innerHTML = pipRemark(out.weekDone
-    ? "Five days, one sentence, and you know it inside out. Your banner is flying in the Town Square!"
+    ? (blueprintOn(out.player) ? "Five days, one sentence. Week complete, and it's on your plan." : "Five days, one sentence, and you know it inside out. Your banner is flying in the Town Square!")
     : next !== null ? `Nice work. ${WEEK_DAYS[next].name}'s job is waiting too, if you want to catch up.` : "See you tomorrow for the next job on this sentence.");
   $("result-badges").innerHTML = "";
   $("result-review").innerHTML = reviewHtml(play);
@@ -655,6 +656,12 @@ function updateCheck() {
   $("prompt").textContent = ctrl.prompt;
   $("check-btn").hidden = !ctrl.usesCheck || state.play.done;
   if (ctrl.usesCheck) $("check-btn").disabled = state.play.done || !ctrl.canCheck();
+}
+
+/** Bricks on a results screen; none on the grades 6–8 blueprint, where there's nothing to build with them. */
+function showResultBricks(out, html) {
+  $("result-bricks").hidden = !out.bricks || blueprintOn(out.player);
+  $("result-bricks").innerHTML = html;
 }
 
 /** Grades 6–8 get Pip as a coworker: a small line drawing, drier words, no home-page greeting. */
@@ -785,8 +792,7 @@ function finishLevel() {
   $("result-stars").innerHTML = [1, 2, 3].map((n) => `<span class="${n <= out.stars ? "on" : ""}">★</span>`).join("");
   $("result-title").textContent = (grownPip() ? ["Not passed yet", "Passed", "Passed: 2 stars", "Perfect score"] : ["Almost there", "Built it!", "Great build!", "Perfect build!"])[out.stars];
   $("result-score").textContent = `${points(out.points)} of ${play.results.length} points · ${skill.name} level ${play.level}`;
-  $("result-bricks").hidden = !out.bricks;
-  $("result-bricks").innerHTML = `+${out.bricks} 🧱 bricks <span class="note">· ${out.player.bricks} to build with</span>`;
+  showResultBricks(out, `+${out.bricks} 🧱 bricks <span class="note">· ${out.player.bricks} to build with</span>`);
   let pipLine = out.passed ? pick(pipWords().passed) : pipWords().notYet;
   if (out.passed && play.level === 3 && skillTier(out.player, skill.id) < 3) {
     const goldAt = (7 / 8) * play.results.length;

@@ -873,7 +873,7 @@ test("bricks: a level pays bricks, the new building rises, and the Build screen 
 });
 
 test("Pip's homework: grade three paragraphs, earn bricks, and it doesn't count as a level", async ({ page }) => {
-  await openApp(page, { players: [player({ grade: 7 })], current: "p1" });
+  await openApp(page, { players: [player({ grade: 7, settings: { showIsland: true } })], current: "p1" });
   await page.locator("#week-btn").click(); // the Notice Board: Pip's "Tutor needed" flyer
   await page.locator("#homework-btn").click();
   await expect(page.locator("#play-skill")).toContainText("📝 Pip's homework:");
@@ -1305,7 +1305,7 @@ test("Sentence of the Week: Friday finishes the week with bonus bricks and a ban
   await answer(page);
   await page.locator("#next-btn").click();
   await expect(page.locator("#result-title")).toHaveText("Week complete! 🎏");
-  await expect(page.locator("#result-bricks")).toContainText("15 for the week");
+  await expect(page.locator("#result-bricks")).toBeHidden(); // grades 6-8 blueprint: bricks count quietly, nothing to spend them on
   await page.locator("#result-town").click();
   await expect(page.locator("#week-btn")).toContainText("Week done!");
   await expect(page.locator(".town .banners path")).toHaveCount(2); // the string and one pennant
@@ -1358,6 +1358,7 @@ test("Grades 6-8: the island as a blueprint, Worlds first, no brick shop; Settin
   await expect(page.locator("body")).toHaveClass(/blueprint-home/);
   await expect(page.locator("#town-title")).toHaveText("📐 Island plan");
   await expect(page.locator("#bp-summary")).toContainText("1 of 78 levels built · 1 skill under 75%");
+  await expect(page.locator("#today-card, .today-card")).not.toContainText("brick");
   await expect(page.locator("#build-btn")).toBeHidden();
   // The Worlds list comes before the plan.
   const listY = (await page.locator("#world-list").boundingBox()).y;
