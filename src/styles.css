@@ -1051,3 +1051,25 @@ body.island-home.peaks-open #home #map-panel { display: none; }
 .home-option span { font-size: 0.85rem; color: var(--muted); line-height: 1.3; }
 .home-option.on { border-color: var(--primary); background: var(--primary-soft); }
 .home-option.on strong::after { content: " ✓"; color: var(--primary); }
+
+/* Short screens (a phone turned sideways): a sheet scrolls instead of squeezing its parts on top of each other. */
+.sheet > * { flex-shrink: 0; }
+@media (max-height: 520px) {
+  .overlay { padding: 8px; }
+  .sheet { max-height: calc(100vh - 16px); max-height: calc(100dvh - 16px); padding: 14px 18px; }
+  .pip-intro { max-width: 720px; }
+  .pip-intro-face { display: none; }
+  .pip-intro-text { min-height: 0; font-size: 1rem; }
+  .home-option { flex-direction: row; text-align: left; gap: 10px; padding: 8px; }
+  .home-option svg { width: 44px; height: 72px; flex: none; }
+  .home-option strong, .home-option span { display: block; }
+}
+.home-option-words { display: flex; flex-direction: column; gap: 4px; }
+@media (max-height: 520px) {
+  /* Island Home with the phone sideways: smaller buttons so more of the island shows. */
+  body.island-home #home .home-tools { top: calc(env(safe-area-inset-top) + 56px); width: 64px; gap: 4px; }
+  body.island-home #home .home-tools .tool-emoji { font-size: 1.05rem; }
+  .island-btn { min-height: 40px; font-size: 0.95rem; white-space: nowrap; }
+  body.island-home #home #pip-home .bubble { padding: 8px 44px 8px 12px; font-size: 0.95rem; }
+  body.island-home #home #pip-home { bottom: calc(env(safe-area-inset-bottom) + 56px); }
+}

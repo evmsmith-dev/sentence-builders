@@ -366,7 +366,8 @@ const HOME_PICTURES = {
 function homeChoiceHtml() {
   const island = Boolean(settings().islandHome);
   const option = (value, on, title, line) => `<button type="button" class="home-option${on ? " on" : ""}" role="radio" aria-checked="${on}" data-home-choice="${value}">
-      ${HOME_PICTURES[value]}<strong>${title}</strong><span>${line}</span></button>`;
+      ${HOME_PICTURES[value]}<span class="home-option-words"><strong>${title}</strong><span>${line}</span></span></button>`;
+  // The picture, then the words (a column on a phone held upright, a row when it's sideways).
   return option("island", island, "🏝️ Island Home", "The island fills the whole screen.")
     + option("classic", !island, "📄 Classic", "A page with me, your jobs and the island map.");
 }
