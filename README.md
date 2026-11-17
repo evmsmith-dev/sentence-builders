@@ -113,7 +113,9 @@ npm run preview         # build and serve dist/ at http://localhost:8080
 
 To run the browser tests with an installed Chrome instead of Playwright's download, set `CHROME_PATH` (for example `CHROME_PATH=/usr/bin/google-chrome npm test`).
 
-Pushes to `main` are tested and deployed to GitHub Pages by `.github/workflows/deploy.yml`. One-time setup: **Settings → Pages → Build and deployment → Source: GitHub Actions**. The site is then at `https://evmsmith-dev.github.io/sentence-builders/`.
+Every browser test runs on the phone size; desktop and tablet run only the tests tagged `@layout` (the map, dragging, sideways overflow, the Rule Book's tabs), since game logic behaves the same at every size. Tag a new test `{ tag: "@layout" }` if it checks how things fit or are tapped. `ALL_SIZES=1 npm test` runs every test at every size.
+
+Pushes to `main` are tested and deployed to GitHub Pages by `.github/workflows/deploy.yml`. The browser tests run on four machines at once (the phone tests split in two, plus desktop and tablet) with the Chrome already installed on GitHub's runners; pushes that only change Markdown files skip the run. One-time setup: **Settings → Pages → Build and deployment → Source: GitHub Actions**. The site is then at `https://evmsmith-dev.github.io/sentence-builders/`.
 
 The Fredoka font (SIL Open Font License) and canvas-confetti (ISC) are stored in `vendor/` so the game works offline.
 

@@ -21,10 +21,14 @@ export default defineConfig({
     // CHROME_PATH runs the tests with an installed Chrome instead of Playwright's own download.
     ...(process.env.CHROME_PATH ? { launchOptions: { executablePath: process.env.CHROME_PATH } } : {}),
   },
+  // Every test runs on the phone. Desktop and tablet run only the tests tagged @layout (the map, dragging,
+  // sideways overflow, the Rule Book's tabs...), since game logic behaves the same at every size.
+  // ALL_SIZES=1 runs every test at every size.
   projects: [
-    { name: "desktop", use: { ...devices["Desktop Chrome"] } },
     { name: "phone", use: { ...devices["Pixel 7"] } },
-    { name: "tablet", use: { ...devices["Desktop Chrome"], viewport: { width: 820, height: 1180 }, hasTouch: true } },
+    { name: "desktop", use: { ...devices["Desktop Chrome"] }, ...(process.env.ALL_SIZES ? {} : { grep: /@layout/ }) },
+    { name: "tablet", use: { ...devices["Desktop Chrome"], viewport: { width: 820, height: 1180 }, hasTouch: true },
+      ...(process.env.ALL_SIZES ? {} : { grep: /@layout/ }) },
   ],
   webServer: {
     command: `node scripts/serve.mjs ${appDir} ${port}`,

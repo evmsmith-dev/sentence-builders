@@ -5,7 +5,9 @@ name: Test and deploy
 on:
   push:
     branches: [main]
+    paths-ignore: ["**/*.md"] # documentation only: nothing to test or deploy
   pull_request:
+    paths-ignore: ["**/*.md"]
   workflow_dispatch:
 
 permissions:
@@ -38,14 +40,21 @@ jobs:
         with:
           path: dist
 
-  # End-to-end tests: one machine per screen size, in parallel, each running several tests at once.
+  # End-to-end tests, four machines in parallel: every test on the phone (split in two), and the @layout
+  # tests on desktop and tablet. They use the Chrome already installed on GitHub's runners (no download).
   e2e:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        project: [desktop, phone, tablet]
-    name: e2e (${{ matrix.project }})
+        include:
+          - { project: phone, shard: 1/2 }
+          - { project: phone, shard: 2/2 }
+          - { project: desktop, shard: 1/1 }
+          - { project: tablet, shard: 1/1 }
+    name: e2e (${{ matrix.project }} ${{ matrix.shard }})
+    env:
+      CHROME_PATH: /usr/bin/google-chrome
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -53,14 +62,13 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
       - name: Build and end-to-end tests
-        run: npm run test:e2e -- --project=${{ matrix.project }}
+        run: npm run test:e2e -- --project=${{ matrix.project }} --shard=${{ matrix.shard }}
       - name: Upload test report on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-results-${{ matrix.project }}
+          name: playwright-results-${{ matrix.project }}-${{ strategy.job-index }}
           path: test-results/
           retention-days: 7
 

@@ -5,7 +5,7 @@ import { parseFlow } from "../../src/lib/parse.js";
 import { markupTasks } from "../../src/lib/markup.js";
 import { buildDiagram } from "../../src/lib/diagram.js";
 
-test("first visit: make a player and land in the town", async ({ page }) => {
+test("first visit: make a player and land in the town", { tag: "@layout" }, async ({ page }) => {
   await openApp(page);
   await expect(page.locator("#add-player")).toBeVisible();
   await page.locator("#player-name").fill("Ava");
@@ -101,7 +101,7 @@ test("a level under 6 points isn't passed and says to try again", async ({ page 
   await expect(page.locator("#result-next")).toHaveText("Try again");
 });
 
-test("no sideways scrolling on any screen", async ({ page }) => {
+test("no sideways scrolling on any screen", { tag: "@layout" }, async ({ page }) => {
   await openApp(page, { players: [player({ grade: 5 })], current: "p1" });
   const fits = () => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1);
   expect(await fits()).toBe(true);
@@ -163,7 +163,7 @@ test("Sort it: a wrong sort gives a hint, then the answer", async ({ page }) => 
   throw new Error("no sort item in the level");
 });
 
-test("Progress: open to everyone from the home screen; break reminder and backup are in Settings", async ({ page }) => {
+test("Progress: open to everyone from the home screen; break reminder and backup are in Settings", { tag: "@layout" }, async ({ page }) => {
   const ava = player({ levels: { "commas-1": { best: 7, stars: 2, plays: 1 } } });
   ava.items = { "commas-1-01": { seen: 2, misses: 2, last: 5 } };
   ava.days = ["2026-11-14"];
@@ -434,7 +434,7 @@ test("a perfect round says there were no mistakes", async ({ page }) => {
   await expect(page.locator("#result-review")).toContainText("No mistakes this round");
 });
 
-test("Rule Book: tabs for each world, folding skills, locked rules by title, label glossary", async ({ page }) => {
+test("Rule Book: tabs for each world, folding skills, locked rules by title, label glossary", { tag: "@layout" }, async ({ page }) => {
   await openApp(page, { players: [player({ grade: 4 })], current: "p1" });
   await page.locator("#rules-btn").click();
   await expect(page.locator("#rules")).toBeVisible();
@@ -471,7 +471,7 @@ test("Rule Book: tabs for each world, folding skills, locked rules by title, lab
   await expect(page.locator("#world-title")).toContainText("Sentence Studio");
 });
 
-test("Word lists: prepositions and articles in the Rule Book and in the Labels reminder", async ({ page }) => {
+test("Word lists: prepositions and articles in the Rule Book and in the Labels reminder", { tag: "@layout" }, async ({ page }) => {
   await openApp(page, { players: [player({ grade: 5 })], current: "p1" });
   await page.locator("#rules-btn").click();
   await page.locator('[data-rules-tab="lists"]').click();
@@ -789,7 +789,7 @@ test("noun table: only on the first Q&A Flow sentence of a level, and not for gr
   await expect(page.locator("#next-btn")).toBeVisible();
 });
 
-test("noun table reminders fade once a child knows them; the Rule Book explains kinds of nouns", async ({ page }) => {
+test("noun table reminders fade once a child knows them; the Rule Book explains kinds of nouns", { tag: "@layout" }, async ({ page }) => {
   const { items } = JSON.parse(readFileSync("data/content.json", "utf8"));
   const seen = Object.fromEntries(items.filter((i) => i.skill === "flow" && i.level === 2 && i.id !== "flow-2-01").map((i) => [i.id, { seen: 1, misses: 0, last: 1 }]));
   const p = player({ grade: 5, items: seen });
@@ -823,7 +823,7 @@ test("noun table reminders fade once a child knows them; the Rule Book explains 
   await expect(page.locator("#nouns-overlay")).toBeVisible();
 });
 
-test("bricks: a level pays bricks, the new building rises, and the Build screen spends them", async ({ page }) => {
+test("bricks: a level pays bricks, the new building rises, and the Build screen spends them", { tag: "@layout" }, async ({ page }) => {
   await openApp(page, { players: [player({ grade: 4 })], current: "p1" });
   await startLevel(page, "commas", 1);
   for (let n = 0; n < 8; n++) {
@@ -894,7 +894,7 @@ test("Pip's homework: grade three paragraphs, earn bricks, and it doesn't count 
   expect(Object.keys(saved[0].levels)).toHaveLength(0);
 });
 
-test("Rule Book: word endings (-ed, plurals, will, -s/-ing, irregular verbs) in one place, Reference", async ({ page }) => {
+test("Rule Book: word endings (-ed, plurals, will, -s/-ing, irregular verbs) in one place, Reference", { tag: "@layout" }, async ({ page }) => {
   await openApp(page, { players: [player({ grade: 4 })], current: "p1" });
   await page.locator("#rules-btn").click();
   await page.locator('[data-rules-tab="works"]').click();
@@ -912,7 +912,7 @@ test("Rule Book: word endings (-ed, plurals, will, -s/-ing, irregular verbs) in 
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
 });
 
-test("Capital letters: a Punctuation Port skill, with its own spot on the port's path", async ({ page }) => {
+test("Capital letters: a Punctuation Port skill, with its own spot on the port's path", { tag: "@layout" }, async ({ page }) => {
   await openApp(page, { players: [player({ grade: 5 })], current: "p1" });
   await expect(page.locator('.town g[data-skill="capitals"]')).toHaveCount(1);
   await startLevel(page, "capitals", 3);
@@ -930,7 +930,7 @@ test("Capital letters: a Punctuation Port skill, with its own spot on the port's
   expect(overflow).toBe(false);
 });
 
-test("town map: tap a region to zoom in, tap a lot for its levels, and decorate that district", async ({ page }) => {
+test("town map: tap a region to zoom in, tap a lot for its levels, and decorate that district", { tag: "@layout" }, async ({ page }) => {
   const ava = player({ levels: { "commas-1": { best: 8, stars: 3, plays: 1 } } });
   await openApp(page, { players: [{ ...ava, bricks: 30 }], current: "p1" });
   await expect(page.locator("#map-panel")).toContainText("Tap a place on the island");
@@ -974,7 +974,7 @@ test("town map: tap a region to zoom in, tap a lot for its levels, and decorate 
   await expect(page.locator("#map-panel")).toContainText("Tap a place on the island");
 });
 
-test("Grammar Peaks: a Summit Review mixes passed skills and plants a flag; Spelling Lake floats a boat", async ({ page }) => {
+test("Grammar Peaks: a Summit Review mixes passed skills and plants a flag; Spelling Lake floats a boat", { tag: "@layout" }, async ({ page }) => {
   const levels = { "commas-1": { best: 8, stars: 3, plays: 1 }, "verbs-1": { best: 8, stars: 3, plays: 1 }, "fragments-1": { best: 8, stars: 3, plays: 1 } };
   await openApp(page, { players: [player({ levels })], current: "p1" });
   await page.locator("#town").scrollIntoViewIfNeeded();
@@ -1013,7 +1013,7 @@ test("Grammar Peaks: a Summit Review mixes passed skills and plants a flag; Spel
   expect(saved.levels).toEqual(levels); // practice never changes levels
 });
 
-test("Grammar Peaks: no Summit Review until a level is passed", async ({ page }) => {
+test("Grammar Peaks: no Summit Review until a level is passed", { tag: "@layout" }, async ({ page }) => {
   await openApp(page, { players: [player()], current: "p1" });
   await page.locator("#town").scrollIntoViewIfNeeded();
   const peaks = await page.locator('.region[data-area="peaks"]').boundingBox();
@@ -1056,7 +1056,7 @@ test("compounds: either part first is right, in a Q&A Flow and in Build from lab
   }
 });
 
-test("Rule Book: tabs use the places' names, skills come before reference, and search finds rules and labels", async ({ page }) => {
+test("Rule Book: tabs use the places' names, skills come before reference, and search finds rules and labels", { tag: "@layout" }, async ({ page }) => {
   await openApp(page, { players: [player({ grade: 5 })], current: "p1" });
   await page.locator("#rules-btn").click();
   await expect(page.locator('[data-rules-tab="port"]')).toContainText("Punctuation Port");
@@ -1094,7 +1094,7 @@ test("Word Parts, Word Choice and Figurative Language: play a level of each, and
   await expect(page.locator(".search-hit").first()).toContainText("Greek");
 });
 
-test("Grammar Peaks has a card in the Worlds list that opens it on the map", async ({ page }) => {
+test("Grammar Peaks has a card in the Worlds list that opens it on the map", { tag: "@layout" }, async ({ page }) => {
   await openApp(page, { players: [{ ...player(), summits: 2, lakeWins: 1 }], current: "p1" });
   const card = page.locator("#world-list [data-peaks]");
   await expect(card).toContainText("Grammar Peaks");
