@@ -1862,11 +1862,20 @@ function wire() {
   $("quit-yes").addEventListener("click", () => {
     closeOverlay("quit-overlay");
     stopSaying();
-    const skill = skillById(state.play.skillId);
-    const mode = state.play.mode;
+    // A finished level has no play left (state.play is cleared at the results), so go home then too.
+    const skill = state.play ? skillById(state.play.skillId) : null;
+    const mode = state.play?.mode;
     state.play = null;
-    if (mode) renderHome(); // homework and Grammar Peaks rounds start from the island
+    if (mode || !skill) renderHome(); // homework and Grammar Peaks rounds start from the island
     else renderWorld(skill.world);
+  });
+  // "Not now" on the next level's Tip Card, right after a level's results: back to that place's level list,
+  // not to the finished level's last question.
+  $("tip-close").addEventListener("click", () => {
+    if (!state.play && !$("play").hidden && state.tip) {
+      closeOverlay("tip-overlay");
+      renderWorld(skillById(state.tip.skillId).world);
+    }
   });
   $("result-next").addEventListener("click", () => {
     closeOverlay("result-overlay");

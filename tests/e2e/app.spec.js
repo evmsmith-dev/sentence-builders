@@ -1429,3 +1429,19 @@ test("Pip's intro for grades 6-8 has no home screen choice", async ({ page }) =>
   }
   await expect(page.locator("#pip-intro-overlay")).toBeHidden();
 });
+
+test("after a level: Not now on the next level's tip goes to the level list, not back into the finished level", async ({ page }) => {
+  test.slow();
+  await openApp(page, { players: [player({ grade: 4 })], current: "p1" });
+  await startLevel(page, "commas", 1, "port");
+  for (let n = 0; n < 8; n++) {
+    await answer(page);
+    await page.locator("#next-btn").click();
+  }
+  await page.locator("#result-next").click(); // the next level's Tip Card
+  await expect(page.locator("#tip-overlay")).toBeVisible();
+  await page.locator("#tip-close").click();
+  await expect(page.locator("#tip-overlay")).toBeHidden();
+  await expect(page.locator("#play")).toBeHidden();
+  await expect(page.locator("#world")).toBeVisible();
+});
