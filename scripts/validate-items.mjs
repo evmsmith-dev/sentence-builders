@@ -3,6 +3,7 @@
 import { readFile } from "node:fs/promises";
 import { HOMEWORK_PER_ROUND, ITEMS_PER_LEVEL, PRACTICE_PER_ROUND, SKILLS, SPELLING_RULES } from "../src/config.js";
 import { validateItem } from "../src/lib/parse.js";
+import { weekDayItems, weekProblems } from "../src/lib/week.js";
 
 const content = JSON.parse(await readFile(new URL("../data/content.json", import.meta.url), "utf8"));
 const problems = [];
@@ -49,6 +50,25 @@ for (const hw of content.homework || []) {
   if (!hw.title) problems.push(`${hw.id}: needs a title`);
   if (ids.has(hw.id)) problems.push(`${hw.id}: id used twice`);
   ids.add(hw.id);
+}
+// Sentence of the Week: 4+ weeks per grade band; every day's items must play, and the days must agree.
+for (const band of ["3-4", "5", "6-8"]) {
+  const n = (content.weeks || []).filter((w) => w.band === band).length;
+  if (n < 4) problems.push(`Sentence of the Week ${band}: only ${n} weeks (needs 4+)`);
+}
+for (const week of content.weeks || []) {
+  if (ids.has(week.id)) problems.push(`${week.id}: id used twice`);
+  ids.add(week.id);
+  problems.push(...weekProblems(week));
+  for (const day of [0, 1, 2, 3, 4]) {
+    for (const item of weekDayItems(week, day)) {
+      try {
+        validateItem(item);
+      } catch (error) {
+        problems.push(error.message);
+      }
+    }
+  }
 }
 for (const skill of SKILLS) {
   for (const level of [1, 2, 3]) {

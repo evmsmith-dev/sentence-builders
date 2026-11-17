@@ -281,6 +281,7 @@ export function spokenText(item) {
   if (item.type === "labels") return parseLabels(item).line.join(", ");
   if (item.type === "proofread") return parseProofread(item).words.join(" ");
   if (item.type === "combine") return item.parts.join(" ");
+  if (item.type === "dictate") return item.text;
   return "";
 }
 
@@ -302,18 +303,16 @@ export function tidyTyped(text) {
 }
 const loose = (text) => tidyTyped(text).toLowerCase().replace(/[^a-z0-9' ]/g, "").replace(/\s+/g, " ").trim();
 
+/** Letters to add, drop or change (two letters swapped count as one slip) to turn a into b. */
 function editDistance(a, b) {
-  const row = Array.from({ length: b.length + 1 }, (_, j) => j);
+  const d = Array.from({ length: a.length + 1 }, (_, i) => Array.from({ length: b.length + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0)));
   for (let i = 1; i <= a.length; i++) {
-    let prev = row[0];
-    row[0] = i;
     for (let j = 1; j <= b.length; j++) {
-      const keep = row[j];
-      row[j] = Math.min(row[j] + 1, row[j - 1] + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1));
-      prev = keep;
+      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
     }
   }
-  return row[b.length];
+  return d[a.length][b.length];
 }
 
 export function parseCombine(item) {
@@ -360,6 +359,102 @@ export function checkCombine(parsed, typed) {
   return { right: false, hint: null };
 }
 
+/* ---------- Listen and Write: type a sentence read aloud ---------- */
+
+const HOMOPHONES = [["there", "their", "theyre"], ["to", "too", "two"], ["your", "youre"], ["its"], ["were", "where", "wear"], ["hear", "here"], ["know", "no"], ["right", "write"], ["by", "buy", "bye"]];
+const homophones = (a, b) => HOMOPHONES.some((set) => set.includes(a) && set.includes(b));
+
+/** A typed or target word split into leading marks, the word itself and trailing marks. */
+function dictToken(raw) {
+  const m = raw.match(/^([^A-Za-z0-9']*)([A-Za-z0-9'-]*[A-Za-z0-9]'?|[A-Za-z0-9])?(.*)$/) || [];
+  const core = m[2] || "";
+  return { raw, lead: m[1] || "", core, trail: m[3] || "", key: core.toLowerCase().replace(/'/g, "") };
+}
+const dictTokens = (text) => String(text || "").replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/\s+([,.!?;:])/g, "$1")
+  .trim().split(/\s+/).filter(Boolean).map(dictToken);
+const similar = (a, b) => a === b || editDistance(a, b) <= Math.max(1, Math.floor(Math.max(a.length, b.length) / 3));
+
+/** Lines up two word lists (a typo still lines up with its word). [[targetIndex|null, typedIndex|null], ...] */
+function alignWords(t, u) {
+  const cost = (i, j) => (t[i].key === u[j].key ? 0 : similar(t[i].key, u[j].key) ? 0.4 : 1.2);
+  const d = Array.from({ length: t.length + 1 }, (_, i) => Array.from({ length: u.length + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0)));
+  for (let i = 1; i <= t.length; i++) {
+    for (let j = 1; j <= u.length; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + cost(i - 1, j - 1));
+  }
+  const pairs = [];
+  let i = t.length;
+  let j = u.length;
+  while (i > 0 || j > 0) {
+    if (i > 0 && j > 0 && Math.abs(d[i][j] - (d[i - 1][j - 1] + cost(i - 1, j - 1))) < 1e-9) { pairs.unshift([i - 1, j - 1]); i--; j--; }
+    else if (i > 0 && Math.abs(d[i][j] - (d[i - 1][j] + 1)) < 1e-9) { pairs.unshift([i - 1, null]); i--; }
+    else { pairs.unshift([null, j - 1]); j--; }
+  }
+  return pairs;
+}
+
+const END_MARKS = { ".": "a period", "?": "a question mark", "!": "an exclamation point" };
+
+/**
+ * Dictation is about capitals and punctuation, so those count; a misspelled word doesn't (it's listed to fix
+ * gently), except a missing apostrophe or a name's capital. Returns { right, hint, spelling: [{ typed, word }],
+ * issues: [{ index, text }] } where index is the target word the issue is on.
+ */
+export function checkDictation(target, typed) {
+  const t = dictTokens(target);
+  const u = dictTokens(typed);
+  const issues = [];
+  const spelling = [];
+  const add = (index, text, first = false) => (first ? issues.unshift({ index, text }) : issues.push({ index, text }));
+  for (const [i, j] of alignWords(t, u)) {
+    if (j === null) { add(i, `A word is missing. Listen again for "${t[i].core}".`, true); continue; }
+    if (i === null) { add(Math.max(0, t.length - 1), `"${u[j].core}" isn't in the sentence. Listen again.`, true); continue; }
+    const want = t[i];
+    const got = u[j];
+    if (want.key !== got.key) {
+      if (homophones(want.key, got.key) && want.core.includes("'") === got.core.includes("'")) spelling.push({ typed: got.core, word: want.core, homophone: true });
+      else if (!similar(want.key, got.key)) { add(i, `Listen again: one word is different from "${got.core}".`, true); continue; }
+      else spelling.push({ typed: got.core, word: want.core });
+    }
+    if (want.core.includes("'") !== got.core.includes("'")) {
+      add(i, want.core.includes("'") ? `${want.core} needs an apostrophe.` : `${got.core} doesn't need an apostrophe.`);
+    }
+    if (want.core[0] && got.core[0] && (want.core[0] === want.core[0].toUpperCase()) !== (got.core[0] === got.core[0].toUpperCase())) {
+      const first = i === 0 || /[.!?]"?$/.test(t[i - 1].trail) || /^"/.test(want.lead);
+      add(i, want.core[0] === want.core[0].toUpperCase()
+        ? (first ? `Start with a capital letter: ${want.core}.` : `${want.core} needs a capital letter (names, places, days, months and I always do).`)
+        : `${got.core} doesn't need a capital letter here.`);
+    }
+    if (want.lead !== got.lead) add(i, want.lead.includes('"') ? `Put quotation marks before "${want.core}", where the talking starts.` : `Check the marks before "${got.core}".`);
+    // A read-aloud voice can't show an exclamation point, so a period counts too (and the other way round).
+    const calm = (trail) => trail.replace(/!/g, ".");
+    if (want.trail !== got.trail && calm(want.trail) !== calm(got.trail)) {
+      const last = i === t.length - 1;
+      const end = want.trail.replace(/"/g, "");
+      if (want.trail.includes('"') !== got.trail.includes('"')) add(i, want.trail.includes('"') ? `Close the quotation marks after "${want.core}".` : `There's no quotation mark after "${got.core}".`);
+      else if (last && END_MARKS[end.slice(-1)]) add(i, `End the sentence with ${END_MARKS[end.slice(-1)]}.`);
+      else if (want.trail.includes(",") && !got.trail.includes(",")) add(i, `Add a comma after "${want.core}".`);
+      else if (!want.trail.includes(",") && got.trail.includes(",")) add(i, `There's no comma after "${got.core}".`);
+      else add(i, `Check the mark after "${want.core}".`);
+    }
+  }
+  return { right: issues.length === 0, hint: issues[0]?.text || null, spelling, issues };
+}
+
+/** The sentence's words without capitals or marks, for players who read instead of listen. */
+export const dictationWords = (text) => dictTokens(text).map((tok) => tok.core.toLowerCase().replace(/'/g, "")).join(" ");
+
+/** Where to pause when reading phrase by phrase: after commas, quotation marks and end marks. */
+export function dictationPhrases(text) {
+  const out = [];
+  let cur = [];
+  for (const tok of dictTokens(text)) {
+    cur.push(tok.raw);
+    if (/[,;:.!?"]/.test(tok.trail) || cur.length >= 5) { out.push(cur.join(" ")); cur = []; }
+  }
+  if (cur.length) out.push(cur.join(" "));
+  return out;
+}
+
 /** The right answer as a sentence, shown after a second miss. */
 export function answerText(item) {
   if (item.type === "mark") {
@@ -377,10 +472,11 @@ export function answerText(item) {
   if (item.type === "labels") return parseLabels(item).answerText;
   if (item.type === "proofread") return parseProofread(item).answerText;
   if (item.type === "combine") return parseCombine(item).answerText;
+  if (item.type === "dictate") return item.text;
   throw new Error(`Unknown item type: ${item.type}`);
 }
 
-export const ITEM_TYPES = ["mark", "fix", "which", "build", "sort", "check", "join", "flow", "labels", "proofread", "diagram", "combine"];
+export const ITEM_TYPES = ["mark", "fix", "which", "build", "sort", "check", "join", "flow", "labels", "proofread", "diagram", "combine", "dictate"];
 
 /** A diagram in words, for the results review: the baseline, then what hangs under each word. */
 export function diagramText(item) {
@@ -496,6 +592,11 @@ export function validateItem(item) {
     if (!parsed.line.every((l) => flowLabels(item).includes(l))) throw new Error(`${item.id}: uses a label not taught by level ${item.level}`);
     if (new Set(parsed.tiles.map((t) => t.word)).size !== parsed.tiles.length) throw new Error(`${item.id}: repeated words`);
     if (!checkLabels(parsed, parsed.tiles.map((t) => t.word))) throw new Error(`${item.id}: its own answer isn't accepted`);
+  }
+  if (item.type === "dictate") {
+    if (!/^["A-Z]/.test(item.text) || !/[.!?]"?$/.test(item.text)) throw new Error(`${item.id}: needs a capital and an end mark`);
+    if (!checkDictation(item.text, item.text).right) throw new Error(`${item.id}: its own sentence isn't accepted`);
+    if (checkDictation(item.text, dictationWords(item.text)).right) throw new Error(`${item.id}: nothing to capitalize or punctuate`);
   }
   if (item.type === "combine") {
     const parsed = parseCombine(item);

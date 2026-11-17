@@ -63,11 +63,16 @@
       <button type="button" id="badges-btn" class="tool-btn"></button>
       <button type="button" class="tool-btn" data-progress><span class="tool-emoji" aria-hidden="true">📊</span><span>Progress</span></button>
     </nav>
-    <button type="button" id="homework-btn" class="homework-card">
-      <span class="homework-emoji" aria-hidden="true">📝</span>
-      <span><strong>Pip needs a teacher!</strong><span>Find the mistakes in Pip's homework and earn bricks.</span></span>
-    </button>
-    <button type="button" id="build-btn" class="build-card"></button>
+    <section class="today-card" aria-labelledby="today-title">
+      <h2 id="today-title" class="today-title">Today with Pip</h2>
+      <button type="button" id="week-btn" class="today-row week-row"></button>
+      <button type="button" id="homework-btn" class="today-row homework-card">
+        <span class="homework-emoji" aria-hidden="true">📝</span>
+        <span><strong>Pip needs a teacher!</strong><span>Find the mistakes in Pip's homework and earn bricks.</span></span>
+        <span class="today-chev" aria-hidden="true">›</span>
+      </button>
+      <button type="button" id="build-btn" class="today-row build-card"></button>
+    </section>
     <section class="card town-card" aria-labelledby="town-title">
       <h2 id="town-title">🏝️ Grammar Island</h2>
       <div class="map-wrap">
@@ -205,7 +210,7 @@
       <h2>What it's based on</h2>
       <p><strong>Minnesota standards.</strong> The skills follow the 2020 Minnesota K–12 Academic Standards in English Language Arts. Each skill lists the benchmarks it practices (for example, 4.2.1.1 is grade 4 punctuation, spelling, capitalization and grammar). The Tip Cards also use the words teachers and tests often use, like parenthetical and nonrestrictive.</p>
       <p><strong>Shurley English.</strong> Flow Factory follows the Shurley English method many schools teach: the Question and Answer Flow, its word labels (SN, V, Adj and the rest, including compound parts like CSN and CDO), the seven sentence patterns, the Skill Check mark-up (noun check, parentheses around prepositional phrases, a slash before the verb, the complete subject underlined once and the complete predicate twice) and sentence diagramming. Each Shurley level is assumed to match the player's grade.</p>
-      <p><strong>Grades.</strong> Grades 3–5 get Punctuation Port, Word Works (including word parts and word choice), Sentence Studio (including figurative language, revising and typed sentence combining) and Flow Factory (including compound labels and parts of speech). Sentence Diagramming opens in grade 5. Grade 6 adds Revision Ridge and Advanced Q&amp;A Flow for review and grades 6–8 skills.</p>
+      <p><strong>Grades.</strong> Grades 3–5 get Punctuation Port, Word Works (including word parts and word choice), Sentence Studio (including figurative language, revising and typed sentence combining), Punctuation Port (including Listen and Write) and Flow Factory (including compound labels and parts of speech). Sentence Diagramming opens in grade 5. Grade 6 adds Revision Ridge and Advanced Q&amp;A Flow for review and grades 6–8 skills.</p>
       <p class="note">Sentence Builders is a practice supplement for skills taught in class. Its sentences, hints, Tip Cards and drawings are original: it uses no text, examples or jingles from Shurley English or other curricula, and it isn't made by or connected to Shurley Instructional Materials or the Minnesota Department of Education.</p>
       <h2>Privacy</h2>
       <p>No accounts, no ads, and nothing is sent anywhere. Progress stays on this device; use Settings → Backup to move it to another one. After the first visit it works offline.</p>
@@ -290,6 +295,14 @@
     </div>
   </div>
 
+  <div id="week-overlay" class="overlay" hidden>
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="week-title">
+      <h2 id="week-title">📌 Sentence of the Week</h2>
+      <div id="week-body"></div>
+      <div class="sheet-actions"><button type="button" class="secondary" data-close>Close</button></div>
+    </div>
+  </div>
+
   <div id="settings-overlay" class="overlay" hidden>
     <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="settings-title">
       <h2 id="settings-title">Settings</h2>
@@ -315,6 +328,7 @@
         <option value="larger">Larger</option>
       </select>
       <label class="toggle"><input type="checkbox" id="set-spacing"> Extra space between letters and lines</label>
+      <label class="toggle"><input type="checkbox" id="set-showwords"> Listen and Write: show the words too (for hearing or listening difficulties)</label>
       <label for="set-break">Break reminder</label>
       <select id="set-break">
         <option value="0">Off</option>

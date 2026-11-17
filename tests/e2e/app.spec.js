@@ -4,6 +4,9 @@ import { answer, currentItem, diagramIt, markUp, miss, openApp, player, startLev
 import { parseFlow } from "../../src/lib/parse.js";
 import { markupTasks } from "../../src/lib/markup.js";
 import { buildDiagram } from "../../src/lib/diagram.js";
+import { weekFor, weekKey } from "../../src/lib/week.js";
+
+const content = JSON.parse(readFileSync(new URL("../../data/content.json", import.meta.url), "utf8"));
 
 test("first visit: make a player and land in the town", { tag: "@layout" }, async ({ page }) => {
   await openApp(page);
@@ -56,12 +59,12 @@ test("play a whole level right: 3 stars, a building and badges", async ({ page }
   await expect(page.locator("#result-badges")).toContainText("First Brick");
   await expect(page.locator("#result-badges")).toContainText("Comma Captain");
   await page.locator("#result-town").click();
-  await expect(page.locator(".town")).toHaveAttribute("aria-label", /1 of 54 buildings/);
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /1 of 57 buildings/);
   await expect(page.locator("#pip-home")).toContainText("Next up: Commas and colons, level 2");
 
   // Saved on the device: still there after a reload.
   await page.reload();
-  await expect(page.locator(".town")).toHaveAttribute("aria-label", /1 of 54 buildings/);
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /1 of 57 buildings/);
 });
 
 test("a miss gives a hint and a second try; a second miss shows the answer", async ({ page }) => {
@@ -139,7 +142,7 @@ test("Word Works: play a level with every item type it uses, including Sort it",
     await expect(page.locator("#result-title")).toHaveText("Perfect build!");
     await page.locator("#result-town").click();
   }
-  await expect(page.locator(".town")).toHaveAttribute("aria-label", /3 of 54 buildings/);
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /3 of 57 buildings/);
 });
 
 test("Sort it: a wrong sort gives a hint, then the answer", async ({ page }) => {
@@ -180,7 +183,7 @@ test("Progress: open to everyone from the home screen; break reminder and backup
   await page.locator('[data-progress-tab="everyone"]').click();
   await expect(page.locator("[data-parent-player]")).toHaveCount(0);
   await expect(page.locator("[data-summary-player]").first()).toContainText("Max (you)");
-  await expect(page.locator('[data-summary-player="p1"]')).toContainText("1 of 54 buildings");
+  await expect(page.locator('[data-summary-player="p1"]')).toContainText("1 of 57 buildings");
   await expect(page.locator(".missed-list")).toHaveCount(0);
   await page.locator('[data-progress-tab="me"]').click();
   await expect(page.locator('[data-parent-player="p2"] .progress-table').first()).toBeVisible();
@@ -227,7 +230,7 @@ test("Sentence Studio: every level of all three skills, with Sentence check and 
       await page.locator("#result-town").click();
     }
   }
-  await expect(page.locator(".town")).toHaveAttribute("aria-label", /9 of 75 buildings/);
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /9 of 78 buildings/);
 });
 
 test("Sentence check and Join it: a miss gives a hint, two show the answer", async ({ page }) => {
@@ -275,7 +278,7 @@ test("Flow Factory: all three levels, 3 Q&A Flows then 2 Build from labels", asy
     await expect(page.locator("#result-score")).toContainText("5 of 5 points");
     await page.locator("#result-town").click();
   }
-  await expect(page.locator(".town")).toHaveAttribute("aria-label", /3 of 75 buildings/);
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /3 of 78 buildings/);
 });
 
 test("Q&A Flow: a miss gives a step hint; a second miss shows that step and moves on", async ({ page }) => {
@@ -301,10 +304,10 @@ test("Revision Ridge: closed below grade 6, open for a 7th grader with grades 6-
   await openApp(page, { players: [player({ grade: 4 }), player({ id: "p2", name: "Max", avatar: "🐯", grade: 7 })], current: "p1" });
   await expect(page.locator('[data-world="desk"]')).toBeDisabled();
   await expect(page.locator('[data-world="desk"]')).toContainText("Grade 6+");
-  await expect(page.locator(".town")).toHaveAttribute("aria-label", /of 54 buildings/);
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /of 57 buildings/);
   await page.locator("#who-btn").click();
   await page.locator('[data-player="p2"]').click();
-  await expect(page.locator(".town")).toHaveAttribute("aria-label", /of 75 buildings/);
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /of 78 buildings/);
   await page.locator('[data-world="desk"]').click();
   await expect(page.locator('.level-btn[data-skill="case"][data-level="2"]')).toBeEnabled();
   await expect(page.locator('.level-btn[data-skill="case"][data-level="3"]')).toBeDisabled();
@@ -945,7 +948,7 @@ test("town map: tap a region to zoom in, tap a lot for its levels, and decorate 
   await page.mouse.click(port.x + port.width / 2, port.y + 20);
   await expect(page.locator(".town-map")).toHaveClass(/zoomed/);
   await expect(page.locator("#map-panel")).toContainText("Punctuation Port");
-  await expect(page.locator("#map-panel")).toContainText("1/12 built");
+  await expect(page.locator("#map-panel")).toContainText("1/15 built");
   // Tap the empty lot for commas level 2: its level card opens; a level opens the Tip Card.
   const lot = await page.locator('.lot-hit[data-skill="commas"][data-level="2"]').boundingBox();
   await page.mouse.click(lot.x + lot.width / 2, lot.y + lot.height - 12);
@@ -1224,4 +1227,83 @@ test("Teacher report: from Progress → Me; ranges, a note, print layout and sha
   await expect(page.locator("#report-status")).toContainText("Copied");
   await page.locator("#report-back").click();
   await expect(page.locator("#parent")).toBeVisible();
+});
+
+test("Listen and Write: type what Pip reads; capitals and marks count, a misspelling doesn't", async ({ page }) => {
+  test.slow(); // plays a whole level: extra time for slower CI machines
+  await openApp(page, { players: [player({ grade: 5 })], current: "p1" });
+  await startLevel(page, "dictation", 1, "port");
+  await expect(page.locator("#item [data-dictate='play']")).toBeVisible();
+  const first = await currentItem(page);
+  // All small letters: the hint names the first capital.
+  await page.locator("#item textarea").fill(first.text.toLowerCase());
+  await page.locator("#check-btn").click();
+  await expect(page.locator("#feedback")).toContainText("capital");
+  // Right capitals and marks with one word misspelled: right, with the spelling shown to practice.
+  const words = first.text.split(" ");
+  const k = words.findIndex((w) => /^[a-z]{4,}[.,!?]?$/.test(w));
+  const typo = k < 0 ? first.text : words.map((w, i) => (i === k ? w.replace(/^([a-z])([a-z])/, "$2$1") : w)).join(" ");
+  await page.locator("#item textarea").fill(typo);
+  await page.locator("#check-btn").click();
+  await expect(page.locator("#feedback.good")).toBeVisible();
+  if (k >= 0) await expect(page.locator("#item .dictate-spelling")).toContainText("doesn't count");
+  await page.locator("#next-btn").click();
+  for (let n = 1; n < 8; n++) {
+    await answer(page);
+    await page.locator("#next-btn").click();
+  }
+  await expect(page.locator("#result-title")).toBeVisible();
+});
+
+test("Listen and Write: Show the words setting @layout", async ({ page }) => {
+  await openApp(page, { players: [player({ grade: 4, settings: { showWords: true } })], current: "p1" });
+  await startLevel(page, "dictation", 1, "port");
+  const first = await currentItem(page);
+  await expect(page.locator("#item .dictate-words")).toContainText(first.text.split(" ")[0].toLowerCase());
+});
+
+test("Sentence of the Week: Today with Pip card, the Notice Board, a day's job, and the week's banner @layout", async ({ page }) => {
+  await page.clock.setFixedTime(new Date(2026, 10, 18, 10)); // a Wednesday
+  await openApp(page, { players: [player({ grade: 4 })], current: "p1" });
+  await expect(page.locator("#week-btn")).toContainText("Sentence of the Week");
+  await expect(page.locator("#week-btn")).toContainText("Monday: Parts of speech");
+  await expect(page.locator(".town .notice-board")).toBeAttached();
+  await expect(page.locator(".town .board-alert")).toBeAttached();
+  await page.locator("#week-btn").click();
+  await expect(page.locator("#week-overlay")).toBeVisible();
+  await expect(page.locator("#week-overlay [data-week-day]")).toHaveCount(3); // Monday to Wednesday are open
+  await expect(page.locator("#week-overlay")).toContainText("Opens Thursday");
+  await page.locator('#week-overlay [data-week-day="0"]').click();
+  await expect(page.locator("#play-skill")).toContainText("Sentence of the Week · Monday");
+  for (let n = 0; n < 2; n++) {
+    await answer(page);
+    await page.locator("#next-btn").click();
+  }
+  await expect(page.locator("#result-title")).toHaveText("Monday done!");
+  await expect(page.locator("#result-next")).toHaveText("Next: Tuesday");
+  await page.locator("#result-town").click();
+  await expect(page.locator("#week-btn .week-dots .done")).toHaveCount(1);
+});
+
+test("Sentence of the Week: Friday finishes the week with bonus bricks and a banner", async ({ page }) => {
+  const friday = new Date(2026, 10, 20, 10).getTime();
+  await page.clock.setFixedTime(friday);
+  const week = weekFor(content.weeks, 6, friday);
+  const p = player({ grade: 6 });
+  p.week = { key: weekKey(friday), id: week.id, done: [0, 1, 2, 3] };
+  p.bricks = 0;
+  await openApp(page, { players: [p], current: "p1" });
+  await expect(page.locator("#week-btn")).toContainText("Friday: Join and write it");
+  await page.locator("#week-btn").click();
+  await page.locator('#week-overlay [data-week-day="4"]').click();
+  await answer(page);
+  await page.locator("#next-btn").click();
+  await expect(page.locator("#result-title")).toHaveText("Week complete! 🎏");
+  await expect(page.locator("#result-bricks")).toContainText("15 for the week");
+  await page.locator("#result-town").click();
+  await expect(page.locator("#week-btn")).toContainText("Week done!");
+  await expect(page.locator(".town .banners path")).toHaveCount(2); // the string and one pennant
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("sentenceBuilders_players"))[0]);
+  expect(saved.banners).toHaveLength(1);
+  expect(saved.bricks).toBe(17);
 });

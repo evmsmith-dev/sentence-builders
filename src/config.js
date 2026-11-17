@@ -22,7 +22,7 @@ export const NOUN_REMINDERS_UNTIL = 12;
 export const MAX_PLAYERS = 4;
 
 export const WORLDS = [
-  { id: "port", tab: "Punctuation", name: "Punctuation Port", emoji: "⚓", ready: true, blurb: "Commas, colons, quotation marks and apostrophes" },
+  { id: "port", tab: "Punctuation", name: "Punctuation Port", emoji: "⚓", ready: true, blurb: "Commas, colons, quotation marks, apostrophes, capitals and Listen and Write" },
   { id: "works", tab: "Word Works", name: "Word Works", emoji: "⚙️", ready: true, blurb: "Verb tenses, agreement, pronouns, word parts and word choice" },
   { id: "studio", tab: "Sentences", name: "Sentence Studio", emoji: "🎨", ready: true, blurb: "Fragments, run-ons, compound and complex sentences, figurative language, revising and sentence combining" },
   { id: "flow", tab: "Q&A Flow", name: "Flow Factory", emoji: "🏭", ready: true, blurb: "Label every word with the Q&A Flow and the parts of speech, then mark it up (and diagram it, from grade 5)" },
@@ -53,6 +53,12 @@ export const SKILLS = [
     id: "capitals", world: "port", name: "Capital letters", short: "Capitals", color: "#3949ab",
     grades: [3, 4, 5], benchmarks: "MN 3.2.1.1, 4.2.1.1, 5.2.1.1 (capitalization)",
     badge: { id: "capital-captain", name: "Capital Captain", emoji: "🔠" },
+  },
+  {
+    // Typed from listening: capitals, end marks and simple dialogue; then compound commas, apostrophes and ? or ! in quotes; then introductory commas, direct address and split quotations.
+    id: "dictation", world: "port", name: "Listen and Write", short: "Listen & Write", color: "#00796b",
+    grades: [3, 4, 5], benchmarks: "MN 3.2.1.1, 4.2.1.1, 5.2.1.1 (capitalization and punctuation in writing), written from dictation",
+    badge: { id: "sharp-ears", name: "Sharp Ears", emoji: "👂" },
   },
   {
     id: "verbs", world: "works", name: "Verb tenses", short: "Verbs", color: "#2e8b57",

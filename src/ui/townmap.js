@@ -9,8 +9,9 @@ const reduceMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matche
 /**
  * box: the element the SVG is drawn into. buttons: { zIn, zOut, zFit }.
  * onArea(id|null): the district in view changed (null: the whole map). onLot(skillId, level): a lot was tapped.
+ * onBoard(): the Town Square's Notice Board was tapped.
  */
-export function createTownMap(box, buttons, { onArea, onLot }) {
+export function createTownMap(box, buttons, { onArea, onLot, onBoard = () => {} }) {
   let svg = null;
   let layout = null;
   let vb = { x: 0, y: 0, w: 1, h: 1 };
@@ -156,6 +157,8 @@ export function createTownMap(box, buttons, { onArea, onLot }) {
     if (!district) return;
     const id = district.dataset.area;
     const lot = el.closest(".lot-hit");
+    // The Town Square's Notice Board opens the Sentence of the Week, from near or far.
+    if (el.closest(".board-hit") && (zoomedIn() && id === area)) { onBoard(); return; }
     // From far away, or on another district: go there first. Inside one: a lot opens its level card.
     if (!zoomedIn() || id !== area || !lot) {
       if (!zoomedIn() || id !== area) focus(id);

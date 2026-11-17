@@ -87,3 +87,48 @@ test("teacher report: habits by range, first-try rates and what needs practice",
   assert.match(text, /Practice: 10 minutes on 1 day; 1 level passed\./);
   assert.match(text, /Note: Hi!/);
 });
+
+test("Listen and Write: capitals, marks and apostrophes count; spelling doesn't", async () => {
+  const { checkDictation, dictationPhrases } = await import("../../src/lib/parse.js");
+  const t = 'Mom said, "We can\'t go to Duluth on Monday."';
+  const c = (typed) => checkDictation(t, typed);
+  assert.equal(c(t).right, true);
+  assert.match(c(t.replace("Mom", "mom")).hint, /capital/);
+  assert.match(c(t.replace("said,", "said")).hint, /comma after "said"/);
+  assert.match(c(t.replace("can't", "cant")).hint, /apostrophe/);
+  assert.match(c(t.replace("Duluth", "duluth")).hint, /Duluth needs a capital/);
+  const typo = c(t.replace("Monday", "Mnoday").replace(" to ", " too "));
+  assert.equal(typo.right, true);
+  assert.deepEqual(typo.spelling.map((s) => s.word), ["to", "Monday"]);
+  assert.match(c(t.replace(" on Monday", "")).hint, /missing/);
+  assert.equal(checkDictation("Watch out!", "Watch out.").right, true, "a voice can't show !");
+  assert.deepEqual(dictationPhrases(t), ["Mom said,", '"We can\'t go to Duluth', 'on Monday."']);
+});
+
+test("Sentence of the Week: bands, week turns, open days and the week's record", async () => {
+  const { bandFor, openDays, todayIndex, weekDayItems, weekFor, weekKey, nextDay } = await import("../../src/lib/week.js");
+  const { recordWeekDay } = await import("../../src/lib/progress.js");
+  assert.deepEqual([3, 4, 5, 6, 8].map(bandFor), ["3-4", "3-4", "5", "6-8", "6-8"]);
+  const wed = new Date(2026, 10, 18, 10).getTime();
+  const sun = new Date(2026, 10, 22, 10).getTime();
+  assert.equal(weekKey(wed), "2026-11-16");
+  assert.equal(weekKey(sun), "2026-11-16");
+  assert.deepEqual(openDays(wed), [0, 1, 2]);
+  assert.equal(todayIndex(sun), 5);
+  assert.deepEqual(openDays(sun), [0, 1, 2, 3, 4]);
+  const a = weekFor(content.weeks, 4, wed);
+  assert.equal(weekFor(content.weeks, 4, sun).id, a.id, "the same all week");
+  assert.notEqual(weekFor(content.weeks, 4, wed + 7 * 864e5).id, a.id, "a new one next week");
+  assert.deepEqual([0, 1, 2, 3, 4].map((d) => weekDayItems(a, d).map((i) => i.type).join()), ["which,which", "flow", "flow", "proofread", "combine"]);
+  assert.equal(nextDay({ done: [0] }, wed), 1);
+  let p = { name: "A", grade: 4, items: {}, days: [], time: {}, bricks: 0, levels: {}, badges: {}, goldDays: {} };
+  const progress = { key: weekKey(wed), id: a.id, done: [0, 1, 2, 3] };
+  const out = recordWeekDay(p, { progress, day: 4, sentence: "S.", results: [{ id: "x", tries: 1, correct: true }], now: wed, bonus: 15 });
+  assert.equal(out.weekDone, true);
+  assert.equal(out.bricks, 17);
+  assert.deepEqual(out.player.banners, [{ key: "2026-11-16", text: "S." }]);
+  // Doing a day again doesn't hang a second banner.
+  const again = recordWeekDay(out.player, { progress: out.player.week, day: 4, sentence: "S.", results: [], now: wed, bonus: 15 });
+  assert.equal(again.weekDone, false);
+  assert.equal(again.player.banners.length, 1);
+});

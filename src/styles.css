@@ -883,3 +883,39 @@ body.spacing .sentence { line-height: 2.3; }
   .rep-table tr { break-inside: avoid; }
 }
 .rep-waiting { margin: 4px 0 0; font-size: 0.8rem; color: #56617f; }
+
+/* ---------- Listen and Write ---------- */
+.dictate-audio { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.dictate-btn { min-height: 48px; padding: 6px 14px; border-radius: 999px; border: 2px solid var(--primary); background: var(--primary-soft); color: var(--primary-dark); font-weight: 700; }
+.dictate-btn[data-dictate="play"] { background: var(--primary); color: #fff; }
+.dictate-words { margin: 4px 0 10px; padding: 8px 12px; border-radius: 10px; background: var(--hint-soft); font-size: 1.2rem; }
+.dictate-spelling { margin: 8px 0 0; font-size: 0.95rem; color: var(--muted); }
+.spell-fix { display: inline-block; margin-right: 10px; }
+.spell-fix s { color: var(--danger); }
+.spell-fix strong { color: var(--good); }
+
+/* ---------- Today with Pip: Sentence of the Week, Pip's homework and Build, in one card ---------- */
+.today-card { margin: 0 0 12px; border-radius: var(--radius); background: var(--card); box-shadow: var(--shadow); border: 2px solid var(--border); overflow: hidden; }
+.today-title { margin: 0; padding: 10px 14px 4px; font-size: 1.05rem; color: var(--muted); }
+.today-card .today-row { margin: 0; border: 0; border-top: 1px solid var(--border); border-radius: 0; box-shadow: none; background: transparent; padding: 10px 14px; }
+.today-card .today-row:first-of-type { border-top: 0; }
+.today-card .build-card { background: transparent; }
+.today-row > span:nth-child(2) { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.today-chev { font-size: 1.6rem; color: var(--muted); line-height: 1; }
+.week-row strong { color: #2f6f4f; font-size: 1.05rem; }
+.week-row { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; color: var(--text); }
+.week-dots { display: inline-flex; gap: 4px; margin-top: 3px; }
+.week-dots span { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; font-size: 0.72rem; font-weight: 700;
+  border: 2px solid #b9d3c4; color: #5b7a69; background: #fff; }
+.week-dots span.done { background: #2f6f4f; border-color: #2f6f4f; color: #fff; }
+.week-dots span.today { border-color: #2f6f4f; }
+.week-dots span.later { opacity: 0.45; }
+@media (prefers-reduced-motion: no-preference) { .town .board-alert { transform-box: fill-box; transform-origin: center; animation: bob 1.2s ease-in-out infinite alternate; } }
+.week-board { margin: 6px 0 10px; padding: 12px 14px; border-radius: 10px; background: #f6e7c4; border: 3px solid #a8774c; font-size: 1.3rem; font-weight: 600; color: #4a3520; }
+.week-days { list-style: none; margin: 10px 0; padding: 0; display: grid; gap: 6px; }
+.week-day { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 12px; border: 2px solid var(--border); border-radius: 12px; }
+.week-day > span:first-child { display: flex; flex-direction: column; }
+.week-day > span:first-child span { color: var(--muted); font-size: 0.92rem; }
+.week-day.done { background: #e8f3ec; border-color: #b9d3c4; }
+.week-day button { min-height: 44px; padding: 6px 16px; }
+.week-done { color: #2f6f4f; font-weight: 700; }

@@ -266,7 +266,7 @@ const pipOnMap = (x, y) => `<g pointer-events="none" transform="translate(${x - 
   <rect x="21" y="52" width="6" height="7" rx="2" fill="#3c6bc9"/><rect x="37" y="52" width="6" height="7" rx="2" fill="#3c6bc9"/><title>Pip</title></g></g>`;
 
 /** One area, drawn at 0,0 and 360 wide: a raised plateau with its path of levels, a park and a pond. */
-function districtSvg(player, district, { fresh, rising }) {
+function districtSvg(player, district, { fresh, rising, week = null }) {
   const h = districtHeight(district, player);
   const theme = THEMES[district.id] || THEMES.square;
   const outline = plateauPath(360, h);
@@ -321,6 +321,7 @@ function districtSvg(player, district, { fresh, rising }) {
   const nameW = district.name.length * 13.5 + 46;
   const entry = ENTRY[district.id];
   const signX = entry?.side === "top" && entry.x < 180 ? 350 - nameW : 10;
+  const board = district.id === "square" && week ? noticeBoardSvg(week) + bannersSvg(player.banners || []) : "";
   const sign = district.id === "square" && !placed.length
     ? `<text x="180" y="${park + 42}" text-anchor="middle" class="park-sign">Town Square: build here with 🧱 bricks</text>` : "";
   return `${base}<g clip-path="url(#${clip})">
@@ -336,9 +337,40 @@ function districtSvg(player, district, { fresh, rising }) {
     <rect x="8" y="${water + 2}" width="344" height="${BAND - 6}" rx="16" fill="${shade(district.water, 0.72)}"/>
     <rect x="8" y="${water + 6}" width="344" height="${BAND - 10}" rx="14" fill="${district.water}"/>${wave(water + 16, 20, 340)}
     ${skillGroups}
+    ${board}
     ${placed.map((p) => decorSvg(p, at(p), { fresh })).join("")}
     ${pip}
   </g>`;
+}
+
+/** The Town Square's Notice Board: the Sentence of the Week, a stamp for each day done, a "!" when one waits. */
+function noticeBoardSvg({ done, waiting, today }) {
+  const x = 262;
+  const y = 8;
+  const stamps = ["M", "T", "W", "T", "F"].map((d, i) => {
+    const cx = x + 13 + i * 15;
+    const on = done.includes(i);
+    return `<circle cx="${cx}" cy="${y + 30}" r="6" fill="${on ? "#2f6f4f" : "#fff"}" stroke="${on ? "#2f6f4f" : i === today ? "#2f6f4f" : "#c9b48f"}" stroke-width="1.5"/>
+      <text x="${cx}" y="${y + 33}" text-anchor="middle" font-size="7" font-weight="700" fill="${on ? "#fff" : "#7a6545"}">${on ? "✓" : d}</text>`;
+  }).join("");
+  return `<g class="notice-board">
+    <rect x="${x + 8}" y="${y + 40}" width="5" height="18" fill="#7a5233"/><rect x="${x + 73}" y="${y + 40}" width="5" height="18" fill="#7a5233"/>
+    <rect x="${x}" y="${y}" width="86" height="44" rx="5" fill="#a8774c"/><rect x="${x + 4}" y="${y + 4}" width="78" height="36" rx="3" fill="#f6e7c4"/>
+    <text x="${x + 43}" y="${y + 16}" text-anchor="middle" font-size="9" font-weight="700" fill="#5b4126">📌 This week</text>${stamps}
+    ${waiting ? `<g class="board-alert"><circle cx="${x + 84}" cy="${y + 2}" r="9" fill="#e5484d"/><text x="${x + 84}" y="${y + 6}" text-anchor="middle" font-size="12" font-weight="800" fill="#fff">!</text></g>` : ""}
+    <rect class="board-hit" x="${x - 4}" y="${y - 8}" width="100" height="70" fill="transparent"><title>Notice Board: Sentence of the Week</title></rect></g>`;
+}
+
+/** A string of pennants along the top of the Town Square, one for each finished week (the latest 12). */
+function bannersSvg(banners) {
+  if (!banners.length) return "";
+  const shown = banners.slice(-12);
+  const colors = ["#e5484d", "#f5a524", "#2f9e44", "#1f6feb", "#8e44ad", "#00a3a3"];
+  const flags = shown.map((b, i) => {
+    const x = 18 + i * 19;
+    return `<path d="M${x} 3 l14 0 l-7 11z" fill="${colors[i % colors.length]}"><title>${esc(b.text)}</title></path>`;
+  }).join("");
+  return `<g class="banners"><path d="M10 3 Q${10 + shown.length * 9.5} 7 ${22 + shown.length * 19} 3" stroke="#7a5233" stroke-width="1.2" fill="none"/>${flags}</g>`;
 }
 
 /* ==================== Grammar Island ==================== */
@@ -534,7 +566,7 @@ export function mapLayout(player) {
  * Grammar Island: a region for the Town Square and one for each world, around Grammar Peaks, joined by
  * roads. The home screen pans and zooms it by changing the viewBox.
  */
-export function townSvg(player, { fresh = null, rising = null } = {}) {
+export function townSvg(player, { fresh = null, rising = null, week = null } = {}) {
   const layout = mapLayout(player);
   const open = layout.districts.filter((d) => !d.locked);
   const shownSkills = open.flatMap((d) => districtSkills(d, player));
@@ -552,7 +584,7 @@ export function townSvg(player, { fresh = null, rising = null } = {}) {
   const boxes = layout.districts.map((d) => layout.areas[d.id]);
   const plots = layout.districts.map((d) => {
     const b = layout.areas[d.id];
-    return `<g class="district${d.locked ? " locked" : ""}" data-area="${d.id}" transform="translate(${b.x} ${b.y})">${districtSvg(player, d, { fresh, rising })}</g>`;
+    return `<g class="district${d.locked ? " locked" : ""}" data-area="${d.id}" transform="translate(${b.x} ${b.y})">${districtSvg(player, d, { fresh, rising, week })}</g>`;
   }).join("");
   // Big name flags, for seeing the whole island at once (they fade once zoomed in).
   const flags = [...layout.districts.map((d) => ({ id: d.id, text: `${d.locked ? "🔒" : d.emoji} ${d.name}`, box: layout.areas[d.id] })),

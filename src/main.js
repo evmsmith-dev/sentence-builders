@@ -7,14 +7,14 @@ import { answerText, spokenText } from "./lib/parse.js";
 import { pickLevelItems, pickSpellingItems, pickSummitItems } from "./lib/select.js";
 import { recordHomework, recordPractice, buyDecor, moveDecor, removeDecor,
   currentBadges, habitValue, isPassed, isUnlocked, levelStars, localDate, mostMissed, newPlayer, normalizePlayer,
-  passedKeys, recordLevel, skillTier, weekSummary,
-} from "./lib/progress.js";
+  passedKeys, recordLevel, skillTier, weekSummary, recordWeekDay } from "./lib/progress.js";
 import { loadCurrentId, loadPlayers, saveCurrentId, savePlayers } from "./storage.js";
 import { districtSkills, mapDistricts, mapLayout, parkSvg, pipSays, pipSvg, townSvg } from "./ui/art.js";
 import { createTownMap } from "./ui/townmap.js";
 import { $, closeOverlay, esc, initBackButton, openOverlay, pick, showScreen, topOverlay } from "./ui/dom.js";
 import { renderItem } from "./ui/items.js";
 import { reportText, teacherReport } from "./lib/report.js";
+import { WEEK_BONUS, WEEK_DAYS, nextDay, openDays, todayIndex, weekDayItems, weekFor, weekProgress, weekSentence } from "./lib/week.js";
 import { MAX_PEOPLE, cleanName, namesFor, personalize, registerNames } from "./lib/names.js";
 import { buzz, canSay, celebrate, say, sound, stopSaying } from "./ui/feel.js";
 import { registerServiceWorker } from "./ui/update.js";
@@ -137,7 +137,7 @@ function renderHome() {
   const risingSkill = state.rising && skillById(state.rising.replace(/-\d$/, ""));
   if (risingSkill) state.mapArea = risingSkill.world;
   const open = state.mapArea === "peaks" || mapDistricts(player).some((d) => d.id === state.mapArea);
-  state.map.show(townSvg(player, { rising: state.rising }), mapLayout(player), open ? state.mapArea : null);
+  state.map.show(townSvg(player, { rising: state.rising, week: weekMapInfo(player) }), mapLayout(player), open ? state.mapArea : null);
   if (state.rising) {
     const card = $("town").closest(".town-card");
     if (!matchMedia("(prefers-reduced-motion: reduce)").matches) setTimeout(() => card.scrollIntoView({ block: "center", behavior: "smooth" }), 150);
@@ -148,6 +148,8 @@ function renderHome() {
   const total = shown.size;
   $("badges-btn").innerHTML = `<span class="tool-emoji" aria-hidden="true">🏅</span><span>Badges ${earned}/${total}</span>`;
   $("build-btn").innerHTML = buildCardHtml(player);
+  $("week-btn").innerHTML = weekCardHtml(player);
+  $("week-btn").hidden = !currentWeek(player);
   // A player who hasn't met Pip yet gets his welcome once (unless Pip is turned off).
   if (!player.introSeen && settings().pip && !topOverlay()) setTimeout(() => !$("home").hidden && !topOverlay() && openPipIntro(), 250);
   const worldCards = WORLDS.map((world) => {
@@ -166,8 +168,15 @@ function renderHome() {
       <span class="world-emoji" aria-hidden="true">⛰️</span>
       <span class="world-text"><span class="world-name">Grammar Peaks</span><span class="world-blurb">Summit Review of the skills you've passed, and Spelling Lake</span></span>
       <span class="world-meta">🚩 ${player.summits || 0} · ⛵ ${player.lakeWins || 0}</span></button>`;
-  const firstLocked = WORLDS.findIndex((w) => !worldOpenFor(w, player));
-  worldCards.splice(firstLocked < 0 ? worldCards.length : firstLocked, 0, peaksCard);
+  // The Town Square's Notice Board (Sentence of the Week) is a place to visit too.
+  if (currentWeek(player)) {
+    worldCards.unshift(`<button type="button" class="world-card" data-week>
+      <span class="world-emoji" aria-hidden="true">📌</span>
+      <span class="world-text"><span class="world-name">Notice Board</span><span class="world-blurb">In the Town Square: the Sentence of the Week</span></span>
+      <span class="world-meta">${weekProgressFor(player).done.length}/5</span></button>`);
+  }
+  const firstLocked = WORLDS.findIndex((w) => !worldOpenFor(w, player)) + (currentWeek(player) ? 1 : 0);
+  worldCards.splice(firstLocked < (currentWeek(player) ? 1 : 0) ? worldCards.length : firstLocked, 0, peaksCard);
   $("world-list").innerHTML = worldCards.join("");
   showScreen("home");
 }
@@ -357,6 +366,110 @@ function finishHomework() {
   state.play = null;
 }
 
+/* ==================== Sentence of the Week ==================== */
+
+const currentWeek = (player) => weekFor(state.content?.weeks || [], player.grade, Date.now());
+const weekProgressFor = (player) => weekProgress(player, currentWeek(player), Date.now());
+/** The sentence without capitals or marks, as it's posted on the Notice Board (Thursday puts them in). */
+const boardText = (week) => weekSentence(week).toLowerCase().replace(/[.?!,]/g, "");
+
+function weekDotsHtml(progress, now) {
+  const today = todayIndex(now);
+  return `<span class="week-dots" aria-hidden="true">${WEEK_DAYS.map((d, i) =>
+    `<span class="${progress.done.includes(i) ? "done" : i === today ? "today" : i > today ? "later" : ""}">${progress.done.includes(i) ? "✓" : d.short}</span>`).join("")}</span>`;
+}
+
+function weekCardHtml(player) {
+  const week = currentWeek(player);
+  if (!week) return "";
+  const now = Date.now();
+  const progress = weekProgressFor(player);
+  const next = nextDay(progress, now);
+  const line = progress.done.length === 5 ? "Week done! A new sentence comes Monday."
+    : next !== null ? `${WEEK_DAYS[next].name}: ${WEEK_DAYS[next].task} · about 2 minutes`
+    : `Done for today. ${WEEK_DAYS[Math.min(todayIndex(now) + 1, 4)].name} is next.`;
+  return `<span class="homework-emoji" aria-hidden="true">📌</span>
+    <span><strong>Sentence of the Week</strong><span>${esc(line)}</span>${weekDotsHtml(progress, now)}</span>
+    <span class="today-chev" aria-hidden="true">›</span>`;
+}
+
+/** What the Notice Board on the map shows: the days done, and whether one is waiting today. */
+function weekMapInfo(player) {
+  const week = currentWeek(player);
+  if (!week) return null;
+  const progress = weekProgressFor(player);
+  return { done: progress.done, waiting: nextDay(progress, Date.now()) !== null, today: todayIndex(Date.now()) };
+}
+
+function openWeek() {
+  const player = state.player;
+  const week = currentWeek(player);
+  if (!week) return;
+  const now = Date.now();
+  const progress = weekProgressFor(player);
+  const open = openDays(now);
+  const rows = WEEK_DAYS.map((d, i) => {
+    const done = progress.done.includes(i);
+    const can = open.includes(i);
+    const action = done ? '<span class="week-done">✓ Done</span>'
+      : can ? `<button type="button" class="primary" data-week-day="${i}">Start</button>` : `<span class="muted">Opens ${d.name}</span>`;
+    return `<li class="week-day${done ? " done" : ""}"><span><strong>${d.name}</strong><span>${d.task}</span></span>${action}</li>`;
+  }).join("");
+  const banners = (player.banners || []).length;
+  $("week-body").innerHTML = `<p class="week-board" aria-label="This week's sentence">${esc(boardText(week))}</p>
+    <p class="note">One sentence all week, a short job each day. Missed a day? Catch up any time before Monday. Finish all five for ${WEEK_BONUS} bonus bricks and a banner in the Town Square.</p>
+    <ol class="week-days">${rows}</ol>
+    ${banners ? `<p class="note">🎏 ${banners} banner${banners === 1 ? "" : "s"} flying in the Town Square.</p>` : ""}`;
+  openOverlay("week-overlay");
+}
+
+function startWeekDay(day) {
+  const player = state.player;
+  const week = currentWeek(player);
+  if (!week || !openDays(Date.now()).includes(day)) return;
+  closeOverlay("week-overlay");
+  closeOverlay("result-overlay");
+  // The same sentence every day, so it isn't changed to the player's names.
+  const items = weekDayItems(week, day);
+  state.play = { mode: "week", day, weekId: week.id, skillId: items[0].skill, level: items[0].level, items, index: 0, tries: 0, results: [], ctrl: null, done: false, startedAt: Date.now() };
+  if (!state.sessionStart) state.sessionStart = Date.now();
+  showScreen("play");
+  showItem();
+}
+
+function finishWeekDay() {
+  const play = state.play;
+  const now = Date.now();
+  const week = (state.content.weeks || []).find((w) => w.id === play.weekId);
+  const progress = weekProgress(state.player, week, now);
+  const out = recordWeekDay(state.player, { progress, day: play.day, sentence: weekSentence(week), results: play.results, now, durationMs: now - play.startedAt, bonus: WEEK_BONUS });
+  savePlayer(out.player);
+  const after = weekProgress(out.player, week, now);
+  const next = nextDay(after, now);
+  $("progress-fill").style.width = "100%";
+  $("result-stars").innerHTML = "";
+  $("result-title").textContent = out.weekDone ? "Week complete! 🎏" : `${WEEK_DAYS[play.day].name} done!`;
+  $("result-score").textContent = `${out.right} of ${play.results.length} right on the first try · ${after.done.length} of 5 days`;
+  $("result-bricks").hidden = !out.bricks;
+  $("result-bricks").innerHTML = `+${out.bricks} 🧱 bricks${out.weekDone ? ` (${WEEK_BONUS} for the week)` : ""} <span class="note">· ${out.player.bricks} to build with</span>`;
+  $("result-pip").innerHTML = pipSays(out.weekDone
+    ? "Five days, one sentence, and you know it inside out. Your banner is flying in the Town Square!"
+    : next !== null ? `Nice work. ${WEEK_DAYS[next].name}'s job is waiting too, if you want to catch up.` : "See you tomorrow for the next job on this sentence.", true);
+  $("result-badges").innerHTML = "";
+  $("result-review").innerHTML = reviewHtml(play);
+  state.resultNext = next !== null ? { weekDay: next } : { home: true };
+  $("result-next").textContent = next !== null ? `Next: ${WEEK_DAYS[next].name}` : "Back to the island";
+  $("result-again").hidden = true;
+  $("result-rule").hidden = true;
+  state.mapArea = "square"; // back on the island, the map shows the Notice Board (and a new banner)
+  openOverlay("result-overlay");
+  if (out.weekDone) {
+    sound("done", settings().sound);
+    celebrate(3);
+  }
+  state.play = null;
+}
+
 function startLevel(skillId, level) {
   closeOverlay("tip-overlay");
   const items = pickLevelItems({
@@ -388,6 +501,7 @@ function showItem() {
   $("play-skill").textContent = play.mode === "homework" ? `📝 Pip's homework: ${item.title}`
     : play.mode === "summit" ? `⛰️ Summit Review · ${skill.name}`
     : play.mode === "lake" ? "💧 Spelling Lake"
+    : play.mode === "week" ? `📌 Sentence of the Week · ${WEEK_DAYS[play.day].name}`
     : item.review ? `Review: ${skill.name}` : `${skill.name} · Level ${item.level}`;
   $("play-skill").classList.toggle("review", Boolean(item.review));
   $("feedback").innerHTML = "";
@@ -409,15 +523,16 @@ function showItem() {
     complete: (result) => completeItem(result),
     onChange: updateCheck,
     onTap: () => sound("tap", settings().sound),
+    showWords: Boolean(settings().showWords), // Listen and Write: read the words instead of hearing them
     guided: item.type === "diagram" && play.index === 0, // the first diagram of a level is walked through
     // Shurley's noun table: on the first Q&A Flow sentence of a level, for grade 4 and up.
-    nounTable: item.type === "flow" && state.player.grade >= NOUN_TABLE_FROM_GRADE && play.items.findIndex((i) => i.type === "flow") === play.index,
+    nounTable: play.mode !== "week" && item.type === "flow" && state.player.grade >= NOUN_TABLE_FROM_GRADE && play.items.findIndex((i) => i.type === "flow") === play.index,
   });
   $("prompt").textContent = play.ctrl.prompt;
   $("check-btn").hidden = !play.ctrl.usesCheck;
   $("say-btn").hidden = !canSay();
   updateCheck();
-  if (settings().autoRead) readItem();
+  if (settings().autoRead && item.type !== "dictate") readItem(); // a dictation plays its own sentence
 }
 
 function readItem() {
@@ -547,6 +662,7 @@ function finishLevel() {
   const play = state.play;
   if (play.mode === "homework") return finishHomework();
   if (play.mode === "summit" || play.mode === "lake") return finishPractice();
+  if (play.mode === "week") return finishWeekDay();
   $("result-rule").hidden = false;
   const starsBefore = state.player.levels[`${play.skillId}-${play.level}`]?.stars ?? 0;
   const now = Date.now();
@@ -799,7 +915,8 @@ function drawMapPanel() {
     ${skills.length
       ? `<p class="map-hint">Tap a building or an empty lot to pick a level.</p>
         <div class="map-chips">${skills.map((s) => `<button type="button" class="map-chip" data-skill-sheet="${s.id}" style="--skill:${s.color}">${esc(s.name)}</button>`).join("")}</div>`
-      : '<p class="map-hint">The middle of the island: decorate it with your bricks.</p>'}
+      : `<p class="map-hint">The middle of the island: decorate it with your bricks.${currentWeek(player) ? " The Notice Board has the Sentence of the Week." : ""}</p>
+        ${currentWeek(player) ? '<div class="map-chips"><button type="button" class="map-chip" data-week>📌 Sentence of the Week</button></div>' : ""}`}
     <div class="map-actions">${decorate}${here.world ? `<button type="button" class="link" data-open-world="${here.world}">All levels here</button>` : ""}${whole}</div>`;
 }
 
@@ -829,6 +946,7 @@ function buildCardHtml(player) {
   }
   return `<span class="homework-emoji" aria-hidden="true">🧱</span>
     <span><strong>Build on the island · ${bricks} brick${bricks === 1 ? "" : "s"}</strong><span>${esc(line)}</span>${bar}</span>
+    <span class="today-chev" aria-hidden="true">›</span>
     ${canBuild.length ? '<span class="build-ready">Build</span>' : ""}`;
 }
 
@@ -1272,6 +1390,7 @@ function fillSettings() {
   $("set-font").value = s.font || "game";
   $("set-size").value = s.textSize || "normal";
   $("set-spacing").checked = Boolean(s.spacing);
+  $("set-showwords").checked = Boolean(s.showWords);
   $("set-autoread").closest("label").hidden = !canSay();
   const names = s.names || {};
   $("set-names-on").checked = Boolean(names.on);
@@ -1308,7 +1427,8 @@ function changeSetting() {
     ...state.player,
     settings: { ...state.player.settings, autoRead: $("set-autoread").checked, pip: $("set-pip").checked, sound: $("set-sound").checked,
       theme: $("set-theme").value, breakMinutes: Number($("set-break").value),
-      font: $("set-font").value, textSize: $("set-size").value, spacing: $("set-spacing").checked, names: readNames() },
+      font: $("set-font").value, textSize: $("set-size").value, spacing: $("set-spacing").checked, names: readNames(),
+      showWords: $("set-showwords").checked },
   };
   $("names-fields").hidden = !player.settings.names.on;
   savePlayer(player);
@@ -1348,6 +1468,7 @@ function wire() {
     const buy = target.closest("[data-buy]");
     if (buy) return buyDecoration(buy.dataset.buy);
     if (target.closest("#homework-btn")) return startHomework();
+    if (target.closest("#week-btn, [data-week]")) return openWeek();
     if (target.closest("[data-meet-pip]")) {
       if (!state.player) return;
       renderHome();
@@ -1456,6 +1577,7 @@ function wire() {
       drawMapPanel();
     },
     onLot: openSkillSheet,
+    onBoard: openWeek,
   });
   $("about-back").addEventListener("click", () => {
     if (state.aboutFrom === "settings" && state.player) {
@@ -1530,6 +1652,10 @@ function wire() {
     }
   });
   $("say-btn").addEventListener("click", readItem);
+  $("week-body").addEventListener("click", (event) => {
+    const btn = event.target.closest("[data-week-day]");
+    if (btn) startWeekDay(Number(btn.dataset.weekDay));
+  });
   $("check-btn").addEventListener("click", () => {
     const ctrl = state.play?.ctrl;
     if (ctrl?.usesCheck && ctrl.canCheck() && !state.play.done) handleAnswer(ctrl.check());
@@ -1548,7 +1674,9 @@ function wire() {
   $("result-next").addEventListener("click", () => {
     closeOverlay("result-overlay");
     const next = state.resultNext;
-    if (next.homework) startHomework();
+    if (next.weekDay !== undefined) startWeekDay(next.weekDay);
+    else if (next.home) renderHome();
+    else if (next.homework) startHomework();
     else if (next.practice) startPractice(next.practice);
     else if (next.world) renderWorld(next.world);
     else openTip(next.skillId, next.level);
@@ -1561,7 +1689,7 @@ function wire() {
     closeOverlay("result-overlay");
     renderHome();
   });
-  for (const id of ["set-autoread", "set-pip", "set-sound", "set-theme", "set-break", "set-font", "set-size", "set-spacing", "set-names-on", "set-pet",
+  for (const id of ["set-autoread", "set-pip", "set-sound", "set-theme", "set-break", "set-font", "set-size", "set-spacing", "set-showwords", "set-names-on", "set-pet",
     ...Array.from({ length: MAX_PEOPLE }, (_, i) => [`set-name-${i}`, `set-pron-${i}`]).flat()]) $(id).addEventListener("change", changeSetting);
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {

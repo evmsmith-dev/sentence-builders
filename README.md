@@ -6,7 +6,7 @@ Five places on **Grammar Island** hold the skills, as worlds: **Punctuation Port
 
 ### ⚓ Punctuation Port
 
-Commas, colons, quotation marks and apostrophes.
+Commas, colons, quotation marks, apostrophes, capitals and Listen and Write.
 
 | Skill | Level 1 | Level 2 | Level 3 |
 | --- | --- | --- | --- |
@@ -14,6 +14,7 @@ Commas, colons, quotation marks and apostrophes.
 | Dialogue | Quotation marks (gr 4) | Speaker at the end (gr 4) | Split quotations (gr 5) |
 | Apostrophes | Owners and contractions (gr 3) | More than one owner (gr 4) | Sound-alike words (gr 5) |
 | Capital letters | Capital letters: names, days and months (gr 3) | Capital letters: places, family names and titles (gr 4) | Capital letters: directions, regions, titles and languages (gr 5) |
+| Listen and Write | Capitals, end marks and lists (gr 3) | Commas, apostrophes and quotes (gr 4) | Opening words, names and split quotes (gr 5) |
 
 ### ⚙️ Word Works
 
@@ -125,7 +126,7 @@ The Fredoka, Atkinson Hyperlegible and OpenDyslexic fonts (SIL Open Font License
 
 ## Content
 
-Mark it supports `-`, `—`, `…`, `(` and `)`; hyphens and dashes join words with no spaces (write `twenty[-]one`). About 16–20 items per level, 12 or more Q&A Flows per Flow Factory level, 10 paragraphs per Proofreading level: 1368 items in all, plus 22 homework paragraphs and 90 Spelling Lake questions. `data/README.md` explains how items are written.
+Mark it supports `-`, `—`, `…`, `(` and `)`; hyphens and dashes join words with no spaces (write `twenty[-]one`). About 16–20 items per level, 12 or more Q&A Flows per Flow Factory level, 10 paragraphs per Proofreading level: 1416 items in all, 24 weeks of Sentence of the Week, plus 22 homework paragraphs and 90 Spelling Lake questions. `data/README.md` explains how items are written.
 
 ## Mark it up and Sentence Diagramming
 
@@ -136,6 +137,12 @@ After every Q&A Flow, **Mark it up** walks through the Shurley Skill Check on th
 ## Looks
 
 Grades 6+ get the calmer **Studio** look by default (system font, slate and indigo, flatter cards, no cartoon helper); Settings → Look switches between Automatic, Bright and Studio for any player. To change a player's name, avatar or grade, tap ✏️ on their card in Who's playing?; changes save on Save, and Delete player is there too. 50 avatars in two groups (grade 6+ see Sports, music and more first).
+
+## Listen and Write and Sentence of the Week
+
+- **🎧 Listen and Write** (Punctuation Port, grades 3–5; badge 👂 Sharp Ears): dictation. Pip reads a sentence aloud with the device's voice (it starts on its own; 🔊 Listen, 🧩 Phrase by phrase, which reads it whole, in phrases, then whole again, and 🐢 Slowly, as often as the child likes), and the child types it. The typed sentence is lined up with the real one word by word (`checkDictation` in `src/lib/parse.js`): capitals, end marks, commas, quotation marks and apostrophes count, and the first slip is named in the hint ("Add a comma after said", "Duluth needs a capital letter"); a missing or different word counts too. A misspelled word doesn't (two swapped letters count as one slip), nor does a sound-alike word: those are listed after the answer to practice. Because a voice can't show an exclamation point, a period counts for one. Settings → **Listen and Write: show the words too** shows the sentence in small letters without marks (for hearing or listening difficulties), and a device without a voice always shows them. Levels follow the teaching expert's sequence: capitals, end marks, lists, dates and simple dialogue (grade 3); compound-sentence commas, ? and ! inside quotation marks, contractions and possessives (grade 4); commas after opening words and clauses, direct address and split quotations (grade 5). 48 original sentences.
+- **📌 Sentence of the Week** (the Notice Board in the Town Square, and the first row of the **Today with Pip** card on the home screen): one original sentence for the week, different for grades 3–4, 5 and 6–8 (`weeks` in `data/content.json`, 8 per band, taking turns week by week, the same for everyone in a band). Each weekday has a two-minute job, analysis before editing as in daily grammar practice: **Monday** parts of speech (two words), **Tuesday** the Q&A Flow, **Wednesday** the mark-up (Skill Check), **Thursday** fixing it (the sentence written with 2–4 mistakes: capitals, verbs, end marks, a pronoun-case trap in grades 6–8), **Friday** typing it joined to another sentence (and, but, so, because, when, while…). Days open on their weekday, and a missed day can be caught up any time before Monday (all five are open on the weekend); nothing is lost when a new week starts. It's optional, like Pip's homework: each answer earns bricks, and finishing all five earns 15 more and hangs a pennant banner in the Town Square (the latest 12 show; hover one for its sentence). The Notice Board shows the five days stamped as they're done and a red ! when a job is waiting; tapping it (or the Today row, or Notice Board in the Worlds list) opens the week: the sentence posted in small letters without marks, each day's job and Start buttons. The week's sentence isn't changed to the player's names, so it stays the same all week. `src/lib/week.js` builds each day's items from the week's sentence, labels and steps; the content checker makes sure Thursday's fixed text is the week's sentence and every day's items can be played.
+- **Today with Pip** (home screen): Sentence of the Week, Pip's homework and Build on the island as three rows of one card, so the home screen doesn't grow a card per feature.
 
 ## Reading support and names in sentences
 

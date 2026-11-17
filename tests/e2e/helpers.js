@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { markupTasks } from "../../src/lib/markup.js";
 import { nounTableQuestions } from "../../src/lib/nountable.js";
 import { buildDiagram, guideOrder } from "../../src/lib/diagram.js";
+import { weekDayItems } from "../../src/lib/week.js";
 import {
   CHECK_KINDS, compoundPairs, paletteFor, parseBuild, parseCheck, parseFix, parseFlow, parseJoin, parseLabels, parseMark, parseMarkText,
   parseProofread, parseSort, parseWhich,
@@ -23,7 +24,13 @@ async function flowStage(page) {
 }
 
 const content = JSON.parse(readFileSync(new URL("../../data/content.json", import.meta.url), "utf8"));
-export const itemById = (id) => content.items.find((item) => item.id === id)
+// Sentence of the Week items are made from content.weeks: "<week id>-d<day>[-n]".
+const weekItem = (id) => {
+  const m = id.match(/^(week-.+)-d(\d)(?:-\d)?$/);
+  const week = m && (content.weeks || []).find((w) => w.id === m[1]);
+  return week ? weekDayItems(week, Number(m[2]) - 1).find((item) => item.id === id) : undefined;
+};
+export const itemById = (id) => weekItem(id) ?? content.items.find((item) => item.id === id)
   ?? (content.homework || []).map((h) => ({ ...h, skill: "proofread", level: 1 })).find((item) => item.id === id)
   ?? (content.spelling || []).find((item) => item.id === id);
 
@@ -62,6 +69,11 @@ const exact = (text) => new RegExp(`^${text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&
 /** One wrong try at the item on screen. Returns false when no wrong choice is left. */
 export async function miss(page) {
   const item = await currentItem(page);
+  if (item.type === "dictate") {
+    await page.locator("#item textarea").fill(item.text.toLowerCase().replace(/[^a-z' ]/g, ""));
+    await page.locator("#check-btn").click();
+    return true;
+  }
   if (item.type === "combine") {
     await page.locator("#item .combine-input").fill(item.parts.join(" "));
     await page.locator("#check-btn").click();
@@ -185,6 +197,11 @@ export async function miss(page) {
  */
 export async function answer(page, { swapCompounds = false } = {}) {
   const item = await currentItem(page);
+  if (item.type === "dictate") {
+    await page.locator("#item textarea").fill(item.text);
+    await page.locator("#check-btn").click();
+    return;
+  }
   if (item.type === "combine") {
     await page.locator("#item .combine-input").fill(item.answers.at(swapCompounds ? -1 : 0));
     await page.locator("#check-btn").click();

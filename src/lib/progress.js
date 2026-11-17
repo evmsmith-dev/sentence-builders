@@ -27,6 +27,8 @@ export function newPlayer({ id, name, avatar, grade, now }) {
     summits: 0, // Summit Reviews with PRACTICE_GOAL+ right on the first try: flags on Grammar Peaks
     lakeWins: 0, // Spelling Lake rounds with PRACTICE_GOAL+ right: boats on the lake
     decor: [], // decorations placed in the town: { uid, id, area, x, y } in SCENE units (area: a district id)
+    week: null, // Sentence of the Week this week: { key (its Monday), id, done: [day indexes 0-4] }
+    banners: [], // finished weeks, hung in the Town Square: { key, text }
   };
 }
 
@@ -265,4 +267,29 @@ export function recordHomework(player, { results, now, durationMs = 0 }) {
   const bricks = results.reduce((sum, r) => sum + (!r.correct ? 0 : r.tries === 1 ? 2 : 1) * BRICKS.homeworkFix, 0);
   next.bricks += bricks;
   return { player: next, bricks, grade: homeworkGrade(results), right: results.filter((r) => r.correct && r.tries === 1).length };
+}
+
+/**
+ * Records one day of the Sentence of the Week. Bricks for each answer, plus a bonus and a Town Square banner
+ * when all five days are done. `progress` is the week's { key, id, done } before this day.
+ */
+export function recordWeekDay(player, { progress, day, sentence, results, now, durationMs = 0, bonus = 0 }) {
+  const next = normalizePlayer(JSON.parse(JSON.stringify(player)));
+  const date = localDate(now);
+  for (const result of results) {
+    const s = next.items[result.id] || { seen: 0, misses: 0, last: 0 };
+    next.items[result.id] = { seen: s.seen + 1, misses: s.misses + (result.tries > 1 || !result.correct ? 1 : 0), last: now };
+  }
+  if (!next.days.includes(date)) next.days.push(date);
+  next.time[date] = (next.time[date] || 0) + Math.min(Math.max(durationMs, 0), MAX_LEVEL_MS);
+  let bricks = results.reduce((sum, r) => sum + (!r.correct ? 0 : r.tries === 1 ? BRICKS.first : BRICKS.second), 0);
+  const done = [...new Set([...progress.done, day])].sort();
+  const weekDone = done.length === 5 && progress.done.length < 5;
+  if (weekDone) {
+    bricks += bonus;
+    next.banners = [...(next.banners || []).filter((b) => b.key !== progress.key), { key: progress.key, text: sentence }];
+  }
+  next.bricks += bricks;
+  next.week = { key: progress.key, id: progress.id, done };
+  return { player: next, bricks, right: results.filter((r) => r.correct && r.tries === 1).length, weekDone };
 }

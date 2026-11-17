@@ -19,15 +19,22 @@ if (CAN_SAY) {
 export const canSay = () => CAN_SAY;
 
 /** Reads text aloud with the device's own voice. Marks like " and ' aren't spoken. */
-export function say(text) {
-  if (!CAN_SAY || !text) return;
+export function say(text, { rate = 0.9 } = {}) {
+  sayParts([text], { rate });
+}
+
+/** Reads several pieces one after another, with the voice's own pause between them (phrase-by-phrase dictation). */
+export function sayParts(parts, { rate = 0.9 } = {}) {
+  if (!CAN_SAY || !parts.length || !parts[0]) return;
   try {
     speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text.replace(/["“”]/g, ""));
-    utterance.lang = voice ? voice.lang : "en-US";
-    if (voice) utterance.voice = voice;
-    utterance.rate = 0.9;
-    speechSynthesis.speak(utterance);
+    for (const part of parts) {
+      const utterance = new SpeechSynthesisUtterance(part.replace(/["“”]/g, ""));
+      utterance.lang = voice ? voice.lang : "en-US";
+      if (voice) utterance.voice = voice;
+      utterance.rate = rate;
+      speechSynthesis.speak(utterance);
+    }
   } catch {
     // No voice on this device.
   }

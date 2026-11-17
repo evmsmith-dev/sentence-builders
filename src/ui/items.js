@@ -12,7 +12,7 @@ import { nounTableQuestions } from "../lib/nountable.js";
 import { buildDiagram, explainSlot, guideOrder, layoutDiagram, wrongSlots } from "../lib/diagram.js";
 import {
   CHECK_KINDS, spaceAfter, checkBuild, checkLabels, checkMark, checkSort, joinTiles, paletteFor, parseBuild, parseCheck, parseFix, parseFlow,
-  parseJoin, parseCombine, checkCombine, parseLabels, parseMark, parseProofread, parseSort, parseWhich,
+  parseJoin, parseCombine, checkCombine, checkDictation, dictationPhrases, dictationWords, parseLabels, parseMark, parseProofread, parseSort, parseWhich,
 } from "../lib/parse.js";
 import { FLOW_LABELS, LABELS, PATTERNS, SENTENCE_KINDS } from "../config.js";
 
@@ -20,6 +20,7 @@ const LABELS_BUTTON = '<button type="button" class="labels-help" data-labels-hel
 const NOUNS_BUTTON = '<button type="button" class="labels-help" data-nouns-help>📘 Nouns</button>';
 import { shuffle } from "../lib/select.js";
 import { esc } from "./dom.js";
+import { canSay, sayParts } from "./feel.js";
 
 const MARK_NAMES = {
   ",": "comma", ".": "period", "?": "question mark", "!": "exclamation point", '"': "quotation mark", ":": "colon", ";": "semicolon",
@@ -255,7 +256,7 @@ function renderSort(root, item, { onChange, onTap }) {
   function draw() {
     const inBank = tiles.filter((t) => placed[t.id] === undefined);
     bankEl.innerHTML = inBank.length ? inBank.map(tile).join("")
-      : '<span class="slots-empty">All sorted. Tap a word to move it.</span>';
+      : '<span class="slots-empty">All sorted. Tap one to move it.</span>';
     parsed.bins.forEach((bin, i) => {
       const box = root.querySelector(`.sort-bin[data-bin="${i}"]`);
       box.classList.toggle("ready", selected !== null && !locked);
@@ -1205,12 +1206,75 @@ function renderCombine(root, item, { onChange }) {
   };
 }
 
+/**
+ * Listen and Write: Pip reads a sentence; the child types it with its capitals and punctuation. Play, phrase by
+ * phrase or slowly, as often as they like. "Show the words" (or no voice on the device) shows the words in
+ * small letters without marks instead, so the skill is still the capitals and punctuation.
+ */
+function renderDictate(root, item, { onChange, showWords }) {
+  const voice = canSay();
+  const words = showWords || !voice;
+  let locked = false;
+  let result = null;
+  root.innerHTML = `<div class="dictate" data-type="dictate">
+      ${voice ? `<div class="dictate-audio" role="group" aria-label="Listen">
+        <button type="button" class="dictate-btn" data-dictate="play">🔊 Listen</button>
+        <button type="button" class="dictate-btn" data-dictate="phrases">🧩 Phrase by phrase</button>
+        <button type="button" class="dictate-btn" data-dictate="slow">🐢 Slowly</button></div>` : ""}
+      ${words ? `<p class="dictate-words"><span class="palette-label">${voice ? "The words:" : "No voice on this device, so here are the words:"}</span> ${esc(dictationWords(item.text))}</p>` : ""}
+      <label class="palette-label" for="dictate-input">Type the sentence with its capitals and punctuation:</label>
+      <textarea id="dictate-input" class="combine-input" rows="3" maxlength="240" autocomplete="off" autocapitalize="off"
+        autocorrect="off" spellcheck="false" enterkeyhint="done"></textarea>
+      <div class="dictate-result" aria-live="polite"></div></div>`;
+  const box = root.querySelector("textarea");
+  const play = (how) => {
+    if (how === "phrases") sayParts([item.text, ...dictationPhrases(item.text), item.text], { rate: 0.8 });
+    else sayParts([item.text], { rate: how === "slow" ? 0.65 : 0.9 });
+  };
+  root.addEventListener("click", (event) => {
+    const btn = event.target.closest("[data-dictate]");
+    if (btn) play(btn.dataset.dictate);
+  });
+  box.addEventListener("input", () => onChange());
+  box.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      document.getElementById("check-btn")?.click();
+    }
+  });
+  if (voice) setTimeout(() => { if (!locked && root.isConnected) play("play"); }, 350);
+  const spellingNote = () => (result?.spelling.length
+    ? `<p class="dictate-spelling">Spelling to practice (it doesn't count here): ${result.spelling.map((s) =>
+      `<span class="spell-fix"><s>${esc(s.typed)}</s> → <strong>${esc(s.word)}</strong></span>`).join(" ")}</p>` : "");
+  const finish = (cls) => {
+    locked = true;
+    box.readOnly = true;
+    box.classList.add(cls);
+    root.querySelectorAll("[data-dictate]").forEach((b) => { b.disabled = false; });
+    root.querySelector(".dictate-result").innerHTML = spellingNote();
+  };
+  return {
+    prompt: words ? "Type the sentence. Add the capitals and punctuation." : "Listen, then type the sentence.",
+    get usesCheck() { return !locked; },
+    canCheck: () => !locked && box.value.trim().length > 0,
+    check: () => {
+      result = checkDictation(item.text, box.value);
+      return result.right;
+    },
+    missHint: () => result?.hint,
+    retry: () => box.focus(),
+    reveal: () => finish("shown"),
+    lock: () => finish("locked"),
+    showRight: () => finish("right"),
+  };
+}
+
 const DIAGRAM_HINT = "The subject and verb go on the long line. Words that describe go on slanted lines under the word they describe.";
 
 export function renderItem(root, item, hooks) {
   const render = {
     mark: renderMark, fix: renderFix, which: renderWhich, build: renderBuild, sort: renderSort, check: renderCheck, join: renderJoin,
-    flow: renderFlow, labels: renderLabels, proofread: renderProofread, diagram: renderDiagram, combine: renderCombine,
+    flow: renderFlow, labels: renderLabels, proofread: renderProofread, diagram: renderDiagram, combine: renderCombine, dictate: renderDictate,
   }[item.type];
   if (!render) throw new Error(`Unknown item type: ${item.type}`);
   root.innerHTML = "";
