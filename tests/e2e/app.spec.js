@@ -1313,3 +1313,34 @@ test("Sentence of the Week: Friday finishes the week with bonus bricks and a ban
   expect(saved.banners).toHaveLength(1);
   expect(saved.bricks).toBe(17);
 });
+
+test("Island Home: the island fills the screen; review first, the Notice Board once a day, build after a lesson @layout", async ({ page }) => {
+  await page.clock.setFixedTime(new Date(2026, 10, 17, 10));
+  const p = player({ grade: 4, settings: { islandHome: true }, levels: { "commas-1": { best: 7, stars: 2, plays: 1 } } });
+  p.items = Object.fromEntries(Array.from({ length: 5 }, (_, i) => [`commas-1-0${i + 1}`, { seen: 1, misses: 1, last: 1 }]));
+  await openApp(page, { players: [p], current: "p1" });
+  await expect(page.locator("body")).toHaveClass(/island-home/);
+  // The Notice Board opens by itself the first time today.
+  await expect(page.locator("#week-overlay")).toBeVisible();
+  await page.locator("#week-overlay [data-close]").click();
+  await expect(page.locator("#world-list")).toBeHidden();
+  await expect(page.locator("#pip-home")).toContainText("Review first");
+  await expect(page.locator(".town")).toContainText("Review Dock");
+  await expect(page.locator("#island-build")).toHaveClass(/locked/);
+  await page.locator("#island-build").click();
+  await expect(page.locator("#pip-home")).toContainText("lesson first");
+  // Back home again: the board doesn't open twice in a day.
+  await page.locator("#settings-btn").click();
+  await page.locator("#settings-overlay [data-close]").click();
+  await expect(page.locator("#week-overlay")).toBeHidden();
+  // Grade 6 and up: the setting isn't offered, and the page stays as it is.
+  await page.locator("#settings-btn").click();
+  await expect(page.locator("#island-toggle")).toBeVisible();
+});
+
+test("Island Home is off by default and not offered from grade 6", async ({ page }) => {
+  await openApp(page, { players: [player({ grade: 7, settings: { islandHome: true } })], current: "p1" });
+  await expect(page.locator("body")).not.toHaveClass(/island-home/);
+  await page.locator("#settings-btn").click();
+  await expect(page.locator("#island-toggle")).toBeHidden();
+});

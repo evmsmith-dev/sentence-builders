@@ -941,3 +941,32 @@ body.spacing .sentence { line-height: 2.3; }
 .tutor-notice.answered { border-style: solid; border-color: var(--border); transform: none; }
 .tutor-notice button { min-height: 46px; padding: 6px 18px; }
 .today-card .week-row strong + span { white-space: normal; }
+
+/* ---------- Island Home (Settings, grades 3–5): the island fills the screen ---------- */
+body.calm .town .move, body.calm .town .board-alert, body.calm .town-map .pip-map, body.calm .town-map .smoke { animation: none !important; }
+body.island-home #home { max-width: none; padding: 0; }
+body.island-home #home .town-card { position: fixed; inset: 0; margin: 0; padding: 0; border: 0; border-radius: 0; box-shadow: none; background: #5aa7de; z-index: 0; }
+body.island-home #home .town-card > h2, body.island-home #home #map-panel, body.island-home #home .today-card,
+body.island-home #home .section-title, body.island-home #home #world-list, body.island-home #home .brand { display: none; }
+body.island-home #home .town-view { height: 100vh; height: 100dvh; min-height: 0; border-radius: 0; }
+body.island-home #home .map-zoom { position: fixed; top: calc(env(safe-area-inset-top) + 64px); right: 10px; z-index: 4; }
+body.island-home #home #map-in, body.island-home #home #map-out { display: none; }
+body.island-home #home .top { position: fixed; top: 0; left: 0; right: 0; z-index: 5; margin: 0;
+  padding: calc(env(safe-area-inset-top) + 8px) 10px 0; justify-content: space-between; pointer-events: none; }
+body.island-home #home .top > * { pointer-events: auto; box-shadow: var(--shadow); }
+body.island-home #home .home-tools { position: fixed; z-index: 4; left: 10px; top: calc(env(safe-area-inset-top) + 66px); display: flex; flex-direction: column; gap: 6px; margin: 0; width: 72px; }
+body.island-home #home .home-tools .tool-btn { padding: 5px 2px; min-height: 0; font-size: 0.7rem; line-height: 1.15; gap: 0; box-shadow: var(--shadow); }
+body.island-home #home .home-tools .tool-emoji { font-size: 1.3rem; }
+body.island-home #home #pip-home { position: fixed; z-index: 5; left: 8px; right: 8px; bottom: calc(env(safe-area-inset-bottom) + 64px); margin: 0; max-width: 620px; margin-inline: auto; }
+body.island-home #home #pip-home .bubble { box-shadow: var(--shadow); }
+body.island-home #home #pip-home .link { margin-left: 8px; }
+.island-bar { position: fixed; z-index: 5; left: 8px; right: 8px; bottom: calc(env(safe-area-inset-bottom) + 8px); display: flex; gap: 8px; max-width: 620px; margin-inline: auto; }
+.island-btn { flex: 1; min-height: 48px; border: 2px solid var(--border); border-radius: 14px; background: var(--card); box-shadow: var(--shadow); font-weight: 700; color: var(--text); }
+.island-btn.locked { color: var(--muted); }
+.island-dot { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: #e5484d; color: #fff; font-size: 0.8rem; margin-left: 4px; }
+@media (min-width: 900px) and (orientation: landscape) {
+  /* iPad landscape: Pip and the buttons sit in a column on the right, the map gets the rest. */
+  body.island-home #home #pip-home { left: auto; right: 12px; width: 330px; bottom: calc(env(safe-area-inset-bottom) + 72px); }
+  body.island-home .island-bar { left: auto; right: 12px; width: 330px; }
+  body.island-home #home .map-zoom { right: 354px; }
+}

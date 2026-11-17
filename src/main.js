@@ -58,6 +58,7 @@ function applyTheme() {
   setData(document.body, "font", s.font && s.font !== "game" ? s.font : "");
   setData(document.documentElement, "textSize", s.textSize && s.textSize !== "normal" ? s.textSize : "");
   document.body.classList.toggle("spacing", Boolean(s.spacing));
+  document.body.classList.toggle("calm", Boolean(s.calm));
 }
 
 /* ==================== Players ==================== */
@@ -120,16 +121,53 @@ function nextUp(player) {
   return null;
 }
 
+/* ==================== Island Home (Settings, grades 3–5) ==================== */
+// Following the teaching expert: an option, off by default; Pip always points to the next lesson (or to review
+// that's due first); the Notice Board opens once a day before free roaming; building waits for today's lesson.
+
+const ISLAND_HOME_MAX_GRADE = 5;
+const islandOn = (player) => Boolean(player?.settings?.islandHome) && player.grade <= ISLAND_HOME_MAX_GRADE;
+const playedToday = (player) => (player.days || []).includes(localDate(Date.now()));
+/** Sentences missed and not yet fixed up today: Summit Review brings them back first. */
+function reviewDue(player) {
+  if (player.summitOn === localDate(Date.now()) || !passedKeys(player).length) return 0;
+  const missed = Object.values(player.items || {}).filter((s) => s.misses > 0).length;
+  return missed >= 4 ? missed : 0;
+}
+
+function islandBarHtml(player) {
+  const info = weekMapInfo(player);
+  $("island-board").innerHTML = `<span aria-hidden="true">📌</span> Notice Board${info?.waiting ? ' <span class="island-dot" aria-label="something is waiting">!</span>' : ""}`;
+  const bricks = player.bricks || 0;
+  $("island-build").innerHTML = playedToday(player) ? `<span aria-hidden="true">🧱</span> Build · ${bricks}` : `<span aria-hidden="true">🔒</span> Build`;
+  $("island-build").classList.toggle("locked", !playedToday(player));
+  $("island-build").setAttribute("aria-label", playedToday(player) ? `Build on the island, ${bricks} bricks` : "Build: opens after today's first lesson");
+}
+
 function renderHome() {
   const player = state.player;
   applyTheme();
+  const island = islandOn(player);
+  document.body.classList.toggle("island-home", island);
+  $("island-bar").hidden = !island;
   $("who-btn").innerHTML = `<span class="avatar" aria-hidden="true">${player.avatar}</span> ${esc(player.name)}`;
   const next = nextUp(player);
-  const greeting = next
+  const due = island ? reviewDue(player) : 0;
+  let greeting = next
     ? `Hi ${player.name}! Next up: ${next.skill.name}, level ${next.level}.`
     : `Every building is up, ${player.name}. Go for Gold: score 7 or more on a level 3, on two different days.`;
   // The next level is one tap away: a Play button in Pip's bubble (or on its own when Pip is off).
-  const play = next ? `<button type="button" class="primary next-play" data-next-up="${next.skill.id}-${next.level}">▶ Play</button>` : "";
+  let play = next ? `<button type="button" class="primary next-play" data-next-up="${next.skill.id}-${next.level}">▶ Play</button>` : "";
+  if (due) {
+    // Island Home: review that's due comes before new levels, at Pip's Review Dock (Summit Review).
+    greeting = `Review first, ${player.name}! ${due} sentences you missed are waiting at the Review Dock.`;
+    play = `<button type="button" class="primary next-play" data-practice="summit">🔁 Review</button>${next ? `<button type="button" class="link" data-next-up="${next.skill.id}-${next.level}">or a new lesson</button>` : ""}`;
+  }
+  if (island) {
+    islandBarHtml(player);
+    // Open on the next lesson's part of the island (or the peaks, when review comes first).
+    if (!state.mapArea && !state.rising) state.mapArea = due ? "peaks" : next?.skill.world || null;
+  }
   $("pip-home").innerHTML = settings().pip
     ? pipSays(greeting, true, play)
     : next ? `<p class="next-line">Next up: ${esc(next.skill.name)}, level ${next.level}. ${play}</p>` : "";
@@ -137,7 +175,7 @@ function renderHome() {
   const risingSkill = state.rising && skillById(state.rising.replace(/-\d$/, ""));
   if (risingSkill) state.mapArea = risingSkill.world;
   const open = state.mapArea === "peaks" || mapDistricts(player).some((d) => d.id === state.mapArea);
-  state.map.show(townSvg(player, { rising: state.rising, week: weekMapInfo(player) }), mapLayout(player), open ? state.mapArea : null);
+  state.map.show(townSvg(player, { rising: state.rising, week: weekMapInfo(player), review: due > 0 }), mapLayout(player), open ? state.mapArea : null);
   if (state.rising) {
     const card = $("town").closest(".town-card");
     if (!matchMedia("(prefers-reduced-motion: reduce)").matches) setTimeout(() => card.scrollIntoView({ block: "center", behavior: "smooth" }), 150);
@@ -151,6 +189,11 @@ function renderHome() {
   $("week-btn").innerHTML = weekCardHtml(player);
   // A player who hasn't met Pip yet gets his welcome once (unless Pip is turned off).
   if (!player.introSeen && settings().pip && !topOverlay()) setTimeout(() => !$("home").hidden && !topOverlay() && openPipIntro(), 250);
+  // Island Home: the Notice Board opens by itself once a day, when something is waiting, before free roaming.
+  else if (island && player.boardSeenOn !== localDate(Date.now()) && weekMapInfo(player)?.waiting && !topOverlay()) {
+    savePlayer({ ...player, boardSeenOn: localDate(Date.now()) });
+    setTimeout(() => !$("home").hidden && !topOverlay() && openWeek(), 300);
+  }
   const worldCards = WORLDS.map((world) => {
     const skills = skillsInWorldFor(world.id, player);
     const built = skills.reduce((n, s) => n + [1, 2, 3].filter((l) => isPassed(player, s.id, l)).length, 0);
@@ -1395,6 +1438,9 @@ function fillSettings() {
   $("set-size").value = s.textSize || "normal";
   $("set-spacing").checked = Boolean(s.spacing);
   $("set-showwords").checked = Boolean(s.showWords);
+  $("set-island").checked = Boolean(s.islandHome);
+  $("set-calm").checked = Boolean(s.calm);
+  $("island-toggle").hidden = state.player.grade > ISLAND_HOME_MAX_GRADE;
   $("set-autoread").closest("label").hidden = !canSay();
   const names = s.names || {};
   $("set-names-on").checked = Boolean(names.on);
@@ -1432,7 +1478,7 @@ function changeSetting() {
     settings: { ...state.player.settings, autoRead: $("set-autoread").checked, pip: $("set-pip").checked, sound: $("set-sound").checked,
       theme: $("set-theme").value, breakMinutes: Number($("set-break").value),
       font: $("set-font").value, textSize: $("set-size").value, spacing: $("set-spacing").checked, names: readNames(),
-      showWords: $("set-showwords").checked },
+      showWords: $("set-showwords").checked, islandHome: $("set-island").checked, calm: $("set-calm").checked },
   };
   $("names-fields").hidden = !player.settings.names.on;
   savePlayer(player);
@@ -1491,6 +1537,14 @@ function wire() {
     if (nextUpBtn) {
       const [skillId, level] = nextUpBtn.dataset.nextUp.split(/-(?=\d$)/);
       return openTip(skillId, Number(level));
+    }
+    if (target.closest("#island-build")) {
+      if (!playedToday(state.player)) {
+        $("pip-home").innerHTML = pipSays("Let's do a lesson first! Then you can build with your bricks.", true, $("pip-home").querySelector(".next-play")?.outerHTML || "");
+        return;
+      }
+      state.buildArea = buildAreaFor(state.player, state.mapArea);
+      return renderBuild();
     }
     if (target.closest("#build-btn")) {
       state.buildArea = buildAreaFor(state.player, state.mapArea);
@@ -1693,7 +1747,7 @@ function wire() {
     closeOverlay("result-overlay");
     renderHome();
   });
-  for (const id of ["set-autoread", "set-pip", "set-sound", "set-theme", "set-break", "set-font", "set-size", "set-spacing", "set-showwords", "set-names-on", "set-pet",
+  for (const id of ["set-autoread", "set-pip", "set-sound", "set-theme", "set-break", "set-font", "set-size", "set-spacing", "set-showwords", "set-island", "set-calm", "set-names-on", "set-pet",
     ...Array.from({ length: MAX_PEOPLE }, (_, i) => [`set-name-${i}`, `set-pron-${i}`]).flat()]) $(id).addEventListener("change", changeSetting);
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {

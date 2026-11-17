@@ -247,6 +247,7 @@ export function recordPractice(player, { kind, results, now, durationMs = 0 }) {
   next.bricks += bricks;
   const right = results.filter((r) => r.correct && r.tries === 1).length;
   const reached = right >= PRACTICE_GOAL;
+  if (kind === "summit") next.summitOn = date; // Island Home's Review Dock is done for today
   if (reached) {
     if (kind === "summit") next.summits += 1;
     else next.lakeWins += 1;

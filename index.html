@@ -63,6 +63,11 @@
       <button type="button" id="badges-btn" class="tool-btn"></button>
       <button type="button" class="tool-btn" data-progress><span class="tool-emoji" aria-hidden="true">📊</span><span>Progress</span></button>
     </nav>
+    <!-- Island Home (Settings, grades 3–5): the island fills the screen, with these two buttons under Pip. -->
+    <nav id="island-bar" class="island-bar" aria-label="Notice Board and building" hidden>
+      <button type="button" id="island-board" class="island-btn" data-week></button>
+      <button type="button" id="island-build" class="island-btn"></button>
+    </nav>
     <section class="today-card" aria-labelledby="today-title">
       <h2 id="today-title" class="today-title">Today with Pip</h2>
       <button type="button" id="week-btn" class="today-row week-row"></button>
@@ -304,6 +309,8 @@
       <label class="toggle"><input type="checkbox" id="set-autoread"> Read every sentence aloud</label>
       <label class="toggle"><input type="checkbox" id="set-pip"> Comments and greeting</label>
       <label class="toggle"><input type="checkbox" id="set-sound"> Sounds</label>
+      <label class="toggle" id="island-toggle"><input type="checkbox" id="set-island"> Island Home: the island fills the screen (grades 3–5)</label>
+      <label class="toggle"><input type="checkbox" id="set-calm"> Calm island: decorations stay still</label>
       <label for="set-theme">Look</label>
       <select id="set-theme">
         <option value="auto">Automatic (Studio for grades 6+)</option>

@@ -578,7 +578,7 @@ export function mapLayout(player) {
  * Grammar Island: a region for the Town Square and one for each world, around Grammar Peaks, joined by
  * roads. The home screen pans and zooms it by changing the viewBox.
  */
-export function townSvg(player, { fresh = null, rising = null, week = null } = {}) {
+export function townSvg(player, { fresh = null, rising = null, week = null, review = false } = {}) {
   const layout = mapLayout(player);
   const open = layout.districts.filter((d) => !d.locked);
   const shownSkills = open.flatMap((d) => districtSkills(d, player));
@@ -600,7 +600,7 @@ export function townSvg(player, { fresh = null, rising = null, week = null } = {
   }).join("");
   // Big name flags, for seeing the whole island at once (they fade once zoomed in).
   const flags = [...layout.districts.map((d) => ({ id: d.id, text: `${d.locked ? "🔒" : d.emoji} ${d.name}`, box: layout.areas[d.id] })),
-    { id: "peaks", text: "⛰️ Grammar Peaks", box: { x: 470, y: 60, w: 360, h: 0 } }].map(({ id, text, box: b }) => {
+    { id: "peaks", text: review ? "🔁 Review Dock" : "⛰️ Grammar Peaks", box: { x: 470, y: 60, w: 360, h: 0 } }].map(({ id, text, box: b }) => {
     const w = text.length * 21 + 40;
     const cy = id === "peaks" ? 150 : b.y + Math.min(b.h / 2, 150);
     return `<g class="region-label" pointer-events="none"><rect x="${b.x + 180 - w / 2}" y="${cy - 34}" width="${w}" height="64" rx="32" fill="#fff" opacity=".92"/>
