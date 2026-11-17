@@ -1311,6 +1311,55 @@ test("Two choices: a miss shows the answer right away, says what was chosen, and
   await expect(page.locator("#result-town")).toHaveText("Back to home");
 });
 
+test("Daily 5 and the streak: a row on the Today card, five quick questions, the streak grows", async ({ page }) => {
+  await page.clock.setFixedTime(new Date(2026, 10, 17, 18));
+  const days = ["2026-11-15", "2026-11-16"]; // played the two days before
+  await openApp(page, { players: [{ ...player({ grade: 7 }), days }], current: "p1" });
+  await expect(page.locator("#daily-btn")).toContainText("2-day streak");
+  await expect(page.locator("#daily-btn")).toContainText("Daily 5");
+  await page.locator("#daily-btn").click();
+  await expect(page.locator("#play-skill")).toContainText("Daily 5");
+  for (let n = 0; n < 5; n++) {
+    await answer(page);
+    await page.locator("#next-btn").click();
+  }
+  await expect(page.locator("#result-title")).toHaveText("🔥 3-day streak");
+  await page.locator("#result-next").click();
+  await expect(page.locator("#daily-btn")).toContainText("Daily 5 done");
+});
+
+test("Pip's final draft: locked until two levels pass in the world, then beaten on the first try", async ({ page }) => {
+  const passed = { stars: 2, best: 7, plays: 1 };
+  await openApp(page, { players: [player({ grade: 7, levels: { "case-1": passed } })], current: "p1" });
+  await page.locator('[data-world="desk"]').click();
+  await expect(page.locator(".boss-card")).toContainText("Pass 1 more level");
+  await expect(page.locator("[data-boss]")).toBeDisabled();
+  await page.evaluate(() => {
+    const players = JSON.parse(localStorage.getItem("sentenceBuilders_players"));
+    players[0].levels["case-2"] = { stars: 2, best: 7, plays: 1 };
+    localStorage.setItem("sentenceBuilders_players", JSON.stringify(players));
+  });
+  await page.reload();
+  await page.locator('[data-world="desk"]').click();
+  await page.locator('[data-boss="desk"]').click();
+  await expect(page.locator("#play-skill")).toContainText("Pip's final draft");
+  await answer(page);
+  await page.locator("#next-btn").click();
+  await expect(page.locator("#result-title")).toHaveText("You beat Pip's final draft");
+  await page.locator("#result-next").click();
+  await expect(page.locator(".boss-card")).toContainText("Beaten");
+  await expect(page.locator('[data-boss="desk"]')).toHaveText("Rematch");
+});
+
+test("Q&A Flow answers show each word over its label and the pattern in words", async ({ page }) => {
+  await openApp(page, { players: [player({ grade: 7, items: { "flow2-2-01": { seen: 3, misses: 3, last: 1 } } })], current: "p1" });
+  await page.locator(".tool-btn[data-progress]").click();
+  const row = page.locator(".label-words").first();
+  await expect(row.locator(".lw")).toHaveCount(6); // The team named the mascot Blizzard.
+  await expect(row.locator(".lw-label").nth(5)).toHaveText("OCN");
+  await expect(page.locator(".flow-sum").first()).toContainText("Pattern 6: subject noun, transitive verb, direct object, object complement noun");
+});
+
 test("Sentence of the Week: Today with Pip card, the Notice Board, a day's job, and the week's banner @layout", async ({ page }) => {
   await page.clock.setFixedTime(new Date(2026, 10, 18, 10)); // a Wednesday
   await openApp(page, { players: [player({ grade: 4 })], current: "p1" });

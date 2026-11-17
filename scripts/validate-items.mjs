@@ -1,7 +1,7 @@
 // Checks data/content.json before tests and deploys: every item can be shown and answered,
 // ids are unique, every skill and level has enough items and a Tip Card.
 import { readFile } from "node:fs/promises";
-import { HOMEWORK_PER_ROUND, ITEMS_PER_LEVEL, PRACTICE_PER_ROUND, SKILLS, SPELLING_RULES } from "../src/config.js";
+import { HOMEWORK_PER_ROUND, ITEMS_PER_LEVEL, PRACTICE_PER_ROUND, SKILLS, SPELLING_RULES, WORLDS } from "../src/config.js";
 import { validateItem } from "../src/lib/parse.js";
 import { weekDayItems, weekProblems } from "../src/lib/week.js";
 
@@ -51,6 +51,20 @@ for (const hw of content.homework || []) {
   if (ids.has(hw.id)) problems.push(`${hw.id}: id used twice`);
   ids.add(hw.id);
 }
+// Pip's final drafts (grades 6–8): one per world at most, a real world, and 6+ mistakes in each.
+for (const boss of content.boss || []) {
+  try {
+    validateItem({ ...boss, skill: "proofread", level: 1 });
+  } catch (error) {
+    problems.push(error.message);
+  }
+  if (!boss.title) problems.push(`${boss.id}: needs a title`);
+  if (!WORLDS.some((w) => w.id === boss.world)) problems.push(`${boss.id}: unknown world ${boss.world}`);
+  if ((content.boss || []).filter((b) => b.world === boss.world).length > 1) problems.push(`${boss.id}: a second final draft for ${boss.world}`);
+  if ((boss.text.match(/\[/g) || []).length < 6) problems.push(`${boss.id}: needs 6+ mistakes`);
+  if (ids.has(boss.id)) problems.push(`${boss.id}: id used twice`);
+  ids.add(boss.id);
+}
 // Sentence of the Week: 4+ weeks per grade band; every day's items must play, and the days must agree.
 for (const band of ["3-4", "5", "6-8"]) {
   const n = (content.weeks || []).filter((w) => w.band === band).length;
@@ -89,4 +103,4 @@ if (problems.length) {
   console.error(`${problems.length} problem(s) in data/content.json:\n- ${problems.join("\n- ")}`);
   process.exit(1);
 }
-console.log(`data/content.json OK: ${content.items.length} items, ${(content.homework || []).length} homework paragraphs, ${(content.spelling || []).length} spelling questions, ${Object.keys(content.tips).length} Tip Cards`);
+console.log(`data/content.json OK: ${content.items.length} items, ${(content.homework || []).length} homework paragraphs, ${(content.spelling || []).length} spelling questions, ${(content.boss || []).length} final drafts, ${Object.keys(content.tips).length} Tip Cards`);

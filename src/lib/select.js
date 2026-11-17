@@ -88,3 +88,16 @@ export function pickSpellingItems({ items, grade, stats = {}, count = 8, random 
   const picked = items.filter((i) => i.level === level).sort(byKey(practiceOrder(stats, random))).slice(0, count);
   return picked.map((item) => ({ item, r: random() })).sort((a, b) => a.r - b.r).map(({ item }) => item);
 }
+
+/** Item types quick enough for the Daily 5 (no paragraphs, typing or many-step labeling). */
+const DAILY_TYPES = new Set(["which", "mark", "fix", "sort", "check", "join", "build"]);
+
+/**
+ * The Daily 5: quick questions from the levels at the player's grade and the grade before (open ones only),
+ * least recently seen first, spread across skills. levelKeys: ["case-2", ...] the caller found open.
+ */
+export function pickDailyItems({ items, levelKeys, stats = {}, count = 5, random = Math.random }) {
+  const quick = items.filter((i) => DAILY_TYPES.has(i.type));
+  return pickSummitItems({ items: quick, passedKeys: levelKeys, stats, count, random })
+    .map((item) => ({ item, r: random() })).sort((a, b) => a.r - b.r).map(({ item }) => item);
+}

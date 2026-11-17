@@ -31,6 +31,8 @@ export function newPlayer({ id, name, avatar, grade, now }) {
     banners: [], // finished weeks, hung in the Town Square: { key, text }
     unlocks: {}, // Challenge Trails opened (grades 3–5): { "commas-3": the day it opened }
     homeworkOn: null, // the last day Pip's homework was checked (the Notice Board's flyer waits until then)
+    dailyOn: null, // the last day the Daily 5 was finished
+    bosses: {}, // Pip's final drafts beaten (grades 6–8): { world id: the day }
   };
 }
 
@@ -49,6 +51,26 @@ export function normalizePlayer(player) {
   // Saves from before the town map: everything was in what is now the Town Square.
   if (out.decor.some((d) => !d.area)) out.decor = out.decor.map((d) => (d.area ? d : { ...d, area: "square" }));
   return out;
+}
+
+/**
+ * Days in a row with any play, counted back from today (or from yesterday, when today isn't played yet, so a
+ * streak isn't lost at breakfast). One missed day in any 7 is forgiven, so a busy day doesn't wipe out weeks;
+ * two missed days in a row end it. Days are local dates ("2026-11-17") from player.days.
+ */
+export function streakDays(days, now) {
+  const played = new Set(days || []);
+  const d = new Date(now);
+  const at = (i) => localDate(new Date(d.getFullYear(), d.getMonth(), d.getDate() - i, 12).getTime());
+  let i = played.has(at(0)) ? 0 : 1;
+  let count = 0;
+  let lastSkip = -Infinity;
+  for (; i < 4000; i++) {
+    if (played.has(at(i))) { count += 1; continue; }
+    if (count > 0 && i - lastSkip >= 7 && played.has(at(i + 1))) { lastSkip = i; continue; }
+    break;
+  }
+  return count;
 }
 
 // A level's time counts at most this much, so a game left open doesn't count as practice.
@@ -300,7 +322,8 @@ export function recordPractice(player, { kind, results, now, durationMs = 0 }) {
   const right = results.filter((r) => r.correct && r.tries === 1).length;
   const reached = right >= PRACTICE_GOAL;
   if (kind === "summit") next.summitOn = date; // Island Home's Review Dock is done for today
-  if (reached) {
+  if (kind === "daily") next.dailyOn = date; // the Daily 5 is done for today; it doesn't plant flags or float boats
+  if (reached && kind !== "daily") {
     if (kind === "summit") next.summits += 1;
     else next.lakeWins += 1;
   }

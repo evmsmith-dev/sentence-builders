@@ -391,13 +391,14 @@ export const PIP = {
 };
 /** Grades 6–8: the same Pip as a coworker, not a cheerleader. Short and plain. */
 export const PIP_GROWN = {
-  right: ["Correct.", "Right.", "That's it.", "Yes.", "Exactly."],
-  secondTry: ["Correct on the second try.", "Fixed.", "Got it."],
+  right: ["Correct.", "Right.", "That's it.", "Clean.", "Exactly.", "Yep. Nailed it."],
+  secondTry: ["Correct on the second try.", "Fixed.", "Got there."],
   hint: "Not yet. Hint:",
   shown: "Here's the answer. It will come back later.",
   oneShot: "Not this time. Here's the answer; it will come back later.",
-  passed: ["Level passed.", "Passed. On to the next.", "Another level done."],
-  notYet: "Not passed yet. Try it again; nothing is lost.",
+  passed: ["Passed. I'd have missed at least two of those.", "Passed. I'm taking notes.", "Passed. The next one is harder; I checked."],
+  perfect: ["Perfect score. Okay, show-off.", "Eight for eight. I'm framing this.", "Not one miss. Annoyingly clean."],
+  notYet: "Not passed yet. Those were built to trip people up. Run it back; nothing is lost.",
 };
 /** From this grade, Pip is a small line drawing with drier words, and doesn't greet on the home page. */
 export const GROWN_PIP_FROM_GRADE = 6;

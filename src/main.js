@@ -1,12 +1,12 @@
 // Startup and screens: players, the town, worlds, levels, results, badges and settings.
 import {
   AVATARS, AVATAR_GROUPS, HABIT_BADGES, ITEMS_PER_LEVEL, MAX_GRADE, MAX_PLAYERS, MIN_GRADE, PIP, PIP_INTRO, DECOR, decorFor, HOMEWORK_PER_ROUND, PRACTICE_PER_ROUND, PRACTICE_GOAL, clampSpot, SKILLS, SPELLING_RULES, STUDIO_FROM_GRADE, NOUN_TABLE_FROM_GRADE, NOUN_KINDS, NOUN_REMINDERS_UNTIL, TIER_NAMES, WORLDS, WORLD_BADGES,
-  GOLD_DAYS, LABELS, LABEL_LISTS, PATTERNS, FLOW_LABELS, FLOW_PATTERNS, WORD_LISTS, WORD_PARTS, skillById, skillOpenFor, skillsInWorld, skillsInWorldFor, worldOpenFor, PIP_GROWN, GROWN_PIP_FROM_GRADE, CHALLENGE_PREREQS, CHALLENGE_UP_TO_GRADE, unlockMode} from "./config.js";
-import { answerText, spokenText } from "./lib/parse.js";
-import { pickLevelItems, pickSpellingItems, pickSummitItems } from "./lib/select.js";
+  GOLD_DAYS, SENTENCE_KINDS, LABELS, LABEL_LISTS, PATTERNS, FLOW_LABELS, FLOW_PATTERNS, WORD_LISTS, WORD_PARTS, skillById, skillOpenFor, skillsInWorld, skillsInWorldFor, worldOpenFor, PIP_GROWN, GROWN_PIP_FROM_GRADE, CHALLENGE_PREREQS, CHALLENGE_UP_TO_GRADE, unlockMode} from "./config.js";
+import { answerText, parseFlow, spokenText } from "./lib/parse.js";
+import { pickDailyItems, pickLevelItems, pickSpellingItems, pickSummitItems } from "./lib/select.js";
 import { recordHomework, recordPractice, buyDecor, moveDecor, removeDecor,
   currentBadges, habitValue, isPassed, isUnlocked, levelStars, localDate, mostMissed, newPlayer, normalizePlayer,
-  passedKeys, recordLevel, skillTier, weekSummary, recordWeekDay, isChallenge, isMastered, openChallenge} from "./lib/progress.js";
+  passedKeys, recordLevel, skillTier, weekSummary, recordWeekDay, isChallenge, isMastered, openChallenge, streakDays} from "./lib/progress.js";
 import { loadCurrentId, loadPlayers, saveCurrentId, savePlayers } from "./storage.js";
 import { districtSkills, mapDistricts, mapLayout, parkSvg, pipSays, pipSvg, townSvg } from "./ui/art.js";
 import { createTownMap } from "./ui/townmap.js";
@@ -282,6 +282,8 @@ function renderHome() {
   $("badges-btn").innerHTML = `<span class="tool-emoji" aria-hidden="true">🏅</span><span>Badges ${earned}/${total}</span>`;
   $("build-btn").innerHTML = buildCardHtml(player);
   $("week-btn").innerHTML = weekCardHtml(player);
+  $("daily-btn").innerHTML = dailyCardHtml(player);
+  $("daily-btn").classList.toggle("done", player.dailyOn === localDate(Date.now()));
   $("today-title").textContent = grownPip() ? "Today" : "Today with Pip";
   // A player who hasn't met Pip yet gets his welcome once (unless Pip is turned off).
   if (!player.introSeen && settings().pip && !topOverlay()) setTimeout(() => !$("home").hidden && !topOverlay() && openPipIntro(), 250);
@@ -319,9 +321,97 @@ function renderWorld(worldId) {
   const world = WORLDS.find((w) => w.id === worldId);
   const player = state.player;
   $("world-title").textContent = `${world.emoji} ${world.name}`;
-  $("skill-list").innerHTML = skillsInWorldOrdered(worldId, player).map((skill) => skillCardHtml(skill)).join("")
+  $("skill-list").innerHTML = bossCardHtml(worldId, player) + skillsInWorldOrdered(worldId, player).map((skill) => skillCardHtml(skill)).join("")
     + (world.comingSoon ? `<p class="note coming-soon">${esc(world.comingSoon)}</p>` : "");
   showScreen("world");
+}
+
+/* ==================== Pip's final draft (grades 6–8) ==================== */
+// The 8th-grade playtester's boss round: one long paragraph of Pip's per world, packed with mistakes from that
+// world's skills. Catch every one on the first try to beat it. It opens once two levels in the world are passed.
+
+const BOSS_AFTER_LEVELS = 2;
+const bossFor = (worldId) => (state.content.boss || []).find((b) => b.world === worldId);
+const levelsPassedIn = (worldId, player) => skillsInWorldFor(worldId, player).reduce((n, s) => n + [1, 2, 3].filter((l) => isPassed(player, s.id, l)).length, 0);
+
+function bossCardHtml(worldId, player) {
+  const boss = bossFor(worldId);
+  if (!boss || player.grade < OLDER_FROM_GRADE) return "";
+  const passed = levelsPassedIn(worldId, player);
+  const open = passed >= BOSS_AFTER_LEVELS;
+  const beaten = Boolean(player.bosses?.[worldId]);
+  const line = !open ? `Pass ${BOSS_AFTER_LEVELS - passed} more level${BOSS_AFTER_LEVELS - passed === 1 ? "" : "s"} here to unlock it.`
+    : beaten ? "Beaten. Pip has been quiet about it." : "Pip hid six or seven mistakes in it. Catch every one on the first try to beat it.";
+  return `<section class="boss-card${beaten ? " beaten" : ""}">
+    <div><h2>📝 Pip's final draft${beaten ? ' <span class="boss-done">✓ Beaten</span>' : ""}</h2>
+    <p class="boss-title">${esc(boss.title)}</p><p class="note">${esc(line)}</p></div>
+    <button type="button" class="${beaten ? "secondary" : "primary"}" data-boss="${worldId}" ${open ? "" : "disabled"}>${beaten ? "Rematch" : open ? "Take it on" : "🔒 Locked"}</button>
+  </section>`;
+}
+
+function startBoss(worldId) {
+  const boss = bossFor(worldId);
+  if (!boss) return;
+  closeOverlay("result-overlay");
+  state.play = { mode: "boss", world: worldId, skillId: "proofread", level: 1, items: withNames([{ ...boss, skill: "proofread", level: 1, type: "proofread" }]),
+    index: 0, tries: 0, results: [], ctrl: null, done: false, startedAt: Date.now() };
+  if (!state.sessionStart) state.sessionStart = Date.now();
+  showScreen("play");
+  showItem();
+}
+
+const BOSS_WON = ["Every single one? I hid those well. I thought I did.", "Fine. You found all of them. I'm rewriting it from scratch.", "Beaten. I'd like it noted that I was very close."];
+const BOSS_LOST = ["Pip wins this round. A mistake or two got past you. Rematch?", "Ha. One of mine survived. Want a rematch?"];
+
+function finishBoss() {
+  const play = state.play;
+  const now = Date.now();
+  const beaten = play.results.every((r) => r.correct && r.tries === 1);
+  const before = state.player;
+  const rec = recordHomework(before, { results: play.results, now, durationMs: now - play.startedAt }).player;
+  rec.homeworkOn = before.homeworkOn; // the final draft isn't the day's homework
+  if (beaten) rec.bosses = { ...(rec.bosses || {}), [play.world]: localDate(now) };
+  savePlayer(rec);
+  $("progress-fill").style.width = "100%";
+  $("result-stars").innerHTML = "";
+  $("result-title").textContent = beaten ? "You beat Pip's final draft" : "Pip wins this round";
+  $("result-score").textContent = `${bossFor(play.world).title} · ${WORLDS.find((w) => w.id === play.world).name}`;
+  showResultBricks({ bricks: 0, player: rec }, "");
+  $("result-pip").innerHTML = pipRemark(pick(beaten ? BOSS_WON : BOSS_LOST));
+  $("result-badges").innerHTML = "";
+  $("result-review").innerHTML = reviewHtml(play);
+  state.resultNext = beaten ? { world: play.world } : { boss: play.world };
+  $("result-next").textContent = beaten ? `Back to ${WORLDS.find((w) => w.id === play.world).name}` : "Rematch";
+  $("result-again").hidden = true;
+  $("result-rule").hidden = true;
+  openOverlay("result-overlay");
+  if (beaten) {
+    sound("done", settings().sound);
+    cheer(3);
+  }
+  state.play = null;
+}
+
+/* ==================== Daily 5 and the streak ==================== */
+// The playtester's "one quick 2-minute thing" and a streak, front and center: five quick questions from the
+// player's grade (and the grade before), once a day, on the Today card. One missed day a week is forgiven.
+
+const DAILY_COUNT = 5;
+function dailyItems(player) {
+  const g = player.grade;
+  const levelKeys = visibleSkills(player).flatMap((skill) => [1, 2, 3]
+    .filter((l) => skill.grades[l - 1] <= g && skill.grades[l - 1] >= g - 1 && isUnlocked(player, skill.id, l)).map((l) => `${skill.id}-${l}`));
+  return pickDailyItems({ items: state.content.items, levelKeys, stats: player.items, count: DAILY_COUNT });
+}
+
+function dailyCardHtml(player) {
+  const streak = streakDays(player.days, Date.now());
+  const done = player.dailyOn === localDate(Date.now());
+  const streakText = streak ? `${streak}-day streak` : "Start a streak";
+  const line = done ? "Daily 5 done. Back tomorrow." : `Daily 5: five quick questions${streak && !playedToday(player) ? " to keep it going" : ""}`;
+  return `<span class="homework-emoji" aria-hidden="true">${streak ? "🔥" : "⚡"}</span>
+    <span><strong>${esc(streakText)}</strong><span>${esc(line)}</span></span>
+    <span class="today-chev" aria-hidden="true">${done ? "✓" : "›"}</span>`;
 }
 
 /** One skill's card: badge, benchmarks and its three level buttons (on the world screen and from the town map). */
@@ -489,7 +579,7 @@ function summitItems(player) {
 function startPractice(kind) {
   closeOverlay("gate-overlay");
   const player = state.player;
-  const items = kind === "summit" ? summitItems(player)
+  const items = kind === "summit" ? summitItems(player) : kind === "daily" ? dailyItems(player)
     : pickSpellingItems({ items: state.content.spelling || [], grade: player.grade, stats: player.items, count: PRACTICE_PER_ROUND })
       .map((item) => ({ ...item, prompt: "Which spelling is right?" }));
   if (!items.length) return;
@@ -498,6 +588,35 @@ function startPractice(kind) {
   if (!state.sessionStart) state.sessionStart = Date.now();
   showScreen("play");
   showItem();
+}
+
+function finishDaily() {
+  const play = state.play;
+  const now = Date.now();
+  const before = streakDays(state.player.days, now);
+  const out = recordPractice(state.player, { kind: "daily", results: play.results, now, durationMs: now - play.startedAt });
+  savePlayer(out.player);
+  const streak = streakDays(out.player.days, now);
+  $("progress-fill").style.width = "100%";
+  $("result-stars").innerHTML = "";
+  $("result-title").textContent = `🔥 ${streak}-day streak`;
+  $("result-score").textContent = `Daily 5: ${out.right} of ${play.results.length} right on the first try`;
+  showResultBricks(out, `+${out.bricks} 🧱 bricks <span class="note">· ${out.player.bricks} to build with</span>`);
+  const line = streak > before ? (streak === 1 ? "Day one. Come back tomorrow and it's a streak." : `That's ${streak} days. See you tomorrow.`)
+    : "Done for today. The streak already counts today.";
+  $("result-pip").innerHTML = pipRemark(line);
+  $("result-badges").innerHTML = "";
+  $("result-review").innerHTML = reviewHtml(play);
+  state.resultNext = { home: true };
+  $("result-next").textContent = "Back to home";
+  $("result-again").hidden = true;
+  $("result-rule").hidden = true;
+  openOverlay("result-overlay");
+  if (out.right === play.results.length) {
+    sound("done", settings().sound);
+    cheer(3);
+  }
+  state.play = null;
 }
 
 function finishPractice() {
@@ -534,8 +653,14 @@ function finishPractice() {
 }
 
 /** Pip's homework from grade 6: a slightly overconfident coworker who takes the grade. */
-const GROWN_HOMEWORK = { "A+": "Not one mistake got past you. Grade accepted.", A: "Fair grade. I'll fix those.",
-  B: "A B. I'll take it, and the corrections.", C: "A C. In my defense, some of those were sneaky.", "Try again": "Those were tricky. Want another of my paragraphs?" };
+// Following the 8th-grade playtester: he argues back a little, then takes the grade.
+const GROWN_HOMEWORK = {
+  "A+": ["A+. Fine. I'll admit the apostrophe thing was a mistake.", "Not one got past you? I'm telling everyone I did that on purpose."],
+  A: ["An A? I was going for subtle. You were not fooled.", "A. I'll fix those, but for the record the comma started it."],
+  B: ["A B? That comma was a style choice. ...Fine, I'll fix it.", "B. Respectable. For both of us."],
+  C: ["A C. In my defense, some of those were sneaky.", "C? I'd like a regrade. ...Request denied, I see."],
+  "Try again": ["My mistakes win this round. Want another of my paragraphs?", "Ha. Even the grader missed some. Try another one?"],
+};
 
 function finishHomework() {
   const play = state.play;
@@ -549,7 +674,7 @@ function finishHomework() {
   showResultBricks(out, `+${out.bricks} 🧱 bricks <span class="note">· ${out.player.bricks} to build with</span>`);
   const lines = { "A+": "An A+! Thank you, teacher. I'll fix those mistakes for good.", A: "An A! Thanks for checking my work so carefully.",
     B: "A B. Not bad! Thanks for catching my mistakes.", C: "A C. Hmm, some of those mistakes were sneaky.", "Try again": "Those were tricky. Want to check another one?" };
-  $("result-pip").innerHTML = pipRemark((grownPip() ? GROWN_HOMEWORK : lines)[out.grade]);
+  $("result-pip").innerHTML = pipRemark(grownPip() ? pick(GROWN_HOMEWORK[out.grade]) : lines[out.grade]);
   $("result-badges").innerHTML = "";
   $("result-review").innerHTML = reviewHtml(play);
   state.resultNext = { homework: true };
@@ -718,6 +843,8 @@ function showItem() {
   $("play-skill").textContent = play.mode === "homework" ? `📝 Pip's homework: ${item.title}`
     : play.mode === "summit" ? `⛰️ Summit Review · ${skill.name}`
     : play.mode === "lake" ? "💧 Spelling Lake"
+    : play.mode === "daily" ? `⚡ Daily 5 · ${skill.name}`
+    : play.mode === "boss" ? `📝 Pip's final draft: ${item.title}`
     : play.mode === "week" ? `📌 Sentence of the Week · ${WEEK_DAYS[play.day].name}`
     : item.review ? `Review: ${skill.name}` : `${skill.name} · Level ${item.level}`;
   $("play-skill").classList.toggle("review", Boolean(item.review));
@@ -789,6 +916,19 @@ const pipRemark = (text, action = "") => pipSays(text, settings().pip, action, {
 /** Pip's small face beside a hint (nothing when Pip is turned off). */
 const pipFace = () => (settings().pip ? `<span class="feedback-pip" aria-hidden="true">${pipArt(36)}</span>` : "");
 
+/**
+ * An answer to show. A Q&A Flow answer is each word with its label under it, then the pattern in words and the
+ * sentence kind, instead of a string of codes like "A SN V-t DO OCN P6" (the 8th-grade playtester's alphabet soup).
+ */
+function answerHtml(item) {
+  if (item.type !== "flow") return esc(answerText(item));
+  const p = parseFlow(item);
+  const words = p.words.map((w) => `<span class="lw"><span class="lw-word">${esc(w.word)}</span><span class="lw-label" title="${esc(LABELS[w.label]?.name || w.label)}">${esc(w.label)}</span></span>`).join("");
+  const core = item.pattern ? PATTERNS[item.pattern].split(" ").filter((l) => !/^P\d$/.test(l)).map((l) => LABELS[l]?.name || l).join(", ") : "";
+  const kind = SENTENCE_KINDS[item.kind].split(":")[0];
+  return `<span class="label-words">${words}</span><span class="flow-sum">${item.pattern ? `Pattern ${item.pattern}: ${esc(core)} · ` : ""}${esc(kind)}</span>`;
+}
+
 /** "You chose: …" when we know the wrong choice (Which is right?). */
 const chosenLine = (chosen) => (chosen ? `<p class="chosen-line"><span class="answer-tag">You chose:</span> ${esc(chosen)}</p>` : "");
 /** Grades 6–8: one line on why, after a right answer too, for items whose hint states the rule. */
@@ -826,7 +966,7 @@ function handleAnswer(right) {
     if (play.tries === 1) sound("wrong", s.sound); // a two-choice miss: the answer is shown right away
     $("feedback").className = "feedback shown";
     $("feedback").innerHTML = `${pipFace()}<div><p><strong>${esc(play.tries === 1 ? pipWords().oneShot : pipWords().shown)}</strong></p>${chosenLine(chosen)}`
-      + `<p class="answer-line">${chosen ? '<span class="answer-tag">Correct:</span> ' : ""}${esc(answerText(item))}</p><p class="hint-line">${esc(item.hint)}</p></div>`;
+      + `<p class="answer-line">${chosen ? '<span class="answer-tag">Correct:</span> ' : ""}${answerHtml(item)}</p><p class="hint-line">${esc(item.hint)}</p></div>`;
   }
 }
 
@@ -876,7 +1016,7 @@ function completeItem({ tries, correct }) {
     $("feedback").innerHTML = `<p><strong>✓ ${esc(tries === 1 ? pick(pipWords().right) : "Done! A hint helped on the way.")}</strong></p>`;
   } else {
     $("feedback").className = "feedback shown";
-    $("feedback").innerHTML = `${pipFace()}<div><p><strong>Done. Some answers were shown, so this one will come back later.</strong></p><p class="answer-line">${esc(answerText(item))}</p></div>`;
+    $("feedback").innerHTML = `${pipFace()}<div><p><strong>Done. Some answers were shown, so this one will come back later.</strong></p><p class="answer-line">${answerHtml(item)}</p></div>`;
   }
 }
 
@@ -904,6 +1044,8 @@ function finishLevel() {
   const play = state.play;
   if (play.mode === "homework") return finishHomework();
   if (play.mode === "summit" || play.mode === "lake") return finishPractice();
+  if (play.mode === "daily") return finishDaily();
+  if (play.mode === "boss") return finishBoss();
   if (play.mode === "week") return finishWeekDay();
   $("result-rule").hidden = false;
   const starsBefore = state.player.levels[`${play.skillId}-${play.level}`]?.stars ?? 0;
@@ -917,10 +1059,13 @@ function finishLevel() {
   $("result-title").textContent = (grownPip() ? ["Not passed yet", "Passed", "Passed: 2 stars", "Perfect score"] : ["Almost there", "Built it!", "Great build!", "Perfect build!"])[out.stars];
   $("result-score").textContent = `${points(out.points)} of ${play.results.length} points · ${skill.name} level ${play.level}`;
   showResultBricks(out, `+${out.bricks} 🧱 bricks <span class="note">· ${out.player.bricks} to build with</span>`);
-  let pipLine = out.passed ? pick(pipWords().passed) : pipWords().notYet;
+  let pipLine = out.passed ? pick(out.stars === 3 && pipWords().perfect ? pipWords().perfect : pipWords().passed) : pipWords().notYet;
   if (out.passed && play.level === 3 && skillTier(out.player, skill.id) < 3) {
     const goldAt = (7 / 8) * play.results.length;
-    pipLine += out.points >= goldAt && out.goldProgress ? ` Gold progress: ${out.goldProgress} of ${GOLD_DAYS} days.`
+    const left = GOLD_DAYS - (out.goldProgress || 0);
+    pipLine += out.points >= goldAt && out.goldProgress ? (grownPip()
+      ? ` ${left > 0 ? `${left} more day${left === 1 ? "" : "s"} like this and it goes Gold.` : "That's Gold."}`
+      : ` Gold progress: ${out.goldProgress} of ${GOLD_DAYS} days.`)
       : ` Score ${points(Math.ceil(goldAt * 2) / 2)} or more here on two days for Gold${skill.goldNeedsAllRight ? ", with the label sentences right" : ""}.`;
   }
   const breakMinutes = out.player.settings.breakMinutes;
@@ -960,7 +1105,7 @@ function reviewHtml(play) {
     const status = r.correct ? "Fixed on the second try" : "Answer shown";
     return `<li class="review-row ${r.correct ? "second" : "missed"}"><span class="review-status">${status}</span>
       ${r.chosen ? `<span class="review-chosen">You chose: ${esc(r.chosen)}</span>` : ""}
-      <span class="review-answer">${r.chosen ? "Correct: " : ""}${esc(answerText(item))}</span><span class="review-rule">${esc(item.hint)}</span></li>`;
+      <span class="review-answer">${r.chosen ? "Correct: " : ""}${answerHtml(item)}</span><span class="review-rule">${esc(item.hint)}</span></li>`;
   });
   if (!rows.length) return '<p class="review-none">No mistakes this round. ✓</p>';
   return `<h3 class="review-title">Look again (${rows.length})</h3><ol class="review-list">${rows.join("")}</ol>`;
@@ -1389,7 +1534,7 @@ function playerDetailHtml(p, now) {
   const missed = mostMissed(p).map(({ id, misses }) => {
     const item = itemById(id);
     if (!item) return "";
-    return `<li><span class="missed-skill">${esc(skillById(item.skill)?.name || item.skill)}, level ${item.level} · missed ${misses}×</span>${esc(answerText(item))}</li>`;
+    return `<li><span class="missed-skill">${esc(skillById(item.skill)?.name || item.skill)}, level ${item.level} · missed ${misses}×</span>${answerHtml(item)}</li>`;
   }).join("");
   return `<section class="card parent-card" data-parent-player="${esc(p.id)}">
     <h3><span aria-hidden="true">${p.avatar}</span> ${esc(p.name)} <span class="muted">· Grade ${p.grade}</span></h3>
@@ -1731,6 +1876,9 @@ function wire() {
     if (buy) return buyDecoration(buy.dataset.buy);
     if (target.closest("#homework-btn")) return startHomework();
     if (target.closest("#week-btn, [data-week]")) return openWeek();
+    if (target.closest("#daily-btn")) return startPractice("daily");
+    const bossBtn = target.closest("[data-boss]");
+    if (bossBtn) return startBoss(bossBtn.dataset.boss);
     if (target.closest("[data-meet-pip]")) {
       if (!state.player) return;
       renderHome();
@@ -1994,6 +2142,7 @@ function wire() {
     else if (next.home) renderHome();
     else if (next.homework) startHomework();
     else if (next.practice) startPractice(next.practice);
+    else if (next.boss) startBoss(next.boss);
     else if (next.world) renderWorld(next.world);
     else openTip(next.skillId, next.level);
   });

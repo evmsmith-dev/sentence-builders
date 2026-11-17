@@ -32,6 +32,7 @@ const weekItem = (id) => {
 };
 export const itemById = (id) => weekItem(id) ?? content.items.find((item) => item.id === id)
   ?? (content.homework || []).map((h) => ({ ...h, skill: "proofread", level: 1 })).find((item) => item.id === id)
+  ?? (content.boss || []).map((b) => ({ ...b, skill: "proofread", level: 1 })).find((item) => item.id === id)
   ?? (content.spelling || []).find((item) => item.id === id);
 
 /** Opens the app with players already saved (or none, for a first visit). */
