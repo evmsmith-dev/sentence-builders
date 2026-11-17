@@ -159,7 +159,7 @@ Settings → **Island Home** makes Grammar Island the whole home screen, followi
 - **Pip's message tucks away:** a – button shrinks it to a small Pip and the ▶ Play (or 🔁 Review) button, so the map underneath can be tapped; tapping Pip brings the message back.
 - **Pip always points to the next step:** the map opens on the part of the island where the next lesson is. When review is due (4 or more missed sentences and no Summit Review yet today), Pip says "Review first" with a 🔁 Review button (and "or a new lesson"), the map opens on Grammar Peaks, and its sign reads 🔁 Review Dock.
 - **The Notice Board first:** it opens by itself once a day, when the week's job or Pip's homework is waiting, before free roaming.
-- **Grammar Peaks:** zoomed in there, its Summit Review and Spelling Lake buttons float at the top of the map (titles only), since the peaks have no lots to tap.
+- **Grammar Peaks:** the mountain tops (🚩 Summit Review) and the lake (💧 Spelling Lake) are labeled and start their rounds when tapped, on either home screen; from far away the first tap goes to the peaks.
 - **Build after a lesson:** building opens once any lesson, review, homework or week job has been done that day.
 - Settings → **Calm island** stops the moving decorations (in either home).
 

@@ -507,7 +507,15 @@ function peaksSvg(summits = 0, boats = 0) {
     ${wave(ly - 10, lx - 62, lx + 48)}${trees}
     ${BOAT_SPOTS.slice(0, boats).map(([x, y], k) => `<text class="boat" x="${x}" y="${y}" text-anchor="middle" font-size="22">${["⛵", "🛶", "🚣"][k % 3]}</text>`).join("")}
     ${FLAG_SPOTS.slice(0, summits).map(([x, y], k) => `<g class="summit-flag"><path d="M${x} ${y}v-30" stroke="#5a3a22" stroke-width="2.5"/>
-      <path d="M${x} ${y - 30}l18 6-18 6z" fill="${FLAG_COLORS[k % FLAG_COLORS.length]}"/></g>`).join("")}</g>`;
+      <path d="M${x} ${y - 30}l18 6-18 6z" fill="${FLAG_COLORS[k % FLAG_COLORS.length]}"/></g>`).join("")}</g>
+    <g class="peak-signs">
+      <g class="peak-hit" data-peak="summit"><path d="M455 410L560 170L650 130L740 140L835 410z" fill="transparent"/>
+        <rect x="574" y="268" width="156" height="34" rx="17" fill="#fff" opacity=".94"/>
+        <text x="652" y="291" text-anchor="middle" font-size="17" font-weight="700" fill="#2c3e5c">🚩 Summit Review</text><title>Summit Review</title></g>
+      <g class="peak-hit" data-peak="lake"><ellipse cx="${lx}" cy="${ly - 3}" rx="122" ry="42" fill="transparent"/>
+        <rect x="${lx - 74}" y="${ly - 22}" width="148" height="32" rx="16" fill="#fff" opacity=".94"/>
+        <text x="${lx}" y="${ly}" text-anchor="middle" font-size="17" font-weight="700" fill="#2c3e5c">💧 Spelling Lake</text><title>Spelling Lake</title></g>
+    </g>`;
 }
 
 // Scenery scattered over each region's open ground.

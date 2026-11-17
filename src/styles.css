@@ -1036,3 +1036,8 @@ body.island-home.peaks-open #home #map-panel .peak-activities { display: grid; g
 body.island-home.peaks-open #home #map-panel .peak-card { padding: 8px; gap: 6px; min-height: 0; margin: 0; }
 body.island-home.peaks-open #home #map-panel .peak-emoji { font-size: 1.5rem; }
 body.island-home.peaks-open #home #map-panel .peak-card small { font-size: 0.75rem; }
+
+/* The mountain tops and the lake are the buttons now (Summit Review, Spelling Lake), so the floating panel isn't needed. */
+body.island-home.peaks-open #home #map-panel { display: none; }
+.town .peak-hit { cursor: pointer; }
+.town.blueprint .peak-hit rect { fill: #1d3557 !important; }

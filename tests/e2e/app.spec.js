@@ -1326,8 +1326,9 @@ test("Island Home: the island fills the screen; review first, the Notice Board o
   await expect(page.locator("#world-list")).toBeHidden();
   await expect(page.locator("#pip-home")).toContainText("Review first");
   await expect(page.locator(".town")).toContainText("Review Dock");
-  // At the peaks (where review opens), the rounds can be started from the map.
-  await expect(page.locator("#map-panel [data-practice='summit']")).toBeVisible();
+  // At the peaks (where review opens), the mountain tops and the lake start their rounds.
+  await expect(page.locator(".town .peak-hit[data-peak='summit']")).toBeVisible();
+  await expect(page.locator(".town .peak-hit[data-peak='lake']")).toContainText("Spelling Lake");
   // Pip's message tucks away so the map can be tapped, and the Review button stays.
   await page.locator("[data-pip-min]").click();
   await expect(page.locator("#pip-home")).not.toContainText("Review first");
@@ -1388,4 +1389,14 @@ test("Grades 6-8: grown-up Pip (line drawing, no greeting, plain words) @layout"
   await miss(page);
   await expect(page.locator("#feedback .pip-line")).toBeVisible();
   await expect(page.locator("#feedback")).toContainText("Not yet. Hint:");
+});
+
+test("Grammar Peaks on the map: tap the lake to start Spelling Lake @layout", async ({ page }) => {
+  await openApp(page, { players: [player({ grade: 4 })], current: "p1" });
+  await page.evaluate(() => document.querySelector(".town-card").scrollIntoView());
+  const lake = page.locator(".town .peak-hit[data-peak='lake'] rect");
+  await lake.click({ force: true }); // from far away: go to the peaks
+  await page.waitForTimeout(500);
+  await lake.click({ force: true }); // there: start the round
+  await expect(page.locator("#play-skill")).toContainText("Spelling Lake");
 });

@@ -9,9 +9,9 @@ const reduceMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matche
 /**
  * box: the element the SVG is drawn into. buttons: { zIn, zOut, zFit }.
  * onArea(id|null): the district in view changed (null: the whole map). onLot(skillId, level): a lot was tapped.
- * onBoard(): the Town Square's Notice Board was tapped.
+ * onBoard(): the Town Square's Notice Board was tapped. onPeak("summit"|"lake"): a peak or the lake was tapped.
  */
-export function createTownMap(box, buttons, { onArea, onLot, onBoard = () => {} }) {
+export function createTownMap(box, buttons, { onArea, onLot, onBoard = () => {}, onPeak = () => {} }) {
   let svg = null;
   let layout = null;
   let vb = { x: 0, y: 0, w: 1, h: 1 };
@@ -153,6 +153,13 @@ export function createTownMap(box, buttons, { onArea, onLot, onBoard = () => {} 
   });
   function tap(e) {
     const el = document.elementFromPoint(e.clientX, e.clientY);
+    // Grammar Peaks: the mountain tops start Summit Review and the lake Spelling Lake (once you're there).
+    const peak = el?.closest?.(".peak-hit");
+    if (peak) {
+      if (zoomedIn() && area === "peaks") onPeak(peak.dataset.peak);
+      else focus("peaks");
+      return;
+    }
     const district = el?.closest?.(".district");
     if (!district) return;
     const id = district.dataset.area;

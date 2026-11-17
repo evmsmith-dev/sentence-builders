@@ -1714,6 +1714,13 @@ function wire() {
     },
     onLot: openSkillSheet,
     onBoard: openWeek,
+    onPeak: (kind) => {
+      if (kind === "summit" && !summitItems(state.player).length) {
+        $("pip-home").innerHTML = pipSays("Pass a level anywhere on the island first, then climb up here to review it.", settings().pip);
+        return;
+      }
+      startPractice(kind);
+    },
   });
   $("about-back").addEventListener("click", () => {
     if (state.aboutFrom === "settings" && state.player) {
