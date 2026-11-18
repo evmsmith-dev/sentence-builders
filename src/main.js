@@ -344,8 +344,23 @@ function renderHome() {
   }
   // Island Home: Pip's message can be tucked away so it doesn't cover the map; the Play (or Review) button stays.
   const mainPlay = play.match(/^<button[^>]*>.*?<\/button>/)?.[0] || "";
-  if (island && state.pipMin) {
-    $("pip-home").innerHTML = `<button type="button" class="pip-mini" data-pip-expand aria-label="Show Pip's message">${settings().pip ? pipSvg(44) : "💬"}</button>${mainPlay}`;
+  // Shrunk Pip is just his face in the corner (the panel: a wide Review button still covered the levels), with a small
+  // ▶ (or 🔁) badge that does the next step. It stays shrunk for the rest of the day, then opens again.
+  const pipMin = island && player.pipMinOn === localDate(Date.now());
+  if (pipMin) {
+    const open = mainPlay.match(/^<button([^>]*)>/)?.[1] || "";
+    const label = mainPlay.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
+    const badge = mainPlay
+      ? `<button type="button"${open.replace(/\sclass="[^"]*"/, "").replace(/\saria-label="[^"]*"/, "")} class="pip-badge" aria-label="${esc(label)}">${/review/i.test(label) ? "🔁" : "▶"}</button>`
+      : "";
+    const firstTime = !player.pipMinTaught;
+    $("pip-home").innerHTML = `<span class="pip-mini-wrap${state.pipPulsed ? "" : " pulse"}"><button type="button" class="pip-mini" data-pip-expand aria-label="Show Pip's message">${settings().pip ? pipSvg(44) : "💬"}</button>${badge}</span>`
+      + (firstTime ? '<span class="pip-tap-hint" role="status">Tap me anytime!</span>' : "");
+    state.pipPulsed = true;
+    if (firstTime) {
+      savePlayer({ ...player, pipMinTaught: true });
+      setTimeout(() => document.querySelector("#pip-home .pip-tap-hint")?.remove(), 2500);
+    }
   } else {
     const tuck = island ? '<button type="button" class="pip-min" data-pip-min aria-label="Make Pip\'s message smaller">–</button>' : "";
     // From grade 6 there's no greeting: just what's next and the Play button.
@@ -358,7 +373,7 @@ function renderHome() {
         // Grades 6–8 (and Pip turned off): just the big Start button; Start here below says what it is.
         : `<div class="start-only">${go}</div>`;
   }
-  $("pip-home").classList.toggle("mini", Boolean(island && state.pipMin));
+  $("pip-home").classList.toggle("mini", Boolean(pipMin));
   // A building that just went up: the map opens on its district so the rise is seen.
   const risingSkill = state.rising && skillById(state.rising.replace(/-\d$/, ""));
   if (risingSkill) state.mapArea = risingSkill.world;
@@ -2308,8 +2323,8 @@ function wire() {
     };
     if (target.closest("#map-expand, #bp-toggle")) return stay(() => { state.mapOpen = !state.mapOpen; });
     // Shrinking or opening Pip's message leaves the map where it was (it used to zoom back out).
-    if (target.closest("[data-pip-min]")) return stay(() => { state.pipMin = true; }, true);
-    if (target.closest("[data-pip-expand]")) return stay(() => { state.pipMin = false; }, true);
+    if (target.closest("[data-pip-min]")) return stay(() => savePlayer({ ...state.player, pipMinOn: localDate(Date.now()) }), true);
+    if (target.closest("[data-pip-expand]")) return stay(() => savePlayer({ ...state.player, pipMinOn: null }), true);
     if (target.closest("#island-build")) {
       if (!playedToday(state.player)) {
         $("pip-home").innerHTML = pipSays("Build opens after your first lesson today. Do one, then spend your bricks!", true, playButton(state.player));

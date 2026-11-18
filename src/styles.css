@@ -989,7 +989,7 @@ body.island-home #home #pip-home .link { margin-left: 8px; }
 body.island-home #home #pip-home .bubble { position: relative; padding-right: 44px; }
 .pip-min { position: absolute; top: 6px; right: 6px; width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--border);
   background: var(--card); font-size: 1.3rem; font-weight: 700; line-height: 1; color: var(--muted); }
-body.island-home #home #pip-home.mini { left: 8px; right: auto; display: flex; align-items: center; gap: 8px; }
+body.island-home #home #pip-home.mini { left: auto; right: 12px; width: auto; max-width: none; margin: 0; display: flex; align-items: center; gap: 8px; flex-direction: row-reverse; }
 .pip-mini { width: 56px; height: 56px; border-radius: 50%; border: 2px solid var(--border); background: var(--card); box-shadow: var(--shadow); display: grid; place-items: center; padding: 0; }
 .pip-mini .pip { width: 44px; height: 44px; }
 body.island-home #home #pip-home.mini .next-play { margin: 0; box-shadow: var(--shadow); }
@@ -1292,3 +1292,17 @@ body.island-home #home #pip-home { bottom: calc(env(safe-area-inset-bottom) + va
 .today-card .build-card strong + span { white-space: normal; overflow: visible; }
 /* Classic home: the map's + − ⤢ sit in a row along the bottom, over the sea, not over the district names. */
 .town-card:not(.bp-preview) .map-zoom { top: auto; bottom: 8px; flex-direction: row; }
+
+/* Shrunk Pip: just his face, bottom right above the bar, with a small ▶ / 🔁 badge for the next step. */
+.pip-mini-wrap { position: relative; display: inline-block; margin: 0 14px 10px 0; }
+.pip-badge { position: absolute; right: -14px; bottom: -10px; width: 34px; height: 34px; padding: 0; border-radius: 50%; border: 2px solid #fff;
+  background: var(--primary); color: #fff; font-size: 0.95rem; line-height: 1; display: grid; place-items: center; box-shadow: var(--shadow); cursor: pointer; }
+.pip-tap-hint { padding: 6px 10px; border-radius: 12px; background: var(--card); box-shadow: var(--shadow); font-weight: 700; font-size: 0.9rem; white-space: nowrap; }
+.pip-mini-wrap.pulse .pip-badge { animation: pip-pulse 1.2s ease-out 2; }
+@keyframes pip-pulse { 0% { box-shadow: 0 0 0 0 rgba(31, 95, 191, 0.55); } 100% { box-shadow: 0 0 0 14px rgba(31, 95, 191, 0); } }
+@media (prefers-reduced-motion: reduce) { .pip-mini-wrap.pulse .pip-badge { animation: none; } }
+/* Phones turned sideways: the three buttons stay on one row (Build had dropped to a second row). */
+@media (orientation: landscape) and (max-height: 520px) {
+  body.island-home .island-bar { width: min(420px, 46vw); flex-wrap: nowrap; padding: 4px; gap: 4px; }
+  body.island-home .island-bar .island-btn { min-height: 40px; padding: 0 6px; font-size: 0.82rem; white-space: nowrap; }
+}

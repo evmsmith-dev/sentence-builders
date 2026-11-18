@@ -32,8 +32,9 @@ export function createTownMap(box, buttons, { onArea, onLot, onBoard = () => {},
     const w = clampW(v.w);
     const h = w * aspect();
     // Smaller than the map: keep inside it. Bigger: center it, with sea around.
-    // (Zoomed in on Island Home, the view may go a little past the edge, by what the floating buttons cover.)
-    const sl = zoomedIn(w) ? slack : {};
+    // Zoomed in on Island Home, the view may go a little past the map's edge, by what the floating buttons cover, so
+    // a level under the tools row can always be dragged into the open (not only right after tapping a place).
+    const sl = zoomedIn(w) ? edgeSlack(w) : {};
     const x = w >= layout.width ? (layout.width - w) / 2 : Math.min(layout.width - w + (sl.right || 0), Math.max(-(sl.left || 0), v.x));
     const y = h >= layout.height ? (layout.height - h) / 2 : Math.min(layout.height - h + (sl.bottom || 0), Math.max(-(sl.top || 0), v.y));
     vb = { x, y, w, h };
@@ -74,6 +75,14 @@ export function createTownMap(box, buttons, { onArea, onLot, onBoard = () => {},
   // Island Home: the tools row, Pip and the buttons float over the map, so a district is fitted into the part of the
   // screen they leave free (on iPad, the place's name sign sat under the tools row).
   let slack = { top: 0, left: 0 };
+  function edgeSlack(w) {
+    const r = box.getBoundingClientRect();
+    const i = r.width ? insets() : null;
+    if (!i) return slack;
+    const k = w / r.width;
+    return { top: i.top * k, left: i.left * k, right: i.right * k, bottom: i.bottom * k };
+  }
+
   function districtView(id) {
     const b = layout.areas[id];
     const r = box.getBoundingClientRect();

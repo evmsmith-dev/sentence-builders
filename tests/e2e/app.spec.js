@@ -1734,10 +1734,18 @@ test("Island Home: the island fills the screen; review first, the Notice Board o
   // At the peaks (where review opens), the mountain tops and the lake start their rounds.
   await expect(page.locator(".town .peak-hit[data-peak='summit']")).toBeVisible();
   await expect(page.locator(".town .peak-hit[data-peak='lake']")).toContainText("Spelling Lake");
-  // Pip's message tucks away so the map can be tapped, and the Review button stays.
+  // Pip's message tucks away to just his face, bottom right, with a small 🔁 badge that does the review.
   await page.locator("[data-pip-min]").click();
   await expect(page.locator("#pip-home")).not.toContainText("Review first");
-  await expect(page.locator("#pip-home [data-practice='summit']")).toBeVisible();
+  await expect(page.locator("#pip-home .pip-tap-hint")).toHaveText("Tap me anytime!"); // the first time
+  const badge = page.locator("#pip-home .pip-badge[data-practice='summit']");
+  await expect(badge).toHaveText("🔁");
+  const mini = await page.locator("#pip-home").boundingBox();
+  expect(mini.width).toBeLessThan(260);
+  // It stays shrunk after a reload the same day.
+  await page.reload();
+  await expect(page.locator("#pip-home .pip-badge")).toBeVisible();
+  await expect(page.locator("#pip-home .pip-tap-hint")).toHaveCount(0); // only the first time
   await page.locator("[data-pip-expand]").click();
   await expect(page.locator("#pip-home")).toContainText("Review first");
   await expect(page.locator("#island-build")).toHaveClass(/locked/);
