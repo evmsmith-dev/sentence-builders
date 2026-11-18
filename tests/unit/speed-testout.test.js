@@ -37,3 +37,14 @@ test("Speed personal best: more right wins, then less time", () => {
   assert.equal(isBetterSpeed({ right: 8, ms: 80000 }, { right: 8, ms: 85000 }), false);
   assert.equal(isBetterSpeed({ right: 8, ms: 80000 }, { right: 7, ms: 10000 }), false);
 });
+
+test("Mystery prize: once a day, a free everyday decoration that refunds nothing", async () => {
+  const { mysteryPrize, newPlayer, removeDecor } = await import("../../src/lib/progress.js");
+  const now = new Date(2026, 10, 17, 18).getTime();
+  const p = newPlayer({ id: "p1", name: "Ava", avatar: "🦊", grade: 4, now: 0 });
+  const out = mysteryPrize(p, now, () => 0);
+  assert.ok(out && out.player.decor.length === 1 && out.player.decor[0].free);
+  assert.equal(mysteryPrize(out.player, now), null, "only once a day");
+  assert.ok(mysteryPrize(out.player, now + 864e5), "again tomorrow");
+  assert.equal(removeDecor(out.player, out.player.decor[0].uid).bricks, out.player.bricks, "putting it away gives no bricks");
+});

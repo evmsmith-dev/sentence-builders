@@ -6,7 +6,7 @@ import { answerText, parseFlow, spokenText } from "./lib/parse.js";
 import { pickDailyItems, pickLevelItems, pickSpeedItems, pickSpellingItems, pickSummitItems, parseSpeedCode, speedCode } from "./lib/select.js";
 import { recordHomework, recordPractice, buyDecor, moveDecor, removeDecor,
   currentBadges, habitValue, isPassed, isUnlocked, levelStars, localDate, mostMissed, newPlayer, normalizePlayer,
-  passedKeys, recordLevel, skillTier, weekSummary, recordWeekDay, isChallenge, isMastered, openChallenge, streakDays, isBetterSpeed, TESTOUT_PASS} from "./lib/progress.js";
+  passedKeys, recordLevel, skillTier, weekSummary, recordWeekDay, isChallenge, isMastered, openChallenge, streakDays, isBetterSpeed, TESTOUT_PASS, mysteryPrize} from "./lib/progress.js";
 import { loadCurrentId, loadPlayers, saveCurrentId, savePlayers } from "./storage.js";
 import { districtSkills, mapDistricts, mapLayout, parkSvg, pipSays, pipSvg, townSvg } from "./ui/art.js";
 import { createTownMap } from "./ui/townmap.js";
@@ -148,6 +148,12 @@ function nextUp(player) {
   return null;
 }
 
+/** The ▶ Play button for the next level (kept in Pip's bubble whatever he's saying, so it never disappears). */
+function playButton(player) {
+  const next = nextUp(player);
+  return next ? `<button type="button" class="primary next-play" data-next-up="${next.skill.id}-${next.level}">▶ Play</button>` : "";
+}
+
 /* ==================== Island Home (Settings, grades 3–5) ==================== */
 // Following the teaching expert: an option, off by default; Pip always points to the next lesson (or to review
 // that's due first); the Notice Board opens once a day before free roaming; building waits for today's lesson.
@@ -205,7 +211,11 @@ function blueprintSummary(player, rates) {
 
 function islandBarHtml(player) {
   const info = weekMapInfo(player);
-  $("island-board").innerHTML = `<span aria-hidden="true">📌</span> Notice Board${info?.waiting ? ' <span class="island-dot" aria-label="something is waiting">!</span>' : ""}`;
+  const streak = streakDays(player.days, Date.now());
+  const dailyDone = player.dailyOn === localDate(Date.now());
+  $("island-daily").innerHTML = `<span aria-hidden="true">${streak ? "🔥" : "⚡"}</span> ${streak ? `${streak} · ` : ""}Daily 5${dailyDone ? " ✓" : ""}`;
+  $("island-daily").setAttribute("aria-label", `${streak ? `${streak}-day streak. ` : ""}Daily 5${dailyDone ? ", done today" : ""}`);
+  $("island-board").innerHTML = `<span aria-hidden="true">📌</span> Board${info?.waiting ? ' <span class="island-dot" aria-label="something is waiting">!</span>' : ""}`;
   const bricks = player.bricks || 0;
   $("island-build").innerHTML = playedToday(player) ? `<span aria-hidden="true">🧱</span> Build · ${bricks}` : `<span aria-hidden="true">🔒</span> Build`;
   $("island-build").classList.toggle("locked", !playedToday(player));
@@ -249,7 +259,7 @@ function renderHome() {
     ? `Hi ${player.name}! Next up: ${next.skill.name}, level ${next.level}.`
     : `Every building is up, ${player.name}. Go for Gold: score 7 or more on a level 3, on two different days.`;
   // The next level is one tap away: a Play button in Pip's bubble (or on its own when Pip is off).
-  let play = next ? `<button type="button" class="primary next-play" data-next-up="${next.skill.id}-${next.level}">▶ Play</button>` : "";
+  let play = playButton(player);
   if (due) {
     // Island Home: review that's due comes before new levels, at Pip's Review Dock (Summit Review).
     greeting = `Review first, ${player.name}! ${due} sentences you missed are waiting at the Review Dock.`;
@@ -477,7 +487,7 @@ function speedCardHtml(player) {
   const best = player.speedBest;
   return `<button type="button" class="world-card speed-card" data-speed>
     <span class="world-emoji" aria-hidden="true">⏱️</span>
-    <span class="world-text"><span class="world-name">Speed Proofread</span><span class="world-blurb">90 seconds, one try each. Beat your best, or race a friend with a code.</span></span>
+    <span class="world-text"><span class="world-name">Speed Round</span><span class="world-blurb">90 seconds of quick questions, one try each. Beat your best, or race a friend with a code.</span></span>
     <span class="world-meta">${best ? `Best ${best.right} · ${clock(best.ms)}` : "No best yet"}</span></button>`;
 }
 
@@ -511,6 +521,16 @@ function speedTick() {
   if (left <= 0) finishLevel();
 }
 
+/** Everyone on this device who has played a code, best first: the 4th-grade playtester's sibling scoreboard. */
+function speedBoardHtml(code) {
+  const rows = state.players.map((p) => ({ p, run: p.speedRuns?.[code] })).filter((r) => r.run)
+    .sort((a, b) => b.run.right - a.run.right || a.run.ms - b.run.ms);
+  if (!rows.length) return "";
+  return `<div class="speed-board"><h3 class="review-title">Scoreboard for ${code}</h3><ol>${rows.map(({ p, run }) =>
+    `<li${p.id === state.player.id ? ' class="me"' : ""}><span>${p.avatar} ${esc(p.name)}</span><span>${run.right} right · ${clock(run.ms)}</span></li>`).join("")}</ol>
+    ${rows.length === 1 ? '<p class="note">Hand the device to someone else, and they can enter this code from ⏱️ Speed Round.</p>' : ""}</div>`;
+}
+
 function finishSpeed() {
   clearInterval(state.speedTimer);
   const play = state.play;
@@ -521,8 +541,9 @@ function finishSpeed() {
   const run = { right: out.right, ms, on: localDate(now) };
   const best = isBetterSpeed(out.player.speedBest, run);
   if (best) out.player.speedBest = run;
-  savePlayer(out.player);
   const code = speedCode(play.grade, play.seed);
+  if (isBetterSpeed(out.player.speedRuns?.[code], run)) out.player.speedRuns = { ...(out.player.speedRuns || {}), [code]: { right: run.right, ms } };
+  savePlayer(out.player);
   $("progress-fill").style.width = "100%";
   $("progress-text").classList.remove("speed-low");
   $("result-stars").innerHTML = "";
@@ -531,7 +552,7 @@ function finishSpeed() {
   showResultBricks(out, `+${out.bricks} 🧱 bricks`);
   $("result-pip").innerHTML = pipRemark(best ? (prev ? `Old best: ${prev.right} in ${clock(prev.ms)}. Not anymore.` : "First run on the board. Now beat it.")
     : `Your best is still ${out.player.speedBest.right} in ${clock(out.player.speedBest.ms)}.`);
-  $("result-badges").innerHTML = `<p class="speed-share">Race a friend on these exact questions: code <strong class="speed-code-text">${code}</strong></p>`;
+  $("result-badges").innerHTML = `<p class="speed-share">Race a friend on these exact questions: code <strong class="speed-code-text">${code}</strong></p>${speedBoardHtml(code)}`;
   $("result-review").innerHTML = reviewHtml(play);
   state.resultNext = { speed: true };
   $("result-next").textContent = "New round";
@@ -588,13 +609,13 @@ function skillCardHtml(skill) {
     const nextLocked = [2, 3].find((l) => !isUnlocked(player, skill.id, l));
     const trail = unlockMode(player) === "mastery" && nextLocked && isUnlocked(player, skill.id, nextLocked - 1)
       ? (isMastered(player, skill.id, nextLocked - 1)
-        ? "A Challenge Trail is ready here. One new trail opens each day, so it may open tomorrow."
-        : `Challenge Trail: get 7 of 8 on level ${nextLocked - 1} on two different days to open level ${nextLocked}.`) : "";
+        ? "A Challenge Trail is ready here. One opens each day, so it may open tomorrow."
+        : `To open level ${nextLocked}: get 7 or more right on level ${nextLocked - 1}, on two different days.`) : "";
     const gold = tier === 3 ? "Gold! A gold flag flies on its top building." : isPassed(player, skill.id, 3) ? `Gold: 7+ on level 3 on ${GOLD_DAYS} days (${goldDays}/${GOLD_DAYS})` : "";
     return `<section class="skill-card" style="--skill:${skill.color}">
       <div class="skill-head"><h2>${esc(skill.name)}</h2>
         <span class="tier${tier ? "" : " none"}">${skill.badge.emoji} ${tier ? TIER_NAMES[tier - 1] : "No badge yet"}</span></div>
-      ${player.grade >= OLDER_FROM_GRADE ? "" : `<p class="skill-sub">${esc(skill.benchmarks)}</p>`}
+      
       <div class="levels">${levels}</div>
       ${trail ? `<p class="trail-note">${esc(trail)}</p>` : ""}
       ${gold ? `<p class="gold-note">${esc(gold)}</p>` : ""}
@@ -619,7 +640,11 @@ function openTip(skillId, level, { review = false } = {}) {
   $("tip-level").textContent = `${skill.name} · Level ${level} · Grade ${skill.grades[level - 1]}`;
   $("tip-pip").innerHTML = settings().pip ? pipArt(48) : "";
   $("tip-title").textContent = tip.title;
-  $("tip-rule").textContent = tip.rule;
+  // Grades 3–5 (the 4th-grade playtester): the first two sentences, then the rest under "More about this rule".
+  const sentences = tip.rule.split(/(?<=[.!?])\s+(?=[A-Z(“"])/);
+  if (!grownPip() && !review && sentences.length > 2) {
+    $("tip-rule").innerHTML = `${esc(sentences.slice(0, 2).join(" "))}<details class="tip-more"><summary>More about this rule</summary>${esc(sentences.slice(2).join(" "))}</details>`;
+  } else $("tip-rule").textContent = tip.rule;
   $("tip-example").textContent = tip.example;
   $("tip-say").hidden = !canSay();
   openOverlay("tip-overlay");
@@ -696,7 +721,7 @@ function drawPipIntro() {
   const choosing = steps[step] === CHOOSE_HOME;
   // On the grades 6–8 blueprint there's nothing to build with bricks, so the last step is about the plan instead.
   const text = choosing
-    ? "One more thing, {name}: how should your home screen look? Island Home puts the whole island on your screen, with buttons on top. Classic is a page with me, your jobs for today and the island map. Tap one. You can change it any time in ⚙️ Settings."
+    ? "Last thing, {name}: pick how your home screen looks. You can change it later in ⚙️ Settings."
     : older && blueprintOn(state.player) && step === PIP_INTRO.length - 1
       ? "Your island plan shows every skill: levels built, and how often you're right the first time."
       : PIP_INTRO[step][older ? 1 : 0];
@@ -748,7 +773,9 @@ function finishDaily() {
   const now = Date.now();
   const before = streakDays(state.player.days, now);
   const out = recordPractice(state.player, { kind: "daily", results: play.results, now, durationMs: now - play.startedAt });
-  savePlayer(out.player);
+  // A mystery prize once a day: a surprise decoration in the Town Square (not on the grades 6–8 blueprint).
+  const prize = blueprintOn(out.player) ? null : mysteryPrize(out.player, now);
+  savePlayer(prize ? prize.player : out.player);
   const streak = streakDays(out.player.days, now);
   $("progress-fill").style.width = "100%";
   $("result-stars").innerHTML = "";
@@ -758,10 +785,10 @@ function finishDaily() {
   const line = streak > before ? (streak === 1 ? "Day one. Come back tomorrow and it's a streak." : `That's ${streak} days. See you tomorrow.`)
     : "Done for today. The streak already counts today.";
   $("result-pip").innerHTML = pipRemark(line);
-  $("result-badges").innerHTML = "";
+  $("result-badges").innerHTML = prize ? `<p class="mystery-prize"><span class="prize-emoji" aria-hidden="true">🎁</span> Mystery prize: <strong>${prize.item.emoji} ${esc(prize.item.name)}</strong>! It's in the Town Square. Drag it anywhere in Build.</p>` : "";
   $("result-review").innerHTML = reviewHtml(play);
   state.resultNext = { home: true };
-  $("result-next").textContent = "Back to home";
+  $("result-next").textContent = blueprintOn(out.player) ? "Back to home" : "Back to the island";
   $("result-again").hidden = true;
   $("result-rule").hidden = true;
   openOverlay("result-overlay");
@@ -953,7 +980,7 @@ function finishWeekDay() {
   $("result-badges").innerHTML = "";
   $("result-review").innerHTML = reviewHtml(play);
   state.resultNext = next !== null ? { weekDay: next } : { home: true };
-  $("result-next").textContent = next !== null ? `Next: ${WEEK_DAYS[next].name}` : "Back to the island";
+  $("result-next").textContent = next !== null ? `Next: ${WEEK_DAYS[next].name}` : blueprintOn(state.player) ? "Back to home" : "Back to the island";
   $("result-again").hidden = true;
   $("result-rule").hidden = true;
   state.mapArea = "square"; // back on the island, the map shows the Notice Board (and a new banner)
@@ -998,7 +1025,7 @@ function showItem() {
     : play.mode === "summit" ? `⛰️ Summit Review · ${skill.name}`
     : play.mode === "lake" ? "💧 Spelling Lake"
     : play.mode === "daily" ? `⚡ Daily 5 · ${skill.name}`
-    : play.mode === "speed" ? `⏱️ Speed Proofread · ${play.index + 1} of ${play.items.length}`
+    : play.mode === "speed" ? `⏱️ Speed Round · ${play.index + 1} of ${play.items.length}`
     : play.mode === "testout" ? `Test out · ${skill.name}`
     : play.mode === "boss" ? `📝 Pip's final draft: ${item.title}`
     : play.mode === "week" ? `📌 Sentence of the Week · ${WEEK_DAYS[play.day].name}`
@@ -1198,6 +1225,7 @@ function nextItem() {
 
 function finishLevel() {
   const play = state.play;
+  $("next-btn").hidden = true; // it peeked out from behind the results sheet
   if (play.mode === "homework") return finishHomework();
   if (play.mode === "summit" || play.mode === "lake") return finishPractice();
   if (play.mode === "daily") return finishDaily();
@@ -2034,7 +2062,7 @@ function wire() {
     if (buy) return buyDecoration(buy.dataset.buy);
     if (target.closest("#homework-btn")) return startHomework();
     if (target.closest("#week-btn, [data-week]")) return openWeek();
-    if (target.closest("#daily-btn")) return startPractice("daily");
+    if (target.closest("#daily-btn, #island-daily")) return startPractice("daily");
     if (target.closest("[data-speed]")) return openSpeed();
     if (target.closest("#speed-new")) return startSpeed(state.player.grade, 1000 + Math.floor(Math.random() * 9000));
     if (target.closest("#speed-play-code")) {
@@ -2072,7 +2100,7 @@ function wire() {
     if (target.closest("[data-pip-expand]")) return stay(() => { state.pipMin = false; });
     if (target.closest("#island-build")) {
       if (!playedToday(state.player)) {
-        $("pip-home").innerHTML = pipSays("Let's do a lesson first! Then you can build with your bricks.", true, $("pip-home").querySelector(".next-play")?.outerHTML || "");
+        $("pip-home").innerHTML = pipSays("Build opens after your first lesson today. Do one, then spend your bricks!", true, playButton(state.player));
         return;
       }
       state.buildArea = buildAreaFor(state.player, state.mapArea);
@@ -2195,7 +2223,7 @@ function wire() {
     onBoard: openWeek,
     onPeak: (kind) => {
       if (kind === "summit" && !summitItems(state.player).length) {
-        $("pip-home").innerHTML = pipSays("Pass a level anywhere on the island first, then climb up here to review it.", settings().pip);
+        $("pip-home").innerHTML = pipSays("Pass a level anywhere on the island first, then climb up here to review it.", settings().pip, playButton(state.player));
         return;
       }
       startPractice(kind);
@@ -2308,6 +2336,10 @@ function wire() {
       renderWorld(skillById(state.tip.skillId).world);
     }
   });
+  // One way home on the results: when the main button already goes home, the "Back to…" link isn't shown too.
+  new MutationObserver(() => {
+    if (!$("result-overlay").hidden) $("result-town").hidden = Boolean(state.resultNext?.home);
+  }).observe($("result-overlay"), { attributes: true, attributeFilter: ["hidden"] });
   $("result-next").addEventListener("click", () => {
     closeOverlay("result-overlay");
     const next = state.resultNext;

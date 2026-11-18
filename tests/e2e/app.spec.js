@@ -72,6 +72,12 @@ test("play a whole level right: 3 stars, a building and badges", async ({ page }
 test("a miss gives a hint and a second try; a second miss shows the answer", async ({ page }) => {
   await openApp(page, { players: [player()], current: "p1" });
   await startLevel(page, "commas", 2);
+  // A two-choice question shows the answer after one miss, so start on one that gives a second try.
+  const twoChoice = (item) => item.type === "which" && (item.options?.length === 2 || (item.text?.match(/\[([^\]]*)\]/)?.[1].split("|").length === 2));
+  while (twoChoice(await currentItem(page))) {
+    await answer(page);
+    await page.locator("#next-btn").click();
+  }
   const first = await currentItem(page);
   await miss(page);
   await expect(page.locator("#feedback.hint")).toContainText(first.hint);
@@ -81,6 +87,11 @@ test("a miss gives a hint and a second try; a second miss shows the answer", asy
 
   // Find an item that allows two misses (a two-choice item can't be missed twice).
   for (let n = 1; n < 8; n++) {
+    if (twoChoice(await currentItem(page))) {
+      await answer(page);
+      await page.locator("#next-btn").click();
+      continue;
+    }
     await miss(page);
     await expect(page.locator("#feedback.hint")).toBeVisible();
     if (await miss(page)) {
@@ -288,7 +299,7 @@ test("Q&A Flow: a miss gives a step hint; a second miss shows that step and move
   await startLevel(page, "flow", 2, "flow");
   await expect(page.locator("#item .flow-count")).toHaveText("Question 1 of " + (await currentItem(page)).steps.length);
   await miss(page); // wrong word
-  await expect(page.locator("#feedback.hint")).toContainText("Read the question again");
+  await expect(page.locator("#feedback.hint")).toContainText("Not that word. The question is");
   await miss(page); // wrong word again: the step is shown
   await expect(page.locator("#feedback.hint")).toContainText("Here's that one");
   await expect(page.locator("#item .flow-count")).toContainText("Question 2");
@@ -351,7 +362,8 @@ test("Proofread: tapping a fine word hints, a wrong fix twice shows it", async (
   await expect(page.locator("#feedback.hint")).toContainText("Not that one");
   await miss(page);
   await expect(page.locator("#feedback.hint")).toContainText("Here's that one");
-  await expect(page.locator("#item .proof-count")).toContainText("Mistakes fixed: 1 of 3");
+  await expect(page.locator("#item .proof-count")).toContainText(`Mistakes fixed: 1 of ${errorIndexes.size}`);
+  await expect(page.locator("#feedback.hint")).toContainText(":"); // names the kind of slip
   await answer(page);
   await expect(page.locator("#feedback.shown")).toContainText("come back later");
 });
@@ -404,7 +416,8 @@ test("after a round: mistakes listed correctly, Review the rule opens the Tip Ca
     if (!missed) {
       const item = await currentItem(page);
       await miss(page);
-      if (await miss(page)) missed = item;
+      if (await page.locator("#next-btn").isVisible()) missed = item; // two choices: one miss shows the answer
+      else if (await miss(page)) missed = item;
       else await answer(page);
     } else {
       await answer(page);
@@ -1360,9 +1373,9 @@ test("Q&A Flow answers show each word over its label and the pattern in words", 
   await expect(page.locator(".flow-sum").first()).toContainText("Pattern 6: subject noun, transitive verb, direct object, object complement noun");
 });
 
-test("Speed Proofread: a code plays the same questions, one try each, and keeps a personal best", async ({ page }) => {
+test("Speed Round: a code plays the same questions, one try each, and keeps a personal best", async ({ page }) => {
   await openApp(page, { players: [player({ grade: 7 })], current: "p1" });
-  await page.locator("[data-speed]").click();
+  await page.locator(".speed-card").click();
   await page.locator("#speed-code").fill("nope");
   await page.locator("#speed-play-code").click();
   await expect(page.locator("#speed-code-msg")).toContainText("G7-4821");
@@ -1380,9 +1393,9 @@ test("Speed Proofread: a code plays the same questions, one try each, and keeps 
   await expect(page.locator("#result-title")).toHaveText("New personal best!");
   await expect(page.locator(".speed-code-text")).toHaveText("G7-4821");
   await page.locator("#result-town").click();
-  await expect(page.locator("[data-speed] .world-meta")).toContainText("Best 11");
+  await expect(page.locator(".speed-card .world-meta")).toContainText("Best 11");
   // The same code again starts with the same question.
-  await page.locator("[data-speed]").click();
+  await page.locator(".speed-card").click();
   await page.locator("#speed-code").fill("G7-4821");
   await page.locator("#speed-play-code").click();
   expect((await currentItem(page)).id).toBe(first.id);
@@ -1411,6 +1424,40 @@ test("Blueprint rewards: an APPROVED stamp for a beaten final draft and earned p
   await expect(page.locator('#bp-style option[value="night"]')).toHaveAttribute("disabled", "");
   await page.locator("#bp-style").selectOption("graphite");
   await expect(page.locator(".town.blueprint")).toHaveClass(/bp-style-graphite/);
+});
+
+test("Island Home: Daily 5 and Speed are on the island, Play stays at the peaks, and the Daily 5 gives a mystery prize", async ({ page }) => {
+  await page.clock.setFixedTime(new Date(2026, 10, 17, 18));
+  // The Notice Board was already opened today, so it doesn't open itself over the island.
+  await openApp(page, { players: [{ ...player({ grade: 4, settings: { islandHome: true } }), boardSeenOn: "2026-11-17" }], current: "p1" });
+  await expect(page.locator("#island-daily")).toContainText("Daily 5");
+  await expect(page.locator(".home-tools [data-speed]")).toBeVisible();
+  // Tapping the locked Build or the peaks before any level keeps ▶ Play in Pip's bubble.
+  await page.locator("#island-build").click();
+  await expect(page.locator("#pip-home .next-play")).toBeVisible();
+  await page.locator("#island-daily").click();
+  for (let n = 0; n < 5; n++) {
+    await answer(page);
+    await page.locator("#next-btn").click();
+  }
+  await expect(page.locator(".mystery-prize")).toContainText("Mystery prize");
+  await expect(page.locator("#result-town")).toBeHidden(); // one way back, not two
+  await page.locator("#result-next").click();
+  await expect(page.locator("#island-daily")).toContainText("✓");
+});
+
+test("Speed Round scoreboard: everyone on the device who played a code", async ({ page }) => {
+  const asher = { ...player({ id: "p2", name: "Asher", grade: 4 }), speedRuns: { "G4-1234": { right: 7, ms: 90000 } } };
+  await openApp(page, { players: [player({ grade: 4 }), asher], current: "p1" });
+  await page.locator(".speed-card").click();
+  await page.locator("#speed-code").fill("G4-1234");
+  await page.locator("#speed-play-code").click();
+  for (let n = 0; n < 12; n++) {
+    await answer(page);
+    await page.locator("#next-btn").click();
+  }
+  await expect(page.locator(".speed-board li")).toHaveCount(2);
+  await expect(page.locator(".speed-board li").first()).toContainText("Ava");
 });
 
 test("Sentence of the Week: Today with Pip card, the Notice Board, a day's job, and the week's banner @layout", async ({ page }) => {
@@ -1461,7 +1508,7 @@ test("Sentence of the Week: Friday finishes the week with bonus bricks and a ban
   await page.locator("#next-btn").click();
   await expect(page.locator("#result-title")).toHaveText("Week complete! 🎏");
   await expect(page.locator("#result-bricks")).toBeHidden(); // grades 6-8 blueprint: bricks count quietly, nothing to spend them on
-  await page.locator("#result-town").click();
+  await page.locator("#result-next").click(); // the week's done: the main button goes home
   await expect(page.locator("#week-btn")).toContainText("Week done!");
   await expect(page.locator(".town .banners path")).toHaveCount(2); // the string and one pennant
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("sentenceBuilders_players"))[0]);
@@ -1492,7 +1539,7 @@ test("Island Home: the island fills the screen; review first, the Notice Board o
   await expect(page.locator("#pip-home")).toContainText("Review first");
   await expect(page.locator("#island-build")).toHaveClass(/locked/);
   await page.locator("#island-build").click();
-  await expect(page.locator("#pip-home")).toContainText("lesson first");
+  await expect(page.locator("#pip-home")).toContainText("first lesson today");
   // Back home again: the board doesn't open twice in a day.
   await page.locator("#settings-btn").click();
   await page.locator("#settings-overlay [data-close]").click();
@@ -1609,7 +1656,7 @@ test("Challenge Trails (grades 3-5): mastery opens the next level with Pip's new
   await expect(level2).toContainText("⭐ Challenge");
   await expect(level2).not.toContainText("Grade");
   await expect(page.locator('.level-btn[data-skill="commas"][data-level="3"]')).toBeDisabled();
-  await expect(page.locator(".skill-card").first()).toContainText("7 of 8 on level 2 on two different days");
+  await expect(page.locator(".skill-card").first()).toContainText("get 7 or more right on level 2, on two different days");
   // Missed sentences waiting: review comes first.
   await page.evaluate(() => {
     const players = JSON.parse(localStorage.getItem("sentenceBuilders_players"));

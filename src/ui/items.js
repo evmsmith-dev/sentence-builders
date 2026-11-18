@@ -761,7 +761,7 @@ function renderFlow(root, item, { hint, complete, onChange, onTap, showLabels, n
         draw();
         onChange();
       } else {
-        miss(`Read the question again: "${st.question}" Which word answers it?`, stepText(), showStep);
+        miss(`Not that word. The question is "${st.question}"${LABELS[st.label]?.find ? ` Tip: ${LABELS[st.label].find}.` : " Which word answers it?"}`, stepText(), showStep);
         draw();
       }
     } else if (chip && st.kind === "step" && phase === "label") {
@@ -948,7 +948,7 @@ function renderProofread(root, item, { hint, complete, onChange, onTap }) {
       } else {
         misses += 1;
         fixMisses[open] = (fixMisses[open] || 0) + 1;
-        picks.push(`"${e.prefix + fix.dataset.pfix + e.suffix}" for "${e.fixed}"`);
+        picks.push(`"${e.prefix + fix.dataset.pfix + e.suffix}" instead of "${e.fixed}"`);
         if (fixMisses[open] >= 2) {
           revealed = true;
           fixed[open] = "shown";

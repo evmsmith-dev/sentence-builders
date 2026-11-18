@@ -402,7 +402,7 @@ span.proof-word.shown { background: var(--shown-soft); color: var(--shown); font
 .review-row.missed { border-left-color: var(--shown); background: var(--shown-soft); }
 .review-status { font-size: 0.8rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; }
 .review-answer { font-size: 1.1rem; font-weight: 700; }
-.review-chosen { color: var(--muted); text-decoration: line-through; text-decoration-color: #c62828; }
+.review-chosen { color: #b3261e; font-size: 0.95rem; }
 .review-rule { font-size: 0.95rem; color: var(--muted); }
 .jump { justify-content: flex-start; margin: 8px 0 4px; }
 .rule-world { scroll-margin-top: 12px; }
@@ -1145,3 +1145,21 @@ body.island-home.peaks-open #home #map-panel { display: none; }
 .bp-style-pick select { font-size: 0.85rem; padding: 2px 4px; border-radius: 6px; border: 1px solid var(--border); max-width: 11rem; }
 .bp-head { flex-wrap: wrap; }
 .bp-style-pick { flex-basis: 100%; }
+
+/* Island Home: the tools sit in one short row under the top bar (a column covered the place's sign), with Speed
+   added; the bar under Pip has the Daily 5 (and streak), the Notice Board and Build. */
+.tool-btn.island-only { display: none; }
+body.island-home #home .home-tools .tool-btn.island-only { display: flex; }
+body.island-home #home .home-tools { flex-direction: row; width: auto; right: 64px; flex-wrap: nowrap; }
+body.island-home #home .home-tools .tool-btn { flex: 0 1 auto; min-width: 58px; padding: 4px 6px; }
+.island-btn { padding: 0 6px; white-space: nowrap; font-size: 0.95rem; }
+@media (max-width: 420px) { .island-btn { font-size: 0.88rem; } }
+.tip-more { margin-top: 6px; font-size: 0.95rem; }
+.tip-more summary { color: var(--primary); cursor: pointer; font-weight: 600; }
+
+/* Daily 5 mystery prize and the Speed Round scoreboard */
+.mystery-prize { margin: 0.5rem 0; padding: 0.6rem 0.8rem; border-radius: 12px; background: #fff4d6; border: 2px dashed #e0a43a; font-size: 1.05rem; }
+.prize-emoji { font-size: 1.4rem; }
+.speed-board ol { margin: 0.2rem 0 0.4rem; padding-left: 1.4rem; }
+.speed-board li { display: flex; justify-content: space-between; gap: 0.5rem; padding: 2px 0; }
+.speed-board li.me { font-weight: 700; }

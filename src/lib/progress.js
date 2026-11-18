@@ -35,6 +35,8 @@ export function newPlayer({ id, name, avatar, grade, now }) {
     bosses: {}, // Pip's final drafts beaten (grades 6–8): { world id: the day }
     speedBest: null, // Speed Proofread personal best: { right, ms, on }
     reviewed: {}, // grade 3–5 levels tested out of (grades 6–8): { world id: the day }
+    prizeOn: null, // the last day a Daily 5 mystery prize was given
+    speedRuns: {}, // Speed Round best per code, for the scoreboard on this device: { "G7-4821": { right, ms } }
   };
 }
 
@@ -290,7 +292,7 @@ export function removeDecor(player, uid) {
   const next = normalizePlayer(player);
   const placed = next.decor.find((d) => d.uid === uid);
   if (!placed) return next;
-  const cost = DECOR.find((d) => d.id === placed.id)?.cost || 0;
+  const cost = placed.free ? 0 : DECOR.find((d) => d.id === placed.id)?.cost || 0; // a mystery prize was free
   return { ...next, bricks: next.bricks + cost, decor: next.decor.filter((d) => d.uid !== uid) };
 }
 
@@ -379,3 +381,18 @@ export const isBetterSpeed = (best, run) => !best || run.right > best.right || (
 
 /** Test-out: right on the first try, out of the questions asked, needed to mark a world's grade 3–5 levels reviewed. */
 export const TESTOUT_PASS = 7;
+
+/**
+ * The Daily 5 mystery prize (the 4th-grade playtester's idea): once a day, a surprise everyday decoration, free,
+ * placed in the Town Square. It's marked free, so putting it away doesn't turn it into bricks.
+ */
+export function mysteryPrize(player, now, random = Math.random) {
+  const next = normalizePlayer(player);
+  const date = localDate(now);
+  if (next.prizeOn === date) return null;
+  const pool = DECOR.filter((d) => !d.area);
+  const item = pool[Math.floor(random() * pool.length)];
+  const spot = defaultSpot(item);
+  const uid = `d${Math.max(0, ...next.decor.map((d) => Number(String(d.uid).slice(1)) || 0)) + 1}`;
+  return { item, player: { ...next, prizeOn: date, decor: [...next.decor, { uid, id: item.id, area: "square", free: true, ...clampSpot(spot.x, spot.y) }] } };
+}

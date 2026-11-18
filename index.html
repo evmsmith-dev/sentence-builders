@@ -62,9 +62,11 @@
       <button type="button" id="rules-btn" class="tool-btn"><span class="tool-emoji" aria-hidden="true">📘</span><span>Rule Book</span></button>
       <button type="button" id="badges-btn" class="tool-btn"></button>
       <button type="button" class="tool-btn" data-progress><span class="tool-emoji" aria-hidden="true">📊</span><span>Progress</span></button>
+      <button type="button" class="tool-btn island-only" data-speed><span class="tool-emoji" aria-hidden="true">⏱️</span><span>Speed</span></button>
     </nav>
     <!-- Island Home (Settings, grades 3–5): the island fills the screen, with these two buttons under Pip. -->
-    <nav id="island-bar" class="island-bar" aria-label="Notice Board and building" hidden>
+    <nav id="island-bar" class="island-bar" aria-label="Daily 5, Notice Board and building" hidden>
+      <button type="button" id="island-daily" class="island-btn"></button>
       <button type="button" id="island-board" class="island-btn" data-week></button>
       <button type="button" id="island-build" class="island-btn"></button>
     </nav>
@@ -249,7 +251,7 @@
     <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="tip-title">
       <div class="tip-head"><span id="tip-pip" class="tip-pip"></span><span><span class="tip-by">Pip's tip</span><p id="tip-level" class="eyebrow"></p></span></div>
       <h2 id="tip-title"></h2>
-      <p id="tip-rule" class="tip-rule"></p>
+      <div id="tip-rule" class="tip-rule"></div>
       <p class="eyebrow">Example</p>
       <p id="tip-example" class="tip-example"></p>
       <div class="sheet-actions">
@@ -422,13 +424,13 @@
 
   <div id="speed-overlay" class="overlay" hidden>
     <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="speed-title">
-      <h2 id="speed-title">⏱️ Speed Proofread</h2>
+      <h2 id="speed-title">⏱️ Speed Round</h2>
       <p>90 seconds, up to 12 quick questions, one try each. More right wins; ties go to the faster time.</p>
       <p id="speed-best" class="note"></p>
       <button type="button" id="speed-new" class="primary big">Start a round</button>
       <h3 class="review-title">Race a friend</h3>
-      <p class="note">Every round ends with a code. Enter a friend's code to play the exact same questions.</p>
-      <div class="speed-code-row"><input id="speed-code" type="text" inputmode="text" autocomplete="off" placeholder="G7-4821" aria-label="Challenge code"><button type="button" id="speed-play-code" class="secondary">Play code</button></div>
+      <p class="note">Every round ends with a code like G7-4821. Type a friend's code to play the exact same questions.</p>
+      <div class="speed-code-row"><input id="speed-code" type="text" inputmode="text" autocomplete="off" placeholder="Friend's code" aria-label="Challenge code"><button type="button" id="speed-play-code" class="secondary">Play code</button></div>
       <p id="speed-code-msg" class="note" role="status"></p>
       <div class="sheet-actions"><button type="button" class="secondary" data-close>Close</button></div>
     </div>
