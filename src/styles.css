@@ -988,10 +988,8 @@ body.island-home #home #pip-home.mini .next-play { margin: 0; box-shadow: var(--
 
 /* ---------- The blueprint (grades 6–8): the island as an architect's plan ---------- */
 body.blueprint-home #home { display: flex; flex-direction: column; }
-body.blueprint-home #home > .top { order: 0; } body.blueprint-home #home > #pip-home { order: 1; }
-body.blueprint-home #home > .home-tools { order: 2; } body.blueprint-home #home > .today-card { order: 3; }
-body.blueprint-home #home > .section-title { order: 4; margin-top: 4px; } body.blueprint-home #home > #world-list { order: 5; }
-body.blueprint-home #home > .town-card { order: 6; margin-top: 16px; }
+/* The order is the HTML order now (Start here first, the plan last), so no reordering is needed. */
+body.blueprint-home #home > .town-card { margin-top: 16px; }
 .bp-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin: -4px 0 8px; }
 .bp-summary { margin: 0; color: var(--muted); font-size: 0.92rem; }
 .bp-head .link { white-space: nowrap; }
@@ -1163,3 +1161,22 @@ body.island-home #home .home-tools .tool-btn { flex: 0 1 auto; min-width: 58px; 
 .speed-board ol { margin: 0.2rem 0 0.4rem; padding-left: 1.4rem; }
 .speed-board li { display: flex; justify-content: space-between; gap: 0.5rem; padding: 2px 0; }
 .speed-board li.me { font-weight: 700; }
+
+/* ---------- Start here, More to do, All worlds ---------- */
+.start-card .today-title { font-size: 1rem; color: var(--text); }
+.level-row { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; color: var(--text); }
+.level-row strong { color: var(--primary); font-size: 1.05rem; }
+.step-num { flex: none; display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--primary); color: var(--primary); font-weight: 800; font-size: 0.9rem; }
+.step-num.done { background: #2e7d32; border-color: #2e7d32; color: #fff; }
+.start-go { font-size: 1.1rem; }
+details.fold { margin: 0 0 12px; border: 2px solid var(--border); border-radius: var(--radius); background: var(--card); }
+details.fold > summary { list-style: none; cursor: pointer; padding: 12px 14px; font-weight: 700; font-size: 1.05rem; display: flex; align-items: center; justify-content: space-between; min-height: 48px; }
+details.fold > summary::-webkit-details-marker { display: none; }
+details.fold > summary::after { content: "▾"; color: var(--muted); transition: transform 0.15s; }
+details.fold[open] > summary::after { transform: rotate(180deg); }
+details.fold > :not(summary) { margin: 0 10px 10px; }
+details.fold .more-card { box-shadow: none; }
+body.island-home #home details.fold { display: none; }
+.step-num.optional { border-style: dashed; color: var(--muted); border-color: var(--muted); }
+.opt-tag { font-size: 0.75rem; font-weight: 600; color: var(--muted); border: 1px solid var(--border); border-radius: 8px; padding: 0 6px; margin-left: 4px; vertical-align: middle; }
+.daily-row strong { color: #b4441b; }

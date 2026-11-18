@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
-import { answer, currentItem, diagramIt, markUp, miss, openApp, player, startLevel } from "./helpers.js";
+import { answer, currentItem, diagramIt, markUp, miss, openApp, openBoard, openMore, openWorld, player, startLevel } from "./helpers.js";
 import { parseFlow } from "../../src/lib/parse.js";
 import { markupTasks } from "../../src/lib/markup.js";
 import { buildDiagram } from "../../src/lib/diagram.js";
@@ -36,13 +36,13 @@ test("first visit: make a player and land in the town", { tag: "@layout" }, asyn
 
 test("a 4th grader starts with grade 4 levels open; a 7th grader can review everything", async ({ page }) => {
   await openApp(page, { players: [player(), player({ id: "p2", name: "Max", avatar: "🐯", grade: 7 })], current: "p1" });
-  await page.locator('[data-world="port"]').click();
+  await openWorld(page, "port");
   await expect(page.locator('.level-btn[data-skill="commas"][data-level="2"]')).toBeEnabled();
   await expect(page.locator('.level-btn[data-skill="commas"][data-level="3"]')).toBeDisabled();
   await page.locator("#world .back").click();
   await page.locator("#who-btn").click();
   await page.locator('[data-player="p2"]').click();
-  await page.locator('[data-world="port"]').click();
+  await openWorld(page, "port");
   await expect(page.locator('.level-btn[data-skill="apostrophes"][data-level="3"]')).toBeEnabled();
 });
 
@@ -321,7 +321,7 @@ test("Revision Ridge: closed below grade 6, open for a 7th grader with grades 6-
   await page.locator("#who-btn").click();
   await page.locator('[data-player="p2"]').click();
   await expect(page.locator(".town")).toHaveAttribute("aria-label", /of 78 buildings/);
-  await page.locator('[data-world="desk"]').click();
+  await openWorld(page, "desk");
   await expect(page.locator('.level-btn[data-skill="case"][data-level="2"]')).toBeEnabled();
   await expect(page.locator('.level-btn[data-skill="case"][data-level="3"]')).toBeDisabled();
   for (const skill of ["aside", "types", "modifiers"]) {
@@ -371,7 +371,7 @@ test("Proofread: tapping a fine word hints, a wrong fix twice shows it", async (
 test("Advanced Q&A Flow: hidden below grade 6; questions, commands and patterns 6-7 for older players", async ({ page }) => {
   test.slow(); // plays several whole levels: extra time for slower CI machines
   await openApp(page, { players: [player({ grade: 4 }), player({ id: "p2", name: "Max", avatar: "🐯", grade: 8 })], current: "p1" });
-  await page.locator('[data-world="flow"]').click();
+  await openWorld(page, "flow");
   await expect(page.locator('.level-btn[data-skill="flow2"]')).toHaveCount(0);
   await page.locator("#world .back").click();
   await page.locator("#who-btn").click();
@@ -480,7 +480,7 @@ test("Rule Book: tabs for each world, folding skills, locked rules by title, lab
   await expect(page.locator("#home")).toBeVisible();
 
   // From a world: opens on that world's tab; back returns to the world.
-  await page.locator('[data-world="studio"]').click();
+  await openWorld(page, "studio");
   await page.locator("#world-rules").click();
   await expect(page.locator('[data-rules-tab="studio"]')).toHaveAttribute("aria-selected", "true");
   await expect(page.locator("#rules-studio")).toBeVisible();
@@ -514,12 +514,12 @@ test("the phone's Back button closes popups and steps back screens instead of le
   const back = () => page.goBack({ waitUntil: "commit" }).catch(() => {});
 
   // World → Back → home
-  await page.locator('[data-world="port"]').click();
+  await openWorld(page, "port");
   await back();
   await expect(page.locator("#home")).toBeVisible();
 
   // Tip Card → Back → closed, still on the world screen
-  await page.locator('[data-world="port"]').click();
+  await openWorld(page, "port");
   await page.locator('.level-btn[data-skill="commas"][data-level="1"]').click();
   await expect(page.locator("#tip-overlay")).toBeVisible();
   await back();
@@ -681,7 +681,7 @@ test("Mark it up: wrong marks give a hint, then the answer; right marks finish t
 
 test("Sentence Diagramming: opens in grade 5, mark up then diagram, wrong words go back", async ({ page }) => {
   await openApp(page, { players: [player({ grade: 4 }), player({ id: "p2", name: "Max", avatar: "🐯", grade: 5 })], current: "p1" });
-  await page.locator('[data-world="flow"]').click();
+  await openWorld(page, "flow");
   await expect(page.locator('.level-btn[data-skill="diagram"]')).toHaveCount(0);
   await page.goBack();
   await page.locator("#who-btn").click();
@@ -853,6 +853,7 @@ test("bricks: a level pays bricks, the new building rises, and the Build screen 
   await expect(page.locator("#town .rise")).toHaveCount(1);
   await expect(page.locator("#build-btn")).toContainText("Build on the island · 35 🧱");
   await expect(page.locator("#build-btn")).toContainText("ready");
+  await openMore(page);
   await page.locator("#build-btn").click();
   await expect(page.locator("#build")).toBeVisible();
   await expect(page.locator('[data-buy="ferris"]')).toBeDisabled();
@@ -889,7 +890,7 @@ test("bricks: a level pays bricks, the new building rises, and the Build screen 
 
 test("Pip's homework: grade three paragraphs, earn bricks, and it doesn't count as a level", async ({ page }) => {
   await openApp(page, { players: [player({ grade: 7, settings: { showIsland: true } })], current: "p1" });
-  await page.locator("#week-btn").click(); // the Notice Board: Pip's "Tutor needed" flyer
+  await openBoard(page); // the Notice Board: Pip's "Tutor needed" flyer
   await page.locator("#homework-btn").click();
   await expect(page.locator("#play-skill")).toContainText("📝 Pip's homework:");
   await expect(page.locator("#progress-text")).toHaveText("1 of 3");
@@ -913,7 +914,7 @@ test("Pip's homework: grade three paragraphs, earn bricks, and it doesn't count 
   expect(Object.keys(saved[0].levels)).toHaveLength(0);
   // Today's homework is checked, so the board's flyer says thanks (and more is still there).
   await expect(page.locator("#week-btn")).not.toContainText("Pip needs a tutor");
-  await page.locator("#week-btn").click();
+  await openBoard(page);
   await expect(page.locator("#homework-btn")).toHaveText("Check more homework");
 });
 
@@ -1117,9 +1118,10 @@ test("Word Parts, Word Choice and Figurative Language: play a level of each, and
   await expect(page.locator(".search-hit").first()).toContainText("Greek");
 });
 
-test("Grammar Peaks has a card in the Worlds list that opens it on the map", { tag: "@layout" }, async ({ page }) => {
+test("Grammar Peaks has a card under More to do that opens it on the map", { tag: "@layout" }, async ({ page }) => {
   await openApp(page, { players: [{ ...player(), summits: 2, lakeWins: 1 }], current: "p1" });
-  const card = page.locator("#world-list [data-peaks]");
+  await openMore(page);
+  const card = page.locator("#extra-list [data-peaks]");
   await expect(card).toContainText("Grammar Peaks");
   await expect(card).toContainText("🚩 2 · ⛵ 1");
   await card.click();
@@ -1286,10 +1288,10 @@ test("Grades 6–8: Next up starts at middle-school work, Revision Ridge leads, 
   await openApp(page, { players: [player({ grade: 7 })], current: "p1" });
   await expect(page.locator("#pip-home")).toContainText("Next up: Pronoun case and clarity, level 1");
   await expect(page.locator("#world-list .world-card").first()).toHaveAttribute("data-world", "desk");
-  await page.locator('[data-world="desk"]').click();
+  await openWorld(page, "desk");
   await expect(page.locator(".skill-sub")).toHaveCount(0);
   await page.locator('[data-go="home"]').first().click();
-  await page.locator('[data-world="flow"]').click();
+  await openWorld(page, "flow");
   await expect(page.locator(".skill-card h2").first()).toHaveText("Advanced Q&A Flow");
 });
 
@@ -1344,16 +1346,15 @@ test("Daily 5 and the streak: a row on the Today card, five quick questions, the
 test("Pip's final draft: locked until two levels pass in the world, then beaten on the first try", async ({ page }) => {
   const passed = { stars: 2, best: 7, plays: 1 };
   await openApp(page, { players: [player({ grade: 7, levels: { "case-1": passed } })], current: "p1" });
-  await page.locator('[data-world="desk"]').click();
-  await expect(page.locator(".boss-card")).toContainText("Pass 1 more level");
-  await expect(page.locator("[data-boss]")).toBeDisabled();
+  await openWorld(page, "desk");
+  await expect(page.locator(".boss-card")).toHaveCount(0); // it shows up once it opens
   await page.evaluate(() => {
     const players = JSON.parse(localStorage.getItem("sentenceBuilders_players"));
     players[0].levels["case-2"] = { stars: 2, best: 7, plays: 1 };
     localStorage.setItem("sentenceBuilders_players", JSON.stringify(players));
   });
   await page.reload();
-  await page.locator('[data-world="desk"]').click();
+  await openWorld(page, "desk");
   await page.locator('[data-boss="desk"]').click();
   await expect(page.locator("#play-skill")).toContainText("Pip's final draft");
   await answer(page);
@@ -1374,7 +1375,8 @@ test("Q&A Flow answers show each word over its label and the pattern in words", 
 });
 
 test("Speed Round: a code plays the same questions, one try each, and keeps a personal best", async ({ page }) => {
-  await openApp(page, { players: [player({ grade: 7 })], current: "p1" });
+  await openApp(page, { players: [player({ grade: 7, levels: { "case-1": { stars: 2, best: 7, plays: 1 } } })], current: "p1" });
+  await openMore(page); // Speed Round shows up once a level is passed
   await page.locator(".speed-card").click();
   await page.locator("#speed-code").fill("nope");
   await page.locator("#speed-play-code").click();
@@ -1393,6 +1395,7 @@ test("Speed Round: a code plays the same questions, one try each, and keeps a pe
   await expect(page.locator("#result-title")).toHaveText("New personal best!");
   await expect(page.locator(".speed-code-text")).toHaveText("G7-4821");
   await page.locator("#result-town").click();
+  await openMore(page);
   await expect(page.locator(".speed-card .world-meta")).toContainText("Best 11");
   // The same code again starts with the same question.
   await page.locator(".speed-card").click();
@@ -1403,7 +1406,7 @@ test("Speed Round: a code plays the same questions, one try each, and keeps a pe
 
 test("Test out: 7 of 8 marks a world's grade 3–5 levels Reviewed and Next up skips them", async ({ page }) => {
   await openApp(page, { players: [player({ grade: 7 })], current: "p1" });
-  await page.locator('[data-world="port"]').click();
+  await openWorld(page, "port");
   await expect(page.locator(".testout-card")).toContainText("Test out");
   await page.locator('[data-testout="port"]').click();
   for (let n = 0; n < 8; n++) {
@@ -1412,7 +1415,7 @@ test("Test out: 7 of 8 marks a world's grade 3–5 levels Reviewed and Next up s
   }
   await expect(page.locator("#result-title")).toHaveText("Tested out");
   await page.locator("#result-next").click();
-  await page.locator('[data-world="port"]').click();
+  await openWorld(page, "port");
   await expect(page.locator(".testout-card")).toContainText("reviewed");
   await expect(page.locator('.level-btn[data-skill="commas"][data-level="1"]')).toContainText("Reviewed");
 });
@@ -1448,7 +1451,8 @@ test("Island Home: Daily 5 and Speed are on the island, Play stays at the peaks,
 
 test("Speed Round scoreboard: everyone on the device who played a code", async ({ page }) => {
   const asher = { ...player({ id: "p2", name: "Asher", grade: 4 }), speedRuns: { "G4-1234": { right: 7, ms: 90000 } } };
-  await openApp(page, { players: [player({ grade: 4 }), asher], current: "p1" });
+  await openApp(page, { players: [player({ grade: 4, levels: { "commas-1": { stars: 2, best: 7, plays: 1 } } }), asher], current: "p1" });
+  await openMore(page);
   await page.locator(".speed-card").click();
   await page.locator("#speed-code").fill("G4-1234");
   await page.locator("#speed-play-code").click();
@@ -1460,6 +1464,40 @@ test("Speed Round scoreboard: everyone on the device who played a code", async (
   await expect(page.locator(".speed-board li").first()).toContainText("Ava");
 });
 
+test("Start here: one Start button does today's next step; the rest waits under More to do and All worlds", async ({ page }) => {
+  await openApp(page, { players: [player({ grade: 4 })], current: "p1" });
+  await expect(page.locator(".start-card")).toContainText("Start here");
+  await expect(page.locator("#level-btn")).toContainText("Commas and colons, level 1");
+  await expect(page.locator("#week-btn")).toBeHidden(); // day one: no Notice Board step yet
+  await expect(page.locator("#all-worlds")).not.toHaveAttribute("open", "");
+  await expect(page.locator("#more-todo")).not.toHaveAttribute("open", "");
+  await expect(page.locator(".speed-card")).toHaveCount(0); // Speed Round shows up after a level is passed
+  // Step 1: the next level.
+  await page.locator("#pip-home [data-start]").click();
+  await expect(page.locator("#tip-overlay")).toBeVisible();
+  await page.locator("#tip-start").click();
+  for (let n = 0; n < 8; n++) {
+    await answer(page);
+    await page.locator("#next-btn").click();
+  }
+  await page.locator("#result-town").click();
+  // Step 2: the Daily 5.
+  await expect(page.locator("#level-btn .step-num.done")).toBeVisible();
+  await expect(page.locator("#pip-home [data-start]")).toHaveText("▶ Start: Daily 5");
+  await page.locator("#pip-home [data-start]").click();
+  await expect(page.locator("#play-skill")).toContainText("Daily 5");
+});
+
+test("Grades 6–8 worlds: grade 3–5 skills wait under Earlier grades", async ({ page }) => {
+  await openApp(page, { players: [player({ grade: 7 })], current: "p1" });
+  await openWorld(page, "flow");
+  await expect(page.locator("#skill-list > .skill-card h2").first()).toHaveText("Advanced Q&A Flow");
+  await expect(page.locator(".earlier-grades")).toContainText("Earlier grades");
+  await expect(page.locator('.level-btn[data-skill="flow"][data-level="1"]')).toBeHidden();
+  await page.locator(".earlier-grades summary").click();
+  await expect(page.locator('.level-btn[data-skill="flow"][data-level="1"]')).toBeVisible();
+});
+
 test("Sentence of the Week: Today with Pip card, the Notice Board, a day's job, and the week's banner @layout", async ({ page }) => {
   await page.clock.setFixedTime(new Date(2026, 10, 18, 10)); // a Wednesday
   await openApp(page, { players: [player({ grade: 4 })], current: "p1" });
@@ -1468,7 +1506,7 @@ test("Sentence of the Week: Today with Pip card, the Notice Board, a day's job, 
   await expect(page.locator("#week-btn")).toContainText("Monday: Parts of speech");
   await expect(page.locator(".town .notice-board")).toBeAttached();
   await expect(page.locator(".town .board-alert")).toBeAttached();
-  await page.locator("#week-btn").click();
+  await openBoard(page);
   await expect(page.locator("#week-overlay")).toBeVisible();
   await expect(page.locator("#week-overlay [data-week-day]")).toHaveCount(3); // Monday to Wednesday are open
   await expect(page.locator("#week-overlay")).toContainText("Opens Thursday");
@@ -1488,7 +1526,7 @@ test("Sentence of the Week: a week already started keeps its sentence when new w
   await page.clock.setFixedTime(new Date(2026, 10, 18, 10)); // a Wednesday; the week's key is that Monday
   const week = { key: "2026-11-16", id: "week-3-4-05", done: [0] };
   await openApp(page, { players: [{ ...player({ grade: 4 }), week }], current: "p1" });
-  await page.locator("#week-btn").click();
+  await openBoard(page);
   await expect(page.locator("#week-overlay")).toContainText("puppy is chewing on my shoe");
   await expect(page.locator('#week-overlay [data-week-day]')).toHaveCount(2); // Monday is done; Tuesday and Wednesday wait
 });
@@ -1502,7 +1540,7 @@ test("Sentence of the Week: Friday finishes the week with bonus bricks and a ban
   p.bricks = 0;
   await openApp(page, { players: [p], current: "p1" });
   await expect(page.locator("#week-btn")).toContainText("Friday: Join and write it");
-  await page.locator("#week-btn").click();
+  await openBoard(page);
   await page.locator('#week-overlay [data-week-day="4"]').click();
   await answer(page);
   await page.locator("#next-btn").click();
@@ -1563,10 +1601,10 @@ test("Grades 6-8: the island as a blueprint, Worlds first, no brick shop; Settin
   await expect(page.locator("body")).toHaveClass(/blueprint-home/);
   await expect(page.locator("#town-title")).toHaveText("📐 Island plan");
   await expect(page.locator("#bp-summary")).toContainText("1 of 78 levels built · 1 skill under 75%");
-  await expect(page.locator("#today-card, .today-card")).not.toContainText("brick");
+  await expect(page.locator(".start-card")).not.toContainText("brick");
   await expect(page.locator("#build-btn")).toBeHidden();
   // The Worlds list comes before the plan.
-  const listY = (await page.locator("#world-list").boundingBox()).y;
+  const listY = (await page.locator("#all-worlds").boundingBox()).y;
   const mapY = (await page.locator("#home .town-card").boundingBox()).y;
   expect(listY).toBeLessThan(mapY);
   await expect(page.locator(".town.blueprint")).toBeAttached();
@@ -1579,6 +1617,7 @@ test("Grades 6-8: the island as a blueprint, Worlds first, no brick shop; Settin
   await page.locator("#set-showisland").check();
   await page.locator("#settings-overlay [data-close]").click();
   await expect(page.locator("body")).not.toHaveClass(/blueprint-home/);
+  await openMore(page);
   await expect(page.locator("#build-btn")).toBeVisible();
 });
 
@@ -1650,7 +1689,7 @@ test("Challenge Trails (grades 3-5): mastery opens the next level with Pip's new
   const p = player({ grade: 3, levels: { "commas-1": { best: 8, stars: 3, plays: 2, strongOn: ["2026-11-01", "2026-11-02"] } } });
   await openApp(page, { players: [p], current: "p1" });
   await expect(page.locator("#pip-home")).toContainText("opened a Challenge Trail: Commas and colons, level 2");
-  await page.locator('[data-world="port"]').click();
+  await openWorld(page, "port");
   const level2 = page.locator('.level-btn[data-skill="commas"][data-level="2"]');
   await expect(level2).toBeEnabled();
   await expect(level2).toContainText("⭐ Challenge");
@@ -1664,7 +1703,7 @@ test("Challenge Trails (grades 3-5): mastery opens the next level with Pip's new
     localStorage.setItem("sentenceBuilders_players", JSON.stringify(players));
   });
   await page.reload();
-  await page.locator('[data-world="port"]').click();
+  await openWorld(page, "port");
   await page.locator('.level-btn[data-skill="commas"][data-level="2"]').click();
   await expect(page.locator("#gate-overlay")).toBeVisible();
   await expect(page.locator("#gate-overlay")).toContainText("Review first");
@@ -1681,7 +1720,7 @@ test("Challenge Trails (grades 3-5): mastery opens the next level with Pip's new
   await expect(page.locator("#set-unlock")).toBeVisible();
   await page.locator("#set-unlock").selectOption("grade");
   await page.locator("#settings-overlay [data-close]").click();
-  await page.locator('[data-world="port"]').click();
+  await openWorld(page, "port");
   await expect(page.locator('.level-btn[data-skill="commas"][data-level="2"]')).toBeDisabled();
 });
 

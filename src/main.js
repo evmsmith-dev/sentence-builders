@@ -154,6 +154,42 @@ function playButton(player) {
   return next ? `<button type="button" class="primary next-play" data-next-up="${next.skill.id}-${next.level}">▶ Play</button>` : "";
 }
 
+/* ==================== Start here ==================== */
+// A high-school senior found the home screen "too much, hard to know where to start". So the home screen opens on
+// today's steps, in order: (1) the next level, (2) the Daily 5, (3) the Notice Board, optional and only once the
+// player has a day behind them. One big Start button does the first step not done yet; everything else waits
+// under "More to do" and "All worlds", which start closed.
+
+const today = () => localDate(Date.now());
+/** The Notice Board step shows once the player has played on a day before today (not on day one). */
+const boardStepShown = (player) => (player.days || []).some((d) => d !== today());
+
+function startSteps(player) {
+  const next = nextUp(player);
+  return [
+    next && { id: "level", done: player.lessonOn === today() },
+    { id: "daily", done: player.dailyOn === today() },
+  ].filter(Boolean);
+}
+
+/** The big Start button: the first step not done, or another level once both are done. */
+function startButton(player) {
+  const next = nextUp(player);
+  const step = startSteps(player).find((st) => !st.done);
+  if (step?.id === "daily") return '<button type="button" class="primary next-play start-go" data-start="daily">▶ Start: Daily 5</button>';
+  if (!next) return '<button type="button" class="primary next-play start-go" data-start="daily">▶ Start: Daily 5</button>';
+  return `<button type="button" class="primary next-play start-go" data-start="level">${step ? "▶ Start" : "▶ Keep going"}</button>`;
+}
+
+function levelRowHtml(player) {
+  const next = nextUp(player);
+  if (!next) return "";
+  const done = player.lessonOn === today();
+  return `<span class="step-num${done ? " done" : ""}" aria-hidden="true">${done ? "✓" : "1"}</span>
+    <span><strong>${done ? "Lesson done today" : "Your next level"}</strong><span>${esc(next.skill.name)}, level ${next.level}</span></span>
+    <span class="today-chev" aria-hidden="true">›</span>`;
+}
+
 /* ==================== Island Home (Settings, grades 3–5) ==================== */
 // Following the teaching expert: an option, off by default; Pip always points to the next lesson (or to review
 // that's due first); the Notice Board opens once a day before free roaming; building waits for today's lesson.
@@ -265,6 +301,7 @@ function renderHome() {
     greeting = `Review first, ${player.name}! ${due} sentences you missed are waiting at the Review Dock.`;
     play = `<button type="button" class="primary next-play" data-practice="summit">🔁 Review</button>${next ? `<button type="button" class="link" data-next-up="${next.skill.id}-${next.level}">or a new lesson</button>` : ""}`;
   }
+  let trailNews = false; // Pip's news about a new Challenge Trail keeps its own ▶ Try it button
   if (state.newChallenge) {
     const [id, lv] = [state.newChallenge.replace(/-\d$/, ""), Number(state.newChallenge.slice(-1))];
     const skill = skillById(id);
@@ -274,6 +311,7 @@ function renderHome() {
     greeting = `${why}, so you opened a Challenge Trail: ${skill.name}, level ${lv}! ⭐`;
     play = `<button type="button" class="primary next-play" data-next-up="${id}-${lv}">▶ Try it</button>`;
     state.newChallenge = null;
+    trailNews = true;
   }
   if (island) {
     islandBarHtml(player);
@@ -287,9 +325,11 @@ function renderHome() {
   } else {
     const tuck = island ? '<button type="button" class="pip-min" data-pip-min aria-label="Make Pip\'s message smaller">–</button>' : "";
     // From grade 6 there's no greeting: just what's next and the Play button.
+    // Classic home: the big Start button (today's next step); Island Home keeps ▶ Play for the next level.
+    const go = island || due || trailNews ? play : startButton(player);
     $("pip-home").innerHTML = settings().pip && !grownPip()
-      ? pipSays(greeting, true, play + tuck)
-      : next || due ? `<p class="next-line">${due ? esc(greeting) : `Next up: ${esc(next.skill.name)}, level ${next.level}.`} ${play}${tuck}</p>` : "";
+      ? pipSays(greeting, true, go + tuck)
+      : `<p class="next-line">${due ? esc(greeting) : next ? `Next up: ${esc(next.skill.name)}, level ${next.level}.` : ""} ${go}${tuck}</p>`;
   }
   $("pip-home").classList.toggle("mini", Boolean(island && state.pipMin));
   // A building that just went up: the map opens on its district so the rise is seen.
@@ -308,9 +348,16 @@ function renderHome() {
   $("badges-btn").innerHTML = `<span class="tool-emoji" aria-hidden="true">🏅</span><span>Badges ${earned}/${total}</span>`;
   $("build-btn").innerHTML = buildCardHtml(player);
   $("week-btn").innerHTML = weekCardHtml(player);
+  $("week-btn").hidden = !boardStepShown(player);
+  $("level-btn").innerHTML = levelRowHtml(player);
+  $("level-btn").hidden = !nextUp(player);
+  const nx = nextUp(player);
+  if (nx) $("level-btn").dataset.nextUp = `${nx.skill.id}-${nx.level}`;
   $("daily-btn").innerHTML = dailyCardHtml(player);
   $("daily-btn").classList.toggle("done", player.dailyOn === localDate(Date.now()));
-  $("today-title").textContent = grownPip() ? "Today" : "Today with Pip";
+  $("today-title").textContent = "Start here";
+  // "More to do" and "All worlds" start closed and stay as the player left them while the app is open.
+  for (const fold of document.querySelectorAll("#home details.fold")) fold.open = Boolean(state.folds?.[fold.dataset.fold]);
   // A player who hasn't met Pip yet gets his welcome once (unless Pip is turned off).
   if (!player.introSeen && settings().pip && !topOverlay()) setTimeout(() => !$("home").hidden && !topOverlay() && openPipIntro(), 250);
   // Island Home: the Notice Board opens by itself once a day, when something is waiting, before free roaming.
@@ -334,9 +381,13 @@ function renderHome() {
       <span class="world-emoji" aria-hidden="true">⛰️</span>
       <span class="world-text"><span class="world-name">Grammar Peaks</span><span class="world-blurb">Summit Review of the skills you've passed, and Spelling Lake</span></span>
       <span class="world-meta">🚩 ${player.summits || 0} · ⛵ ${player.lakeWins || 0}</span></button>`;
-  const firstLocked = worldsFor(player).findIndex((w) => !worldOpenFor(w, player));
-  worldCards.splice(firstLocked < 0 ? worldCards.length : firstLocked, 0, peaksCard, speedCardHtml(player));
+  // Grammar Peaks and Speed Round go under "More to do"; Speed Round shows up once a level is passed.
   $("world-list").innerHTML = worldCards.join("");
+  const boardCard = `<button type="button" class="world-card board-card" data-week>
+      <span class="world-emoji" aria-hidden="true">📌</span>
+      <span class="world-text"><span class="world-name">Notice Board</span><span class="world-blurb">Sentence of the Week and Pip's homework</span></span>
+      <span class="world-meta">${weekMapInfo(player)?.waiting ? "!" : ""}</span></button>`;
+  $("extra-list").innerHTML = (boardStepShown(player) ? "" : boardCard) + peaksCard + (passedKeys(player).length ? speedCardHtml(player) : "");
   showScreen("home");
 }
 
@@ -347,7 +398,15 @@ function renderWorld(worldId) {
   const world = WORLDS.find((w) => w.id === worldId);
   const player = state.player;
   $("world-title").textContent = `${world.emoji} ${world.name}`;
-  $("skill-list").innerHTML = bossCardHtml(worldId, player) + testoutCardHtml(worldId, player) + skillsInWorldOrdered(worldId, player).map((skill) => skillCardHtml(skill)).join("")
+  // Grades 6–8: their own grades' skills first; skills that are all grade 3–5 wait under "Earlier grades".
+  const skills = skillsInWorldOrdered(worldId, player);
+  const older = player.grade >= OLDER_FROM_GRADE;
+  const mine = older ? skills.filter((sk) => sk.grades.some((g) => g >= OLDER_FROM_GRADE)) : skills;
+  const earlier = older ? skills.filter((sk) => !mine.includes(sk)) : [];
+  const earlierHtml = !earlier.length ? "" : mine.length
+    ? `<details class="fold earlier-grades"${state.earlierOpen?.[worldId] ? " open" : ""} data-earlier="${worldId}"><summary>Earlier grades (${earlier.length} skill${earlier.length === 1 ? "" : "s"}, grades 3–5)</summary>${earlier.map((skill) => skillCardHtml(skill)).join("")}</details>`
+    : earlier.map((skill) => skillCardHtml(skill)).join("");
+  $("skill-list").innerHTML = bossCardHtml(worldId, player) + testoutCardHtml(worldId, player) + mine.map((skill) => skillCardHtml(skill)).join("") + earlierHtml
     + (world.comingSoon ? `<p class="note coming-soon">${esc(world.comingSoon)}</p>` : "");
   showScreen("world");
 }
@@ -365,6 +424,7 @@ function bossCardHtml(worldId, player) {
   if (!boss || player.grade < OLDER_FROM_GRADE) return "";
   const passed = levelsPassedIn(worldId, player);
   const open = passed >= BOSS_AFTER_LEVELS;
+  if (!open) return ""; // shown once it opens, so a new player's screens stay short
   const beaten = Boolean(player.bosses?.[worldId]);
   const line = !open ? `Pass ${BOSS_AFTER_LEVELS - passed} more level${BOSS_AFTER_LEVELS - passed === 1 ? "" : "s"} here to unlock it.`
     : beaten ? "Beaten. Pip has been quiet about it." : "Pip hid six or seven mistakes in it. Catch every one on the first try to beat it.";
@@ -581,11 +641,11 @@ function dailyItems(player) {
 function dailyCardHtml(player) {
   const streak = streakDays(player.days, Date.now());
   const done = player.dailyOn === localDate(Date.now());
-  const streakText = streak ? `${streak}-day streak` : "Start a streak";
-  const line = done ? "Daily 5 done. Back tomorrow." : "Daily 5 · 2 minutes";
-  return `<span class="homework-emoji" aria-hidden="true">${streak ? "🔥" : "⚡"}</span>
-    <span><strong>${esc(streakText)}</strong><span>${esc(line)}</span></span>
-    <span class="today-chev" aria-hidden="true">${done ? "✓" : "›"}</span>`;
+  const streakText = streak ? `🔥 ${streak}-day streak` : "Starts a streak";
+  const step = nextUp(player) ? "2" : "1"; // step 2 on Start here (step 1 when every level is built)
+  return `<span class="step-num${done ? " done" : ""}" aria-hidden="true">${done ? "✓" : step}</span>
+    <span><strong>${done ? "Daily 5 done" : "Daily 5 · 2 minutes"}</strong><span>${esc(done ? `${streakText} · back tomorrow` : streakText)}</span></span>
+    <span class="today-chev" aria-hidden="true">›</span>`;
 }
 
 /** One skill's card: badge, benchmarks and its three level buttons (on the world screen and from the town map). */
@@ -900,8 +960,8 @@ function weekCardHtml(player) {
   const weekLine = !week ? "" : progress.done.length === 5 ? "Week done!"
     : next !== null ? `${WEEK_DAYS[next].name}: ${WEEK_DAYS[next].task}` : `Done today. ${WEEK_DAYS[Math.min(todayIndex(now) + 1, 4)].name} is next.`;
   const line = [weekLine, homeworkWaiting(player) ? "Pip needs a tutor" : ""].filter(Boolean).join(" · ") || "All done for today";
-  return `<span class="homework-emoji" aria-hidden="true">📌</span>
-    <span><strong>Notice Board</strong><span>${esc(line)}</span></span>
+  return `<span class="step-num optional" aria-hidden="true">${nextUp(player) ? "3" : "2"}</span>
+    <span><strong>Notice Board <span class="opt-tag">optional</span></strong><span>${esc(line)}</span></span>
     ${week ? weekDotsHtml(progress, now) : ""}<span class="today-chev" aria-hidden="true">›</span>`;
 }
 
@@ -1237,6 +1297,7 @@ function finishLevel() {
   const starsBefore = state.player.levels[`${play.skillId}-${play.level}`]?.stars ?? 0;
   const now = Date.now();
   const out = recordLevel(state.player, { skill: play.skillId, level: play.level, results: play.results, now, durationMs: now - play.startedAt });
+  out.player.lessonOn = localDate(now); // the Start here card's first step is done for today
   savePlayer(out.player);
   const s = settings();
   const skill = skillById(play.skillId);
@@ -2088,6 +2149,13 @@ function wire() {
     }
     const practice = target.closest("[data-practice]");
     if (practice) return startPractice(practice.dataset.practice);
+    const start = target.closest("[data-start]");
+    if (start) {
+      if (start.dataset.start === "daily") return startPractice("daily");
+      const next = nextUp(state.player);
+      if (next) return openTip(next.skill.id, next.level);
+      return startPractice("daily");
+    }
     const nextUpBtn = target.closest("[data-next-up]");
     if (nextUpBtn) {
       const [skillId, level] = nextUpBtn.dataset.nextUp.split(/-(?=\d$)/);
@@ -2213,6 +2281,13 @@ function wire() {
   });
   // About goes back where it came from: Settings (over the town) or Who's playing?
   $("build-back").addEventListener("click", () => renderHome());
+  $("skill-list").addEventListener("toggle", (event) => {
+    const d = event.target.closest?.("[data-earlier]");
+    if (d) state.earlierOpen = { ...(state.earlierOpen || {}), [d.dataset.earlier]: d.open };
+  }, true);
+  for (const fold of document.querySelectorAll("#home details.fold")) {
+    fold.addEventListener("toggle", () => { state.folds = { ...(state.folds || {}), [fold.dataset.fold]: fold.open }; });
+  }
   initBuildDragging();
   state.map = createTownMap($("town"), { zIn: $("map-in"), zOut: $("map-out"), zFit: $("map-fit") }, {
     onArea: (area) => {

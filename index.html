@@ -58,6 +58,14 @@
       <button type="button" id="settings-btn" class="icon-btn" aria-label="Settings">⚙️</button>
     </header>
     <div id="pip-home" class="pip-row"></div>
+    <!-- Start here (following a high-school senior's "too much, where do I start?"): today's steps in order,
+         with one big Start button above that always does the next one. -->
+    <section class="today-card start-card" aria-labelledby="today-title">
+      <h2 id="today-title" class="today-title">Start here</h2>
+      <button type="button" id="level-btn" class="today-row level-row"></button>
+      <button type="button" id="daily-btn" class="today-row daily-row"></button>
+      <button type="button" id="week-btn" class="today-row week-row"></button>
+    </section>
     <nav class="home-tools" aria-label="Rule Book, badges and progress">
       <button type="button" id="rules-btn" class="tool-btn"><span class="tool-emoji" aria-hidden="true">📘</span><span>Rule Book</span></button>
       <button type="button" id="badges-btn" class="tool-btn"></button>
@@ -70,12 +78,15 @@
       <button type="button" id="island-board" class="island-btn" data-week></button>
       <button type="button" id="island-build" class="island-btn"></button>
     </nav>
-    <section class="today-card" aria-labelledby="today-title">
-      <h2 id="today-title" class="today-title">Today with Pip</h2>
-      <button type="button" id="daily-btn" class="today-row daily-row"></button>
-      <button type="button" id="week-btn" class="today-row week-row"></button>
-      <button type="button" id="build-btn" class="today-row build-card"></button>
-    </section>
+    <details id="more-todo" class="fold" data-fold="more">
+      <summary>More to do</summary>
+      <div class="today-card more-card"><button type="button" id="build-btn" class="today-row build-card"></button></div>
+      <div id="extra-list" class="world-list"></div>
+    </details>
+    <details id="all-worlds" class="fold" data-fold="worlds">
+      <summary>All worlds</summary>
+      <div id="world-list" class="world-list"></div>
+    </details>
     <section class="card town-card" aria-labelledby="town-title">
       <h2 id="town-title">🏝️ Grammar Island</h2>
       <div id="bp-head" class="bp-head" hidden>
@@ -94,8 +105,6 @@
       </div>
       <div id="map-panel" class="map-panel" aria-live="polite"></div>
     </section>
-    <h2 class="section-title">Worlds</h2>
-    <div id="world-list" class="world-list"></div>
   </main>
 
   <!-- ==================== A world: skills and levels ==================== -->

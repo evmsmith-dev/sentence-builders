@@ -55,9 +55,26 @@ export function player({ id = "p1", name = "Ava", avatar = "🦊", grade = 4, le
   };
 }
 
-export async function startLevel(page, skill, level, world = "port") {
+/** Opens a world from the home screen ("All worlds" starts closed). */
+export async function openWorld(page, world) {
+  const fold = page.locator("#all-worlds");
+  if (!(await fold.evaluate((d) => d.open))) await fold.locator("summary").click();
   await page.locator(`[data-world="${world}"]`).click();
-  await page.locator(`.level-btn[data-skill="${skill}"][data-level="${level}"]`).click();
+}
+
+/** Opens "More to do" on the home screen (Grammar Peaks, Speed Round, Build). */
+export async function openMore(page) {
+  const fold = page.locator("#more-todo");
+  if (!(await fold.evaluate((d) => d.open))) await fold.locator("summary").click();
+}
+
+export async function startLevel(page, skill, level, world = "port") {
+  await openWorld(page, world);
+  const btn = page.locator(`.level-btn[data-skill="${skill}"][data-level="${level}"]`);
+  // Grades 6–8: grade 3–5 skills wait under "Earlier grades".
+  const earlier = page.locator(".earlier-grades");
+  if (!(await btn.isVisible()) && (await earlier.count()) && !(await earlier.evaluate((d) => d.open))) await earlier.locator("summary").click();
+  await btn.click();
   await expect(page.locator("#tip-overlay")).toBeVisible();
   await page.locator("#tip-start").click();
   await expect(page.locator("#play")).toBeVisible();
@@ -346,4 +363,11 @@ export async function diagramIt(page, item, { markupOnly = false } = {}) {
     await page.locator(`#item [data-slot="${slot.id}"]`).click();
   }
   if (!guided) await page.locator("#item [data-dg-check]").click();
+}
+
+/** Opens the Notice Board: the Start here row once there's a day behind the player, else from "More to do". */
+export async function openBoard(page) {
+  if (await page.locator("#week-btn").isVisible()) return page.locator("#week-btn").click();
+  await openMore(page);
+  await page.locator("#extra-list [data-week]").click();
 }

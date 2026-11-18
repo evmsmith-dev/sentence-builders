@@ -374,7 +374,7 @@ export const AVATARS = AVATAR_GROUPS.flatMap((g) => g.avatars);
  * {name} is the player's name.
  */
 export const PIP_INTRO = [
-  ["Hi, {name}! I'm Pip, the foreman of Grammar Island. Let's build it together!", "Hi, {name}. I'm Pip. I run the building crew on Grammar Island."],
+  ["Hi, {name}! I'm Pip, the foreman of Grammar Island. Let's build it together! Tap ▶ Start on the home screen and I'll pick what's next.", "Hi, {name}. I'm Pip. I run the building crew on Grammar Island. Tap ▶ Start and I'll pick what's next."],
   ["Every level you pass puts up a building on the island. Tap a place on the map to see its path of levels.", "Each level you pass adds a building. Tap a place on the map to see its path of levels."],
   ["Before each level I'll show you the rule, and if something's tricky I'll give you a hint.", "I'll show the rule before each level and give a hint when an answer misses."],
   ["Right answers earn 🧱 bricks. Spend them to decorate the island any way you like.", "Right answers earn 🧱 bricks for decorating the island."],
