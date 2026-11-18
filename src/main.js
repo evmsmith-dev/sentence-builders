@@ -8,7 +8,7 @@ import { recordHomework, recordPractice, buyDecor, moveDecor, removeDecor, resiz
   currentBadges, habitValue, isPassed, isUnlocked, levelStars, localDate, mostMissed, newPlayer, normalizePlayer,
   passedKeys, recordLevel, skillTier, weekSummary, recordWeekDay, isChallenge, isMastered, openChallenge, streakDays, isBetterSpeed, mysteryPrize} from "./lib/progress.js";
 import { loadCurrentId, loadPlayers, saveCurrentId, savePlayers } from "./storage.js";
-import { buildAreaSvg, districtSkills, mapDistricts, mapLayout, parkSvg, pipSays, pipSvg, townSvg } from "./ui/art.js";
+import { buildAreaSvg, buildKeepOut, clearSpot, nudgeSpot, districtSkills, mapDistricts, mapLayout, parkSvg, pipSays, pipSvg, townSvg } from "./ui/art.js";
 import { createTownMap } from "./ui/townmap.js";
 import { $, closeOverlay, esc, initBackButton, openOverlay, pick, showScreen, topOverlay } from "./ui/dom.js";
 import { renderItem } from "./ui/items.js";
@@ -312,9 +312,9 @@ function renderHome() {
   // Pip says what the big button does (the 4th grader: "Next up: Dialogue" over "▶ Start: Daily 5").
   const firstStep = startSteps(player).find((st) => !st.done);
   let greeting = !next
-    ? `Every building is up, ${player.name}. Go for Gold: score 7 or more on a level 3, on two different days.`
-    : island || !firstStep || firstStep.id === "level"
-      ? (firstStep || island ? `Hi ${player.name}! Next up: ${next.skill.name}, level ${next.level}.` : `That's today ✓, ${player.name}! Want more? Next up: ${next.skill.name}, level ${next.level}.`)
+    ? `Every building is up, ${player.name}. Go for Gold: 7 or more out of 8 on a level 3, on two different days.`
+    : !firstStep || firstStep.id === "level"
+      ? (firstStep ? `Hi ${player.name}! Next up: ${next.skill.name}, level ${next.level}.` : `That's today ✓, ${player.name}! Want more? Next up: ${next.skill.name}, level ${next.level}.`)
       : `Hi ${player.name}! Warm up with the Daily 5, then ${next.skill.name}, level ${next.level}.`;
   // The next level is one tap away: a Play button in Pip's bubble (or on its own when Pip is off).
   let play = playButton(player);
@@ -329,12 +329,14 @@ function renderHome() {
     const skill = skillById(id);
     const why = lv === 1
       ? `You mastered ${CHALLENGE_PREREQS[id].map((p) => skillById(p).name).join(" and ")}`
-      : `You got ${skill.name} level ${lv - 1} right on two different days`;
+      : `You got 7 or more out of 8 on ${skill.name} level ${lv - 1} on two different days`;
     greeting = `${why}, so you opened a Challenge Trail: ${skill.name}, level ${lv}! ⭐`;
     play = `<button type="button" class="primary next-play" data-next-up="${id}-${lv}">▶ Try it</button>`;
     state.newChallenge = null;
     trailNews = true;
   }
+  // Island Home goes in the same order as Classic: the Daily 5 warm-up first once there's something to review.
+  if (island && !due && !trailNews) play = startButton(player);
   if (island) {
     islandBarHtml(player);
     // Open on the next lesson's part of the island (or the peaks, when review comes first).
@@ -347,12 +349,12 @@ function renderHome() {
   } else {
     const tuck = island ? '<button type="button" class="pip-min" data-pip-min aria-label="Make Pip\'s message smaller">–</button>' : "";
     // From grade 6 there's no greeting: just what's next and the Play button.
-    // Classic home: the big Start button (today's next step); Island Home keeps ▶ Play for the next level.
-    const go = island || due || trailNews ? play : startButton(player);
+    // The big Start button (today's next step), unless review or a new Challenge Trail comes first.
+    const go = due || trailNews ? play : startButton(player);
     $("pip-home").innerHTML = settings().pip && !grownPip()
       ? pipSays(greeting, true, go + tuck)
       : island || due || trailNews
-        ? `<p class="next-line">${due ? esc(greeting) : next ? `Next up: ${esc(next.skill.name)}, level ${next.level}.` : ""} ${go}${tuck}</p>`
+        ? `<p class="next-line">${esc(greeting.replace(/^Hi [^!]*! /, ""))} ${go}${tuck}</p>`
         // Grades 6–8 (and Pip turned off): just the big Start button; Start here below says what it is.
         : `<div class="start-only">${go}</div>`;
   }
@@ -437,7 +439,7 @@ function renderWorld(worldId) {
     : earlier.map((skill) => skillCardHtml(skill, { trailNote: false })).join("");
   // The Challenge Trail rule is said once at the top, not under every skill (the senior's "printed five times").
   const trailTop = unlockMode(player) === "mastery" && skills.some((sk) => [2, 3].some((l) => !isUnlocked(player, sk.id, l)))
-    ? '<p class="trail-note trail-top">⭐ Challenge Trails: get 7 or more right on a level, on two different days, to open the next one.</p>' : "";
+    ? '<p class="trail-note trail-top">⭐ Challenge Trails: get 7 or more out of 8 on a level, on two different days, to open the next one.</p>' : "";
   $("skill-list").innerHTML = bossCardHtml(worldId, player) + testoutCardHtml(worldId, player) + trailTop + mine.map((skill) => skillCardHtml(skill, { trailNote: false })).join("") + earlierHtml
     + (world.comingSoon ? `<p class="note coming-soon">${esc(world.comingSoon)}</p>` : "");
   showScreen("world");
@@ -676,14 +678,19 @@ const DAILY_COUNT = 5;
 // then), and only fills up from open levels at the player's grade when there aren't enough yet.
 function dailyItems(player) {
   const g = player.grade;
-  const known = visibleSkills(player).flatMap((skill) => [1, 2, 3]
-    .filter((l) => isPassed(player, skill.id, l) || isReviewed(player, skill, l)).map((l) => `${skill.id}-${l}`));
+  const levels = (test) => visibleSkills(player).flatMap((skill) => [1, 2, 3].filter((l) => test(skill, l)).map((l) => `${skill.id}-${l}`));
+  const passed = levels((skill, l) => isPassed(player, skill.id, l));
+  // Levels tested out of (Reviewed, never played): at most one of those a day, so the Daily 5 stays about what they're working on.
+  const tested = levels((skill, l) => !isPassed(player, skill.id, l) && isReviewed(player, skill, l));
+  const known = [...passed, ...tested];
+  const opts = { items: state.content.items, stats: player.items };
   // At most 3 from one skill, so a player who has passed only commas gets some variety too.
-  const picked = pickDailyItems({ items: state.content.items, levelKeys: known, stats: player.items, count: DAILY_COUNT, perSkill: 3 });
+  const picked = pickDailyItems({ ...opts, levelKeys: passed, count: DAILY_COUNT, perSkill: 3 });
+  if (picked.length < DAILY_COUNT && tested.length) picked.push(...pickDailyItems({ ...opts, levelKeys: tested, count: 1 }));
   if (picked.length >= DAILY_COUNT) return picked;
-  const fill = visibleSkills(player).flatMap((skill) => [1, 2, 3]
-    .filter((l) => skill.grades[l - 1] <= g && skill.grades[l - 1] >= g - 1 && isUnlocked(player, skill.id, l) && !known.includes(`${skill.id}-${l}`)).map((l) => `${skill.id}-${l}`));
-  const more = pickDailyItems({ items: state.content.items, levelKeys: fill, stats: player.items, count: DAILY_COUNT - picked.length });
+  const fill = levels((skill, l) => skill.grades[l - 1] <= g && skill.grades[l - 1] >= g - 1 && isUnlocked(player, skill.id, l) && !known.includes(`${skill.id}-${l}`));
+  // Fill-up questions (levels not played yet) spread out too: at most 2 from a skill.
+  const more = pickDailyItems({ ...opts, levelKeys: fill, count: DAILY_COUNT - picked.length, perSkill: 2 });
   return [...picked, ...more];
 }
 
@@ -723,10 +730,10 @@ function skillCardHtml(skill, { trailNote = true } = {}) {
     const trail = unlockMode(player) === "mastery" && nextLocked && isUnlocked(player, skill.id, nextLocked - 1)
       ? (isMastered(player, skill.id, nextLocked - 1)
         ? `Level ${nextLocked} is ready to open. One Challenge Trail opens each day, so it may open tomorrow.`
-        : `⭐ Level ${nextLocked} is a Challenge Trail. It opens after you score 7 or more on level ${nextLocked - 1} on two different days: ${Math.min(strongDays.length, GOLD_DAYS)} of ${GOLD_DAYS} done.${doneToday ? " Come back tomorrow for the next one." : ""}`) : "";
+        : `⭐ Level ${nextLocked} is a Challenge Trail. It opens after 7 or more out of 8 on level ${nextLocked - 1} on two different days (${Math.min(strongDays.length, GOLD_DAYS)} of ${GOLD_DAYS} days).${doneToday ? " Do it again tomorrow to open it." : ""}`) : "";
     // Gold only once level 3 is open, so it never points at a locked level.
     const gold = tier === 3 ? "Gold! A gold flag flies on its top building."
-      : isPassed(player, skill.id, 3) && isUnlocked(player, skill.id, 3) ? `For Gold: score 7 or more on level 3 on two different days (${Math.min(goldDays, GOLD_DAYS)} of ${GOLD_DAYS} done).` : "";
+      : isPassed(player, skill.id, 3) && isUnlocked(player, skill.id, 3) ? `For Gold: 7 or more out of 8 on level 3 on two different days (${Math.min(goldDays, GOLD_DAYS)} of ${GOLD_DAYS} days).` : "";
     return `<section class="skill-card" style="--skill:${skill.color}">
       <div class="skill-head"><h2>${esc(skill.name)}</h2>
         <span class="tier${tier ? "" : " none"}">${skill.badge.emoji} ${tier ? TIER_NAMES[tier - 1] : "No badge yet"}</span></div>
@@ -752,7 +759,9 @@ function openTip(skillId, level, { review = false, during = false } = {}) {
   state.tip = { skillId, level, tip, review: review || during, during };
   $("tip-start").textContent = during ? "Back to the question" : review ? "Back to my results" : grownPip() ? "Start" : "Let's build";
   $("tip-close").hidden = review || during;
-  $("tip-level").textContent = `${skill.name} · Level ${level} · Grade ${skill.grades[level - 1]}`;
+  // Older players don't need to see "Grade 3" on a rule they're reviewing (the 8th grader).
+  const tipGrade = (state.player?.grade || 0) >= OLDER_FROM_GRADE ? "" : ` · Grade ${skill.grades[level - 1]}`;
+  $("tip-level").textContent = `${skill.name} · Level ${level}${tipGrade}`;
   $("tip-pip").innerHTML = settings().pip ? pipArt(48) : "";
   $("tip-title").textContent = tip.title;
   const sentences = tip.rule.split(/(?<=[.!?])\s+(?=[A-Z(“"])/);
@@ -896,11 +905,12 @@ function finishDaily() {
   const streak = streakDays(out.player.days, now);
   $("progress-fill").style.width = "100%";
   $("result-stars").innerHTML = "";
-  $("result-title").textContent = `🔥 ${streak}-day streak`;
-  $("result-score").textContent = `Daily 5: ${out.right} of ${play.results.length} right on the first try`;
+  // When the day is done, that's the headline (not tucked into Pip's line).
+  $("result-title").textContent = nextLevel ? `🔥 ${streak}-day streak` : "That's today ✓";
+  $("result-score").textContent = `Daily 5: ${out.right} of ${play.results.length} right on the first try${nextLevel ? "" : ` · 🔥 ${streak}-day streak`}`;
   showResultBricks(out, `+${out.bricks} 🧱 bricks <span class="note">· ${out.player.bricks} to build with</span>`);
   const streakLine = streak === 1 ? "Come back tomorrow to make it a streak." : `${streak} days in a row.`;
-  const line = nextLevel ? `Warm-up done! Now: ${nextLevel.skill.name}, level ${nextLevel.level}.` : `That's today ✓ ${streakLine}`;
+  const line = nextLevel ? `Warm-up done! Now: ${nextLevel.skill.name}, level ${nextLevel.level}.` : streakLine;
   $("result-pip").innerHTML = pipRemark(line);
   $("result-badges").innerHTML = prize ? `<p class="mystery-prize"><span class="prize-emoji" aria-hidden="true">🎁</span> Mystery prize: <strong>${prize.item.emoji} ${esc(prize.item.name)}</strong>! It's in the Town Square. Drag it anywhere in Build.</p>` : "";
   $("result-review").innerHTML = reviewHtml(play);
@@ -1152,7 +1162,7 @@ function showItem() {
     : play.mode === "testout" ? `Test out · ${skill.name}`
     : play.mode === "boss" ? `📝 Pip's final draft: ${item.title}`
     : play.mode === "week" ? `📌 Sentence of the Week · ${WEEK_DAYS[play.day].name}`
-    : item.review ? `Review: ${skill.name}` : `${skill.name} · Level ${item.level}`;
+    : item.review ? `🔁 Review · ${skill.name}` : `${skill.name} · Level ${item.level}`;
   $("play-skill").classList.toggle("review", Boolean(item.review));
   $("feedback").innerHTML = "";
   $("feedback").className = "feedback";
@@ -1265,8 +1275,9 @@ function handleAnswer(right) {
     // Typed answers can say exactly what slipped (a capital, a comma); otherwise the item's own hint.
     const hintText = play.ctrl.missHint?.() || item.hint;
     const picked = play.ctrl.chosen?.(); // the 8th grader: say what I got wrong, not only the rule
-    const pickedLine = picked && item.type === "which" ? `Not “${picked}”. ` : "";
-    $("feedback").innerHTML = `${pipFace()}<div><p><strong>${esc(pipWords().hint)}</strong> ${esc(pickedLine + hintText)}</p><p class="try-again">Try again.</p></div>`;
+    // Shown on its own line, so a pick that ends in a period doesn't read "Not “….”." (the 8th grader).
+    const pickedLine = picked && item.type === "which" ? `<p class="you-picked">You picked: “${esc(String(picked).replace(/[.]$/, ""))}”</p>` : "";
+    $("feedback").innerHTML = `${pipFace()}<div>${pickedLine}<p><strong>${esc(pipWords().hint)}</strong> ${esc(hintText)}</p><p class="try-again">Try again.</p></div>`;
     updateCheck();
   } else {
     const chosen = play.ctrl.chosen?.() || null;
@@ -1414,11 +1425,15 @@ function finishLevel() {
     $("result-again").textContent = nextLevel ? `or level ${nextLevel}` : "or play again";
   } else if (out.passed && completesDay) {
     // Both of today's steps are done: say so, give the prize, and keep "keep going" as the small link.
-    state.resultAlt = state.resultNext;
+    // "Keep going" names the same level as home's Next up, so the two never disagree.
+    const more = nextUp(out.player);
+    state.resultAlt = more ? { skillId: more.skill.id, level: more.level } : null;
     state.resultNext = dayPrize ? { prize: dayPrize.player.decor.at(-1).uid } : { home: true };
     $("result-next").textContent = dayPrize ? "🎁 Place my prize" : "Done for today";
-    $("result-again").textContent = nextLevel ? `or keep going: level ${nextLevel}` : "or play again";
-    $("result-pip").innerHTML = pipRemark(`That's today ✓ ${pipWords().passed[0]}`);
+    $("result-again").hidden = !more;
+    if (more) $("result-again").textContent = `or keep going: ${more.skill.name}, level ${more.level}`;
+    $("result-title").textContent = "That's today ✓";
+    $("result-rule").hidden = true;
     if (dayPrize) $("result-badges").innerHTML += `<p class="mystery-prize"><span class="prize-emoji" aria-hidden="true">🎁</span> Mystery prize: <strong>${dayPrize.item.emoji} ${esc(dayPrize.item.name)}</strong>! It's in the Town Square.</p>`;
   }
   openOverlay("result-overlay");
@@ -1693,13 +1708,14 @@ function renderBuild(fresh = null) {
   drawBuildScene(fresh);
   // This district's own decorations first, then the everyday ones that go anywhere.
   const catalog = decorFor(area).sort((a, b) => Boolean(b.area) - Boolean(a.area));
+  // A strip of tiles: the emoji, its price, and the whole tile is the Build button (the UX expert: 21 rows was a long scroll).
   $("build-list").innerHTML = catalog.map((d) => {
     const count = player.decor.filter((p) => p.id === d.id && p.area === area).length;
     const short = d.cost - bricks;
-    return `<li class="build-item"><span class="build-emoji" aria-hidden="true">${d.emoji}</span>
-      <span class="build-name">${esc(d.name)}<small>🧱 ${d.cost}${count ? ` · you have ${count}` : ""}</small></span>
-      <button type="button" class="${short > 0 ? "secondary" : "primary"}" data-buy="${d.id}" ${short > 0 ? "disabled" : ""}>
-        ${short > 0 ? `${short} more` : count ? "Build another" : "Build"}</button></li>`;
+    return `<li class="build-item${short > 0 ? " short" : ""}"><button type="button" class="build-tile" data-buy="${d.id}" ${short > 0 ? "disabled" : ""}
+      aria-label="${esc(d.name)}: ${short > 0 ? `${short} more bricks needed` : `build for ${d.cost} bricks`}${count ? `, you have ${count}` : ""}">
+      <span class="build-emoji" aria-hidden="true">${d.emoji}</span><span class="build-name">${esc(d.name)}</span>
+      <span class="build-price">${short > 0 ? `🔒 ${short} more` : `🧱 ${d.cost}`}</span>${count ? `<span class="build-count" aria-hidden="true">×${count}</span>` : ""}</button></li>`;
   }).join("");
   showScreen("build");
 }
@@ -1713,13 +1729,22 @@ function drawBuildScene(fresh = null) {
   const view = buildAreaSvg(player, { area: state.buildArea, fresh, selected: state.buildSelected });
   state.buildHeight = view.height;
   const size = selected?.size ?? 1;
-  $("build-town").innerHTML = view.svg
-    + (item
-      ? `<div class="build-selected"><span><span aria-hidden="true">${item.emoji}</span> ${esc(item.name)}: drag it anywhere, even next to a building.</span>
-          <span class="build-size" role="group" aria-label="Size">${DECOR_SIZE_NAMES.map((n, i) => `<button type="button" class="size-btn${i === size ? " on" : ""}" data-size="${i}" aria-pressed="${i === size}">${n}</button>`).join("")}</span>
-          <span class="build-selected-actions"><button type="button" class="secondary" data-put-away="${selected.uid}">${selected.free ? "Put away (a prize: no bricks back)" : `Put away (+${item.cost} 🧱)`}</button>
-          <button type="button" class="link" data-deselect>Done</button></span></div>`
-      : `<p class="build-hint">${player.decor.some((p) => p.area === state.buildArea) ? "Drag anything anywhere: by a building, on the path, in the sky. Tap one to change its size or put it away." : "Build something, then drag it anywhere in this place."}</p>`);
+  const district = mapDistricts(player).find((d) => d.id === state.buildArea);
+  const hasLevels = district && districtSkills(district, player).length > 0;
+  const firstDrag = item && !player.dragTaught;
+  // The hint sits above the scene, where the shop strip can't cover it.
+  $("build-town").innerHTML = `<p class="build-hint">${item ? (firstDrag ? `👆 Drag the ${esc(item.name.toLowerCase())} to a spot you like.` : `${esc(item.name)}: drag it anywhere${hasLevels ? ", even next to a building" : ""}.`)
+      : player.decor.some((p) => p.area === state.buildArea)
+        ? `Drag anything anywhere${hasLevels ? ": by a building, on the path, in the sky" : ": on the grass, by the pond, in the sky"}. Tap one to change its size or put it away.`
+        : "Pick something below to build. It drops in the middle; then drag it anywhere."}</p>` + view.svg;
+  if (firstDrag) $("build-town").querySelector(`[data-uid="${selected.uid}"]`)?.classList.add("drag-me");
+  // What's selected: its size and Put away, at the head of the shop.
+  $("build-tools").innerHTML = item
+    ? `<div class="build-selected"><span class="build-selected-name"><span aria-hidden="true">${item.emoji}</span> ${esc(item.name)}</span>
+        <span class="build-size" role="group" aria-label="Size">${DECOR_SIZE_NAMES.map((n, i) => `<button type="button" class="size-btn${i === size ? " on" : ""}" data-size="${i}" aria-pressed="${i === size}">${n}</button>`).join("")}</span>
+        <span class="build-selected-actions"><button type="button" class="secondary" data-put-away="${selected.uid}">${selected.free ? "Put away (a prize: no bricks back)" : `Put away (+${item.cost} 🧱)`}</button>
+        <button type="button" class="link" data-deselect>Done</button></span></div>`
+    : "";
 }
 
 function buyDecoration(id) {
@@ -1728,7 +1753,11 @@ function buyDecoration(id) {
   savePlayer(out.player);
   sound("done", settings().sound);
   buzz([20, 40, 20]);
-  state.buildSelected = out.uid; // the new one is selected, ready to drag into place
+  // It drops in a clear spot near the middle of the place (not on a level or a sign), selected and ready to drag.
+  const height = state.buildHeight || buildAreaSvg(out.player, { area: state.buildArea }).height;
+  const spot = clearSpot(out.player, state.buildArea, height);
+  savePlayer(moveDecor(out.player, out.uid, spot.x, spot.y, height));
+  state.buildSelected = out.uid;
   renderBuild(out.uid);
   $("build-town").scrollIntoView({ block: "nearest", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
 }
@@ -1776,7 +1805,10 @@ function initBuildDragging() {
     drag = null;
     el.classList.remove("dragging");
     if (moved) {
-      savePlayer(moveDecor(state.player, uid, Number(el.getAttribute("x")), Number(el.getAttribute("y")), state.buildHeight));
+      // Guardrails: a decoration dropped on a level's spot or a sign slides just off it.
+      const spot = nudgeSpot(Number(el.getAttribute("x")), Number(el.getAttribute("y")), buildKeepOut(state.player, state.buildArea), state.buildHeight);
+      const moved2 = moveDecor(state.player, uid, spot.x, spot.y, state.buildHeight);
+      savePlayer({ ...moved2, dragTaught: true });
       state.buildSelected = uid;
     } else {
       state.buildSelected = state.buildSelected === uid ? null : uid;
@@ -1803,7 +1835,7 @@ function initBuildDragging() {
     drawBuildScene();
     box.querySelector(`[data-uid="${uid}"]`)?.focus({ preventScroll: true });
   });
-  box.addEventListener("click", (event) => {
+  const toolsClick = (event) => {
     const away = event.target.closest("[data-put-away]");
     if (away) {
       savePlayer(removeDecor(state.player, away.dataset.putAway));
@@ -1816,7 +1848,8 @@ function initBuildDragging() {
       savePlayer(resizeDecor(state.player, state.buildSelected, Number(event.target.closest("[data-size]").dataset.size)));
       drawBuildScene();
     }
-  });
+  };
+  $("build-tools").addEventListener("click", toolsClick);
 }
 
 /* ==================== Badges ==================== */
@@ -1846,7 +1879,7 @@ function renderBadges() {
     const tier = earned[skill.badge.id];
     return `<li class="badge${tier ? " earned" : ""}"><span class="badge-emoji" aria-hidden="true">${skill.badge.emoji}</span>
       <span><strong>${esc(badgeName(skill.badge))}</strong> ${tier ? `<span class="tier-tag t${tier}">${TIER_NAMES[tier - 1]}</span>` : ""}
-      <span class="badge-how">${esc(skill.name)}: Bronze = pass level 1, Silver = pass level 2, Gold = 7+ on level 3 on two days.</span></span></li>`;
+      <span class="badge-how">${esc(skill.name)}: Bronze = pass level 1, Silver = pass level 2, Gold = 7 or more out of 8 on level 3 on two different days.</span></span></li>`;
   }).join("");
   const other = [...WORLD_BADGES.filter((b) => worldOpenFor(WORLDS.find((w) => w.id === b.world), player)), ...HABIT_BADGES].map((badge) => {
     const got = earned[badge.id];
@@ -2521,7 +2554,8 @@ function wire() {
   });
   // One way home on the results: when the main button already goes home, the "Back to…" link isn't shown too.
   new MutationObserver(() => {
-    if (!$("result-overlay").hidden) $("result-town").hidden = Boolean(state.resultNext?.home);
+    // At the end of the day there are two ways out: the prize (or Done) and "keep going" (the high schooler: fewer exits).
+    if (!$("result-overlay").hidden) $("result-town").hidden = Boolean(state.resultNext?.home || state.resultNext?.prize);
   }).observe($("result-overlay"), { attributes: true, attributeFilter: ["hidden"] });
   $("result-next").addEventListener("click", () => {
     closeOverlay("result-overlay");

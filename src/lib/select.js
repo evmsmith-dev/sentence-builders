@@ -163,10 +163,18 @@ export function pickTestoutItems({ items, skillKeys, stats = {}, perSkill = 2, r
   const out = [];
   for (const keys of Object.values(skillKeys)) {
     const set = new Set(keys);
-    out.push(...items.filter((i) => DAILY_TYPES.has(i.type) && set.has(`${i.skill}-${i.level}`)).sort(byKey(order)).slice(0, perSkill));
+    // One from each level before a second from any (the grammar teacher: two from level 1 isn't a test of level 3).
+    const byLevel = new Map();
+    for (const i of items.filter((i) => DAILY_TYPES.has(i.type) && set.has(`${i.skill}-${i.level}`)).sort(byKey(order))) {
+      byLevel.set(i.level, [...(byLevel.get(i.level) || []), i]);
+    }
+    const queues = [...byLevel.keys()].sort((a, b) => b - a).map((l) => byLevel.get(l));
+    const mine = [];
+    while (mine.length < perSkill && queues.some((q) => q.length)) for (const q of queues) if (q.length && mine.length < perSkill) mine.push(q.shift());
+    out.push(...mine);
   }
   return out.map((item) => ({ item, r: random() })).sort((a, b) => a.r - b.r).map(({ item }) => item);
 }
 
-/** Right answers needed to test out of `total` questions: all but one in every eight. */
-export const testoutNeed = (total) => total - Math.floor(total / 8);
+/** Right answers needed to test out of `total` questions: all but one in every eight, and one slip is fine from 4 up. */
+export const testoutNeed = (total) => total - (total >= 4 ? Math.max(1, Math.floor(total / 8)) : 0);

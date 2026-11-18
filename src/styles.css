@@ -160,7 +160,8 @@ button:disabled { cursor: default; }
 #progress-fill { height: 100%; width: 0; background: var(--primary); border-radius: 999px; transition: width 0.3s; }
 .progress-text { font-weight: 600; color: var(--muted); white-space: nowrap; }
 .play-skill { margin: 6px 0 0; font-weight: 600; color: var(--muted); font-size: 0.95rem; }
-.play-skill.review { color: var(--shown); }
+.play-skill.review { color: var(--shown); background: var(--shown-soft); padding: 2px 10px; border-radius: 999px; display: inline-block; }
+.you-picked { margin: 0 0 4px; color: #b3261e; font-weight: 600; }
 .prompt-row { display: flex; align-items: center; gap: 10px; }
 .prompt { flex: 1; margin: 6px 0; font-size: 1.2rem; font-weight: 700; }
 .say-btn { flex: none; min-width: 52px; min-height: 52px; border-radius: 50%; border: 2px solid var(--border); background: var(--card); font-size: 1.4rem; }
@@ -721,7 +722,7 @@ details.spell-card > .rule-card { margin-top: 8px; }
 .park-view .decor.drag:focus { outline: none; }
 .park-view .decor.drag:focus-visible, .park-view .decor.selected { filter: drop-shadow(0 0 2px #fff) drop-shadow(0 0 4px #f2a900); }
 .park-view .decor.dragging { cursor: grabbing; filter: drop-shadow(0 6px 4px rgba(0, 0, 0, 0.3)); }
-.build-hint { margin: 6px 4px 0; color: var(--muted); font-size: 0.95rem; }
+.build-hint { margin: 0 4px 6px; color: var(--muted); font-size: 0.95rem; }
 .build-selected { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 10px; margin: 6px 2px 0; font-weight: 600; }
 .build-selected-actions { display: flex; gap: 8px; align-items: center; }
 .build-selected-actions button { min-height: 44px; padding: 6px 12px; }
@@ -955,7 +956,7 @@ body.island-home #home .town-card { position: fixed; inset: 0; margin: 0; paddin
 body.island-home #home .town-card > h2, body.island-home #home #map-panel, body.island-home #home .today-card,
 body.island-home #home .section-title, body.island-home #home #world-list, body.island-home #home .brand { display: none; }
 body.island-home #home .town-view { height: 100vh; height: 100dvh; min-height: 0; border-radius: 0; }
-body.island-home #home .map-zoom { position: fixed; top: calc(env(safe-area-inset-top) + 64px); right: 10px; z-index: 4; }
+body.island-home #home .map-zoom { position: fixed; top: calc(env(safe-area-inset-top) + 64px); right: 10px; bottom: auto; flex-direction: column; z-index: 4; }
 body.island-home #home #map-in, body.island-home #home #map-out { display: none; }
 body.island-home #home .top { position: fixed; top: 0; left: 0; right: 0; z-index: 5; margin: 0;
   padding: calc(env(safe-area-inset-top) + 8px) 10px 0; justify-content: space-between; pointer-events: none; }
@@ -970,12 +971,16 @@ body.island-home #home #pip-home .link { margin-left: 8px; }
 .island-btn { flex: 1; min-height: 48px; border: 2px solid var(--border); border-radius: 14px; background: var(--card); box-shadow: var(--shadow); font-weight: 700; color: var(--text); }
 .island-btn.locked { color: var(--muted); }
 .island-dot { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: #e5484d; color: #fff; font-size: 0.8rem; margin-left: 4px; }
-@media (min-width: 900px) and (orientation: landscape) {
-  /* iPad landscape: Pip and the buttons sit in a column on the right, the map gets the rest. */
-  body.island-home #home #pip-home { left: auto; right: 12px; width: 330px; bottom: calc(env(safe-area-inset-bottom) + 72px); }
-  body.island-home .island-bar { left: auto; right: 12px; width: 330px; }
-  body.island-home #home .map-zoom { right: 354px; }
+@media (min-width: 640px) and (orientation: landscape) {
+  /* Landscape (iPad and phones turned sideways): Pip and the buttons sit in a column on the right, so Pip's bubble
+     doesn't cover the next level (the 4th grader); the map gets the rest. */
+  body.island-home #home #pip-home { left: auto; right: 12px; width: min(330px, 38vw); bottom: calc(env(safe-area-inset-bottom) + 72px); }
+  body.island-home .island-bar { left: auto; right: 12px; width: min(330px, 38vw); }
+  body.island-home #home .map-zoom { right: calc(min(330px, 38vw) + 24px); }
 }
+/* Pickers in Settings look like pickers: a ▾ on the right. */
+#settings-overlay select { appearance: none; -webkit-appearance: none; padding-right: 34px;
+  background: var(--card) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23556' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 12px center; }
 
 /* Island Home: Pip's message tucks away (–) to a small Pip and the Play button; tap Pip to bring it back. */
 body.island-home #home #pip-home .bubble { position: relative; padding-right: 44px; }
@@ -1224,8 +1229,14 @@ body.island-home #home #pip-home { bottom: calc(env(safe-area-inset-bottom) + 78
 .settings-grown .switch-row { border-bottom: 0; }
 
 /* Mark items: words are tappable (the mark goes right after the tapped word). */
-.marks .word-tap { border: 0; background: none; padding: 2px 1px; font: inherit; color: inherit; cursor: pointer; border-radius: 6px; }
+/* Tappable words: finger-sized, with a dotted underline so they look tappable; the picked word stands out. */
+.marks .word-tap { border: 0; background: none; min-width: 44px; min-height: 44px; padding: 2px 6px; font: inherit; color: inherit; cursor: pointer;
+  border-radius: 8px; text-decoration: underline dotted rgba(31, 95, 191, 0.45); text-underline-offset: 6px; }
 .marks .word-tap:hover, .marks .word-tap:focus-visible { background: #eef3ff; }
+.marks .word-tap.selected { background: #dce7ff; outline: 2px solid var(--primary); }
+.marks .gap:not(.filled) { min-width: 6px; padding: 0; opacity: 0; }
+.palette-group { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-right: 10px; }
+.palette-group small { width: 100%; color: var(--muted); font-size: 0.8rem; font-weight: 600; }
 
 /* ---------- Build round 1: the whole place, big; sizes ---------- */
 .area-view { width: 100%; height: auto; max-height: 80vh; display: block; border-radius: 14px; }
@@ -1239,3 +1250,38 @@ body.island-home #home #pip-home { bottom: calc(env(safe-area-inset-bottom) + 78
 .town-map .decor { pointer-events: none; }
 /* The whole-area view is big, so it no longer sticks over the shop list (buying scrolls back up to it). */
 #build-town { position: static; }
+
+/* ---------- Build: the shop is a strip right under the scene (a column on the right in landscape) ---------- */
+.build-stage { display: flex; flex-direction: column; gap: 8px; }
+#build .area-view { max-height: 58vh; }
+.build-dock { position: sticky; bottom: 0; z-index: 3; padding: 8px; border-radius: var(--radius); background: var(--card); border: 2px solid var(--border); box-shadow: var(--shadow); }
+.build-tools:empty { display: none; }
+.build-tools .build-selected { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 0 0 8px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+.build-selected-name { font-weight: 700; }
+#build .build-list { display: flex; grid-template-columns: none; gap: 8px; margin: 0; overflow-x: auto; scroll-snap-type: x proximity; padding-bottom: 4px; }
+#build .build-item { display: block; padding: 0; border: 0; background: none; flex: none; scroll-snap-align: start; }
+.build-tile { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; width: 84px; min-height: 96px; padding: 6px 4px;
+  border: 2px solid var(--border); border-radius: 14px; background: var(--card); color: var(--text); font: inherit; cursor: pointer; }
+.build-tile:not(:disabled):hover, .build-tile:focus-visible { border-color: #c0612b; }
+.build-tile:disabled { cursor: default; opacity: 0.6; }
+.build-tile .build-emoji { font-size: 2rem; line-height: 1.1; }
+.build-tile .build-name { display: block; font-size: 0.72rem; font-weight: 700; line-height: 1.1; text-align: center; }
+.build-price { font-size: 0.78rem; font-weight: 800; color: #8d4e1f; }
+.build-item.short .build-price { color: var(--muted); }
+.build-count { position: absolute; top: 4px; right: 6px; font-size: 0.7rem; font-weight: 800; color: var(--muted); }
+/* The first time: the new decoration bobs, so it's clear it can be dragged. */
+.area-view .decor.drag-me { animation: drag-me 1.1s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes drag-me { 0%, 100% { transform: translateX(0); } 30% { transform: translateX(-5px); } 70% { transform: translateX(5px); } }
+@media (prefers-reduced-motion: reduce) { .area-view .decor.drag-me { animation: none; } }
+@media (orientation: landscape) and (min-width: 720px) {
+  .build-stage { display: grid; grid-template-columns: minmax(0, 1fr) 300px; align-items: start; }
+  #build .area-view { max-height: 76vh; }
+  .build-dock { position: sticky; top: 8px; bottom: auto; max-height: calc(100vh - 24px); overflow-y: auto; }
+  #build .build-list { display: grid; grid-template-columns: repeat(3, 1fr); overflow: visible; }
+  .build-tile { width: auto; }
+}
+
+/* The Build card's line wraps instead of cutting off ("playgrou…"). */
+.today-card .build-card strong + span { white-space: normal; overflow: visible; }
+/* Classic home: the map's + − ⤢ sit in a row along the bottom, over the sea, not over the district names. */
+.town-card:not(.bp-preview) .map-zoom { top: auto; bottom: 8px; flex-direction: row; }

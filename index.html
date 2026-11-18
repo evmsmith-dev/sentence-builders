@@ -204,9 +204,15 @@
     </header>
     <div id="build-areas" class="build-areas" role="tablist" aria-label="Which part of the island"></div>
     <p id="build-bricks" class="build-bricks" aria-live="polite"></p>
-    <div id="build-town" class="card town-card"></div>
+    <div class="build-stage">
+      <div id="build-town" class="card town-card"></div>
+      <!-- The shop sits right under the scene (a strip you swipe), or in a column on the right in landscape. -->
+      <div class="build-dock">
+        <div id="build-tools" class="build-tools"></div>
+        <ul id="build-list" class="build-list" aria-label="Decorations to build"></ul>
+      </div>
+    </div>
     <p class="note">Earn bricks for every sentence you get right, for stars, and for passing a level for the first time. Bricks only buy decorations.</p>
-    <ul id="build-list" class="build-list"></ul>
   </main>
 
   <!-- ==================== About ==================== -->
@@ -363,14 +369,13 @@
       </section>
       <section class="settings-group-box" aria-labelledby="sg-look">
         <h3 id="sg-look" class="settings-group">Look</h3>
-        <label class="select-row" for="set-theme"><span class="switch-text"><span>Style</span><small>Automatic: Bright, then Studio from grade 6</small></span>
+        <label class="select-row" for="set-theme"><span class="switch-text"><span>Style</span><small>By grade: Bright for 3–5, Studio from 6</small></span>
           <select id="set-theme">
-        <option value="auto">Automatic</option>
+        <option value="auto">By grade</option>
         <option value="bright">Bright</option>
         <option value="studio">Studio</option>
       </select>
         </label>
-        <label class="switch-row" id="island-toggle"><span class="switch-text"><span>Island Home</span><small>The island fills the screen</small></span><input type="checkbox" role="switch" id="set-island"></label>
         <label class="switch-row" id="showisland-toggle"><span class="switch-text"><span>Colorful island</span><small>Instead of the blueprint plan</small></span><input type="checkbox" role="switch" id="set-showisland"></label>
         <label class="switch-row"><span class="switch-text"><span>Calm island</span><small>Decorations stay still</small></span><input type="checkbox" role="switch" id="set-calm"></label>
       </section>
@@ -380,6 +385,7 @@
       </section>
       <details class="settings-grown fold">
         <summary>For grown-ups</summary>
+      <label class="switch-row" id="island-toggle"><span class="switch-text"><span>Island Home</span><small>The island fills the screen</small></span><input type="checkbox" role="switch" id="set-island"></label>
       <div id="unlock-setting" class="unlock-setting">
         <label for="set-unlock">Levels above my grade <span class="note">(parents: press and hold to change)</span></label>
         <button type="button" id="unlock-hold" class="secondary hold-btn"></button>

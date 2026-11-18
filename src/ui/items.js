@@ -42,11 +42,19 @@ function markAnswerHtml(parsed) {
 function renderMark(root, item, { onChange, onTap }, { allowEmpty = false } = {}) {
   const parsed = parseMark(item);
   parsed.palette = paletteFor(item, parsed);
-  // One mark to choose from: tapping a space adds or removes it, no palette needed.
+  // One mark to choose from: tapping a word (or a space) adds or removes it, no palette needed.
   const single = parsed.palette.length === 1 ? parsed.palette[0] : null;
-  const filled = parsed.words.map(() => "").concat("");
-  let selected = null;
+  // Each space holds the marks hanging after the word before it, then the marks opening the word after it
+  // (said[,"] Come): kept apart so the order is always right, whichever is added first.
+  const after = parsed.words.map(() => "").concat("");
+  const before = parsed.words.map(() => "").concat("");
+  const filled = () => after.map((a, i) => a + before[i]);
+  let selected = null; // the space being filled (from a dot)
+  let selWord = null; // or the word tapped: its marks go after it, and opening marks before it
   let locked = false;
+  // Opening marks go before a word; offered as their own buttons when a word is picked (the grammar teacher).
+  const OPENERS = ['"', "("];
+  const openers = parsed.palette.filter((m) => OPENERS.includes(m));
 
   root.innerHTML = `<div class="sentence marks" data-type="mark" data-palette="${esc(parsed.palette.join(""))}"></div>
     <div class="palette" hidden><p class="palette-label"></p><div class="palette-buttons"></div></div>`;
@@ -54,43 +62,80 @@ function renderMark(root, item, { onChange, onTap }, { allowEmpty = false } = {}
   const palette = root.querySelector(".palette");
 
   const gapLabel = (i) => (i === 0 ? `before "${parsed.words[0]}"` : `after "${parsed.words[i - 1]}"`);
+  const shown = (m, opening) => (m === '"' ? (opening ? "“" : "”") : m);
+  const markBtn = (mark, opening = false) => `<button type="button" class="mark-btn" ${opening ? "data-mark-before" : "data-mark"}="${esc(mark)}"
+    aria-label="Add ${opening ? "opening " : ""}${esc(MARK_NAMES[mark] || mark)}${opening ? " before the word" : ""}">${esc(selWord !== null ? shown(mark, opening) : mark)}${mark === "-" || mark === "—" ? `<small class="mark-name" aria-hidden="true">${MARK_NAMES[mark]}</small>` : ""}</button>`;
   function draw() {
-    sentence.innerHTML = filled.map((marks, i) => {
-      const gap = `<button type="button" class="gap${marks ? " filled" : ""}${selected === i ? " selected" : ""}" data-gap="${i}"
-        aria-label="Space ${esc(gapLabel(i))}${marks ? `: ${esc([...marks].map((m) => MARK_NAMES[m] || m).join(", "))}` : ""}"
-        aria-pressed="${selected === i}" ${locked ? "disabled" : ""}><span>${marks ? esc(marks) : "·"}</span></button>`;
-      // A word can be tapped too: it puts the mark right after that word, where a comma goes (a parent's feedback:
-      // kids tapped the word before the comma and were told it was wrong, when only the dot was tappable).
-      return i < parsed.words.length
-        ? `${gap}<button type="button" class="word word-tap" data-after="${i + 1}" ${locked ? "disabled" : ""} aria-label="After ${esc(parsed.words[i])}">${esc(parsed.words[i])}</button>`
-        : gap;
+    const marks = filled();
+    sentence.innerHTML = marks.map((m, i) => {
+      // Spaces stay clickable but show nothing until they hold a mark; words are what to tap now.
+      const gap = `<button type="button" class="gap${m ? " filled" : ""}${selected === i ? " selected" : ""}" data-gap="${i}"
+        aria-label="Space ${esc(gapLabel(i))}${m ? `: ${esc([...m].map((x) => MARK_NAMES[x] || x).join(", "))}` : ""}"
+        aria-pressed="${selected === i}" ${locked ? "disabled" : ""}><span>${m ? esc(m) : ""}</span></button>`;
+      if (i >= parsed.words.length) return gap;
+      const on = selWord === i;
+      return `${gap}<button type="button" class="word word-tap${on ? " selected" : ""}" data-word-i="${i}" ${locked ? "disabled" : ""}
+        aria-pressed="${on}" aria-label="${single ? `${esc(MARK_NAMES[single] || single)} after` : "Marks around"} “${esc(parsed.words[i])}”">${esc(parsed.words[i])}</button>`;
     }).join("");
-    palette.hidden = selected === null || locked;
-    if (selected !== null) {
+    const open = (selected !== null || selWord !== null) && !locked;
+    palette.hidden = !open;
+    if (!open) return;
+    if (selWord !== null) {
+      const word = parsed.words[selWord];
+      const afterMarks = parsed.palette.filter((m) => m !== "(");
+      palette.querySelector(".palette-label").textContent = `Marks for “${word}”`;
+      palette.querySelector(".palette-buttons").innerHTML =
+        (openers.length ? `<span class="palette-group"><small>Before “${esc(word)}”</small>${openers.map((m) => markBtn(m, true)).join("")}</span>` : "")
+        + `<span class="palette-group"><small>After “${esc(word)}”</small>${afterMarks.map((m) => markBtn(m)).join("")}</span>`
+        + '<button type="button" class="mark-btn erase" data-erase aria-label="Erase the marks around this word">⌫</button>';
+    } else {
       palette.querySelector(".palette-label").textContent = `Space ${gapLabel(selected)}:`;
-      palette.querySelector(".palette-buttons").innerHTML = parsed.palette.map((mark) =>
-        `<button type="button" class="mark-btn" data-mark="${esc(mark)}" aria-label="Add ${esc(MARK_NAMES[mark] || mark)}">${esc(mark)}${mark === "-" || mark === "—" ? `<small class="mark-name" aria-hidden="true">${MARK_NAMES[mark]}</small>` : ""}</button>`).join("")
+      palette.querySelector(".palette-buttons").innerHTML = parsed.palette.map((m) => markBtn(m)).join("")
         + '<button type="button" class="mark-btn erase" data-erase aria-label="Erase this space">⌫</button>';
     }
   }
   root.addEventListener("click", (event) => {
     if (locked) return;
-    const after = event.target.closest("[data-after]");
-    const gap = event.target.closest("[data-gap]") || (after && sentence.querySelector(`[data-gap="${after.dataset.after}"]`));
+    const gap = event.target.closest("[data-gap]");
+    const word = event.target.closest("[data-word-i]");
     const mark = event.target.closest("[data-mark]");
-    if (gap && single) {
+    const markBefore = event.target.closest("[data-mark-before]");
+    if (word && single) {
+      // A comma (or the one mark) goes right after the tapped word (a parent: kids tapped the word before the
+      // comma and were told it was wrong); tap again to take it away.
+      const i = Number(word.dataset.wordI) + 1;
+      after[i] = after[i] ? "" : single;
+      onTap();
+    } else if (gap && single) {
       const i = Number(gap.dataset.gap);
-      filled[i] = filled[i] ? "" : single;
+      after[i] = after[i] || before[i] ? "" : single;
+      before[i] = "";
+      onTap();
+    } else if (word) {
+      const w = Number(word.dataset.wordI);
+      selWord = selWord === w ? null : w;
+      selected = null;
       onTap();
     } else if (gap) {
       const i = Number(gap.dataset.gap);
       selected = selected === i ? null : i;
+      selWord = null;
       onTap();
-    } else if (mark && selected !== null) {
-      if (filled[selected].length < 3) filled[selected] += mark.dataset.mark;
+    } else if (markBefore && selWord !== null) {
+      if (before[selWord].length < 2) before[selWord] += markBefore.dataset.markBefore;
       onTap();
-    } else if (event.target.closest("[data-erase]") && selected !== null) {
-      filled[selected] = "";
+    } else if (mark && (selected !== null || selWord !== null)) {
+      const i = selWord !== null ? selWord + 1 : selected;
+      if (after[i].length < 3) after[i] += mark.dataset.mark;
+      onTap();
+    } else if (event.target.closest("[data-erase]")) {
+      if (selWord !== null) {
+        after[selWord + 1] = "";
+        before[selWord] = "";
+      } else if (selected !== null) {
+        after[selected] = "";
+        before[selected] = "";
+      }
     } else {
       return;
     }
@@ -98,14 +143,26 @@ function renderMark(root, item, { onChange, onTap }, { allowEmpty = false } = {}
     onChange();
   });
   draw();
+  /** After a miss: which space to look at (the 4th grader: "I couldn't tell which comma was the wrong one"). */
+  function missHint() {
+    const marks = filled();
+    const answer = parsed.answers[0];
+    const i = answer.gaps.findIndex((gap, k) => (marks[k] || "") !== gap.marks && !(gap.optional && !marks[k]));
+    if (i < 0) return item.hint;
+    const where = i === 0 ? `before “${parsed.words[0]}”` : `after “${parsed.words[i - 1]}”`;
+    const what = !answer.gaps[i].marks ? `There shouldn't be a mark ${where}.` : marks[i] ? `Look again at the marks ${where}.` : `Something is missing ${where}.`;
+    return `${what} ${item.hint}`;
+  }
   return {
-    prompt: single ? `Tap the word that comes before each ${single === "," ? "comma" : MARK_NAMES[single] || single}.` : "Tap a word (or the dot after it), then add the marks that go after it.",
+    prompt: single ? `Tap the word that comes before each ${single === "," ? "comma" : MARK_NAMES[single] || single}.`
+      : openers.length ? "Tap a word, then add the marks that go before or after it." : "Tap the word before a mark, then pick the mark.",
     usesCheck: true,
-    canCheck: () => allowEmpty || filled.some(Boolean),
-    check: () => checkMark(parsed, filled),
-    retry: () => { selected = null; draw(); },
+    canCheck: () => allowEmpty || filled().some(Boolean),
+    check: () => checkMark(parsed, filled()),
+    missHint,
+    retry: () => { selected = null; selWord = null; draw(); },
     reveal: () => { locked = true; root.innerHTML = `<p class="sentence answer">${markAnswerHtml(parsed)}</p>`; },
-    lock: () => { locked = true; selected = null; draw(); },
+    lock: () => { locked = true; selected = null; selWord = null; draw(); },
   };
 }
 

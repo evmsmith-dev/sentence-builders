@@ -11,7 +11,7 @@ test("mistakeKind names the slip", () => {
   assert.match(mistakeKind("brothers", "brother's"), /^Apostrophes/);
   assert.match(mistakeKind("I", "me"), /^Pronouns/);
   assert.match(mistakeKind("take", "takes"), /^Verbs/);
-  assert.match(mistakeKind("allready", "already"), /^Word form/);
+  assert.match(mistakeKind("allready", "already"), /^Spelling/);
 });
 
 test("Speed codes: the same code gives the same questions", () => {
@@ -59,4 +59,19 @@ test("Test out: two questions from every skill, all but one in eight right", asy
   assert.equal(testoutNeed(8), 7);
   assert.equal(testoutNeed(10), 9);
   assert.equal(testoutNeed(16), 14);
+  assert.equal(testoutNeed(6), 5); // one slip is fine on a short test
+  assert.equal(testoutNeed(2), 2);
+});
+
+test("mistakeKind files the teacher's examples where they belong", () => {
+  for (const [a, b] of [["don't", "doesn't"], ["rise", "rises"], ["wear", "wore"], ["wake", "wakes"], ["freeze", "froze"], ["goed", "went"]]) assert.match(mistakeKind(a, b), /^Verbs/, a);
+  assert.match(mistakeKind("which", "who"), /who for people/);
+  assert.match(mistakeKind("you", "they"), /^Pronouns/);
+  assert.match(mistakeKind("correct", "correctly"), /^Adjective or adverb/);
+  assert.match(mistakeKind("goodest", "best"), /^Comparisons/);
+  assert.match(mistakeKind("less", "fewer"), /^Comparisons/);
+  assert.match(mistakeKind("than", "that"), /^Sound-alike/);
+  assert.match(mistakeKind("teams's", "team's"), /^Apostrophes/);
+  assert.match(mistakeKind("Come", "“Come"), /^Punctuation/);
+  assert.match(mistakeKind("strolled", "went"), /^Word choice/);
 });

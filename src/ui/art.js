@@ -141,6 +141,7 @@ const BAND = SCENE.height - SCENE.water; // the pond along the bottom
 const ROW_H = 110; // one row of the path: two skills, six levels
 const NODE_X = [40, 96, 152, 208, 264, 320];
 const PATH_TOP = SCENE.park + 92; // the first row's ground
+const PORT_SKY = 84; // Punctuation Port's sky band, for balloons, kites and gulls (the 4th grader)
 // The plateau's top, cliffs, and path for each area.
 const THEMES = {
   square: { top: "#b5e09a", cliff: "#86603e", path: "#f2e6c7", edge: "#bfa67a" },
@@ -175,7 +176,9 @@ function decorSvg(p, y, { fresh = null, drag = false, selected = null, sky = fal
   // Each one starts at its own point in the loop, so two tractors don't move in step.
   const delay = d.move ? ` style="animation-delay:-${((p.x * 7 + y * 3) % 90) / 10}s"` : "";
   // Bigger than before (the 4th grader: "teeny"), and each one can be small, medium or large.
-  const size = Math.round((d.zone === "square" && d.row === "back" ? 32 : 28) * DECOR_SIZES[p.size ?? 1]);
+  // Flowers start bigger, so tulips aren't a speck next to a house.
+  const flower = /^(🌷|🌻|🌸|🌼|🌹|🌺|🪻)$/u.test(d.emoji);
+  const size = Math.round((flower ? 36 : d.zone === "square" && d.row === "back" ? 32 : 28) * DECOR_SIZES[p.size ?? 1]);
   const handle = drag ? ` data-uid="${p.uid}" tabindex="0" role="button" aria-label="${d.name}: drag to move, or tap to select"` : "";
   const shadow = !sky && (p.full || p.y >= SCENE.park) ? `<ellipse cx="${p.x + 3}" cy="${y - 1}" rx="${size * 0.4}" ry="3.5" fill="#000" opacity=".16"/>` : "";
   if (!drag) {
@@ -350,12 +353,14 @@ function districtSvg(player, district, { fresh, rising, week = null, blueprint =
     ? `<text x="180" y="${park + 42}" text-anchor="middle" class="park-sign">Town Square: build here with 🧱 bricks</text>` : "";
   return `${base}<g clip-path="url(#${clip})">
     <path d="${outline}" fill="${theme.top}"/>
+    ${district.id === "port" ? `<defs><linearGradient id="port-sky-${build ? "b" : "m"}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#bfe0ff"/><stop offset=".75" stop-color="#e3f1ff"/><stop offset="1" stop-color="${theme.top}"/></linearGradient></defs>
+    <rect x="0" y="0" width="360" height="${PORT_SKY}" fill="url(#port-sky-${build ? "b" : "m"})"/><circle cx="300" cy="30" r="11" fill="#ffd54f" opacity=".9"/>` : ""}
     ${d ? `<g fill="none" stroke-linecap="round" stroke-linejoin="round" pointer-events="none">
       <path d="${d}" stroke="${shade(theme.edge, 0.75)}" stroke-width="22" transform="translate(0 4)"/>
       <path d="${d}" stroke="${theme.edge}" stroke-width="22"/><path d="${d}" stroke="${theme.path}" stroke-width="16"/>
       <path d="${d}" stroke="${theme.edge}" stroke-width="3" stroke-dasharray="1 11" opacity=".8"/></g>` : ""}
-    <rect x="10" y="${park + 4}" width="340" height="${PARK - 8}" rx="16" fill="${district.ground}"/>
-    ${sign}
+    <rect x="10" y="${park + 4}" width="340" height="${PARK - 8}" rx="16" fill="${district.ground}" opacity="${build ? 0.35 : 1}"/>
+    ${build ? "" : sign}
     <rect x="8" y="${water + 2}" width="344" height="${BAND - 6}" rx="16" fill="${shade(district.water, 0.72)}"/>
     <rect x="8" y="${water + 6}" width="344" height="${BAND - 10}" rx="14" fill="${district.water}"/>${wave(water + 16, 20, 340)}
     ${skillGroups}
@@ -674,6 +679,51 @@ export function buildAreaSvg(player, { area = "square", fresh = null, selected =
     <rect x="-20" y="-20" width="400" height="${height + 80}" fill="#5aa7de"/>
     ${districtSvg(player, district, { fresh, rising: null, week: null, build: { selected } })}</svg>`;
   return { svg, height };
+}
+
+/**
+ * Build's guardrails: the places a decoration shouldn't cover, in the area's own units: each level's spot (pad,
+ * building and label), the place's name sign, and the Notice Board in the Town Square.
+ */
+export function buildKeepOut(player, area) {
+  const district = mapDistricts(player).find((d) => d.id === area) || mapDistricts(player)[0];
+  const { nodes } = areaPath(district, player);
+  const nameW = district.name.length * 13.5 + 46;
+  const entry = ENTRY[district.id];
+  const signX = entry?.side === "top" && entry.x < 180 ? 350 - nameW : 10;
+  const rects = nodes.map((n) => ({ x0: n.x - 25, y0: n.ground - 52, x1: n.x + 25, y1: n.ground + 30 }));
+  rects.push({ x0: signX - 6, y0: 0, x1: signX + nameW + 6, y1: 60 });
+  if (district.id === "square") rects.push({ x0: 222, y0: 0, x1: 318, y1: 78 });
+  return rects;
+}
+
+/** A spot that's inside one of the rects slides out the nearest side (a few times, in case it lands in the next one). */
+export function nudgeSpot(x, y, rects, height) {
+  let at = { x, y };
+  for (let k = 0; k < 4; k++) {
+    const r = rects.find((q) => at.x > q.x0 && at.x < q.x1 && at.y - 8 > q.y0 && at.y - 8 < q.y1);
+    if (!r) break;
+    const ways = [
+      { x: r.x0 - 2, y: at.y, d: at.x - r.x0 }, { x: r.x1 + 2, y: at.y, d: r.x1 - at.x },
+      { x: at.x, y: r.y0 + 6, d: at.y - 8 - r.y0 }, { x: at.x, y: r.y1 + 10, d: r.y1 - (at.y - 8) },
+    ].filter((w) => w.x >= 12 && w.x <= 348 && w.y >= 28 && w.y <= height - 4).sort((a, b) => a.d - b.d);
+    if (!ways.length) break;
+    at = { x: Math.round(ways[0].x), y: Math.round(ways[0].y) };
+  }
+  return at;
+}
+
+/** Where a new decoration drops in Build: a clear spot near the middle (not on a level, a sign or another decoration). */
+export function clearSpot(player, area, height) {
+  const rects = buildKeepOut(player, area);
+  const others = (player.decor || []).filter((p) => p.area === area && p.full);
+  const spots = [];
+  for (let y = 40; y <= height - 10; y += 22) for (let x = 30; x <= 330; x += 24) spots.push({ x, y });
+  const mid = { x: 180, y: height * 0.55 };
+  spots.sort((a, b) => Math.hypot(a.x - mid.x, (a.y - mid.y) * 0.8) - Math.hypot(b.x - mid.x, (b.y - mid.y) * 0.8));
+  const ok = (s) => !rects.some((q) => s.x > q.x0 - 14 && s.x < q.x1 + 14 && s.y - 8 > q.y0 - 14 && s.y - 8 < q.y1 + 6)
+    && !others.some((p) => Math.hypot(p.x - s.x, p.y - s.y) < 34);
+  return spots.find(ok) || spots[0];
 }
 
 export function parkSvg(player, { area = "square", fresh = null, selected = null } = {}) {

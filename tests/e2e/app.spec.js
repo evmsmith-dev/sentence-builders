@@ -863,8 +863,9 @@ test("bricks: a level pays bricks, the new building rises, and the Build screen 
   await expect(page.locator('[data-buy="ferris"]')).toContainText("125 more");
   await page.locator('[data-buy="oak"]').click();
   await expect(page.locator("#build-bricks")).toContainText("23");
-  await expect(page.locator(".build-selected")).toContainText("Oak tree: drag it anywhere");
-  await expect(page.locator('[data-buy="oak"]')).toHaveText("Build another");
+  await expect(page.locator(".build-selected")).toContainText("Oak tree"); // size and Put away, at the head of the shop
+  await expect(page.locator("#build-town .build-hint")).toContainText("Drag the oak tree"); // the first time
+  await expect(page.locator('[data-buy="oak"]')).toContainText("×1");
   await page.locator('[data-buy="oak"]').click(); // a second oak
   await expect(page.locator("#build-town .decor")).toHaveCount(2);
   await expect(page.locator("#build-bricks")).toContainText("11");
@@ -874,7 +875,7 @@ test("bricks: a level pays bricks, the new building rises, and the Build screen 
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await page.mouse.down();
   const scene = await page.locator("#build-town svg").boundingBox();
-  await page.mouse.move(scene.x + scene.width * 0.4, scene.y + scene.height * 0.06, { steps: 8 }); // near the top: the sky
+  await page.mouse.move(scene.x + scene.width * 0.95, scene.y + scene.height * 0.06, { steps: 8 }); // near the top: the sky
   await page.mouse.up();
   let saved = await page.evaluate(() => JSON.parse(localStorage.getItem("sentenceBuilders_players")));
   expect(saved[0].decor[0].y).toBeLessThan(64); // in the sky now
@@ -910,9 +911,22 @@ test("Build round 1: the whole place to build in, a decoration next to a buildin
   await page.mouse.up();
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("sentenceBuilders_players"))[0].decor[0]);
   expect(saved.full).toBe(true);
-  await page.locator('#build-town .size-btn[data-size="2"]').click();
-  await expect(page.locator('#build-town .size-btn[data-size="2"]')).toHaveAttribute("aria-pressed", "true");
+  await page.locator('#build-tools .size-btn[data-size="2"]').click();
+  await expect(page.locator('#build-tools .size-btn[data-size="2"]')).toHaveAttribute("aria-pressed", "true");
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("sentenceBuilders_players"))[0].decor[0].size)).toBe(2);
+  // Guardrails: dropped right on a level's spot, it slides off.
+  const hit = page.locator('#build-town .lot-hit[data-skill="commas"][data-level="2"]');
+  const spotBox = await hit.boundingBox();
+  const now = await page.locator("#build-town .decor").first().boundingBox();
+  await page.mouse.move(now.x + now.width / 2, now.y + now.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(spotBox.x + spotBox.width / 2, spotBox.y + spotBox.height * 0.75, { steps: 8 });
+  await page.mouse.up();
+  const nx = Number(await hit.getAttribute("x")) + 28;
+  const ground = Number(await hit.getAttribute("y")) + 88;
+  const after = await page.evaluate(() => JSON.parse(localStorage.getItem("sentenceBuilders_players"))[0].decor[0]);
+  const inside = after.x > nx - 25 && after.x < nx + 25 && after.y - 8 > ground - 52 && after.y - 8 < ground + 30;
+  expect(inside).toBe(false);
 });
 
 test("Comma items: tapping a word puts the comma right after it", async ({ page }) => {
@@ -924,11 +938,32 @@ test("Comma items: tapping a word puts the comma right after it", async ({ page 
   }
   await expect(page.locator("#prompt")).toContainText("Tap the word that comes before each comma");
   const word = page.locator("#item .word-tap").first();
-  const after = await word.getAttribute("data-after");
+  const after = Number(await word.getAttribute("data-word-i")) + 1;
   await word.click();
   await expect(page.locator(`#item [data-gap="${after}"]`)).toHaveClass(/filled/);
   await word.click(); // again: takes it away
   await expect(page.locator(`#item [data-gap="${after}"]`)).not.toHaveClass(/filled/);
+  await expect(word).toHaveCSS("min-height", "44px");
+});
+
+test("Quote marks: an opening mark goes before the tapped word, a closing one after it; a miss names the space", async ({ page }) => {
+  await openApp(page, { players: [player({ grade: 4 })], current: "p1" });
+  await startLevel(page, "dialogue", 1);
+  let item = await currentItem(page);
+  for (let n = 0; n < 8 && !(item.type === "mark" && item.text.includes('"')); n++) {
+    await answer(page);
+    await page.locator("#next-btn").click();
+    item = await currentItem(page);
+  }
+  test.skip(!(item.type === "mark" && item.text.includes('"')), "no quote item came up");
+  const words = page.locator("#item .word-tap");
+  const count = await words.count();
+  await words.nth(count - 1).click();
+  await expect(page.locator("#item .palette")).toContainText("Before");
+  await page.locator("#item [data-mark-before]").first().click();
+  await expect(page.locator(`#item [data-gap="${count - 1}"]`)).toHaveText('"');
+  await page.locator("#check-btn").click();
+  await expect(page.locator("#feedback")).toContainText(/after “|before “/);
 });
 
 test("Pip's homework: grade three paragraphs, earn bricks, and it doesn't count as a level", async ({ page }) => {
@@ -1025,7 +1060,7 @@ test("town map: tap a region to zoom in, tap a lot for its levels, and decorate 
   await page.locator("[data-decorate=port]").click();
   await expect(page.locator('[data-build-area="port"]')).toHaveAttribute("aria-selected", "true");
   await page.locator('[data-buy="anchor"]').click();
-  await expect(page.locator('[data-buy="anchor"]')).toHaveText("Build another");
+  await expect(page.locator('[data-buy="anchor"]')).toContainText("×1");
   await page.locator('[data-build-area="square"]').click();
   await expect(page.locator('[data-buy="anchor"]')).toHaveCount(0); // anchors belong to the port
   await page.locator("#build-back").click();
@@ -1601,9 +1636,18 @@ test("One end to the day: warm-up, then the lesson, then That's today ✓ with t
     await answer(page);
     await page.locator("#next-btn").click();
   }
-  await expect(page.locator("#result-pip")).toContainText("That's today ✓");
+  await expect(page.locator("#result-title")).toHaveText("That's today ✓"); // the headline, not Pip's line
   await expect(page.locator("#result-next")).toHaveText("🎁 Place my prize");
-  await expect(page.locator("#result-again")).toContainText("or keep going");
+  await expect(page.locator("#result-again")).toContainText("or keep going: ");
+  await expect(page.locator("#result-town")).toBeHidden(); // two ways out, not four
+  await expect(page.locator("#result-rule")).toBeHidden();
+  // "Keep going" names the same level as home's Next up.
+  const keep = (await page.locator("#result-again").textContent()).replace("or keep going: ", "");
+  await page.evaluate(() => document.querySelector("#result-overlay [data-close], #result-overlay .close")?.click());
+  await page.keyboard.press("Escape");
+  await page.evaluate(() => { location.hash = ""; });
+  await page.reload();
+  await expect(page.locator("#pip-home")).toContainText(keep);
 });
 
 test("Settings: grouped, a ✕ instead of Done, and changes show right away", async ({ page }) => {
@@ -1705,6 +1749,7 @@ test("Island Home: the island fills the screen; review first, the Notice Board o
   await expect(page.locator("#week-overlay")).toBeHidden();
   // Grade 6 and up: the setting isn't offered, and the page stays as it is.
   await page.locator("#settings-btn").click();
+  await page.locator("#settings-overlay .settings-grown summary").click(); // Island Home is under For grown-ups
   await expect(page.locator("#island-toggle")).toBeVisible();
 });
 
@@ -1817,7 +1862,7 @@ test("Challenge Trails (grades 3-5): mastery opens the next level with Pip's new
   await expect(level2).toContainText("⭐ Challenge");
   await expect(level2).not.toContainText("Grade");
   await expect(page.locator('.level-btn[data-skill="commas"][data-level="3"]')).toBeDisabled();
-  await expect(page.locator(".trail-top")).toContainText("get 7 or more right on a level, on two different days");
+  await expect(page.locator(".trail-top")).toContainText("get 7 or more out of 8 on a level, on two different days");
   // Missed sentences waiting: review comes first.
   await page.evaluate(() => {
     const players = JSON.parse(localStorage.getItem("sentenceBuilders_players"));

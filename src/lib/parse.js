@@ -627,40 +627,73 @@ export function validateItem(item) {
 
 const SUBJECT_PRONOUNS = new Set(["i", "he", "she", "we", "they", "who", "whoever"]);
 const OBJECT_PRONOUNS = new Set(["me", "him", "her", "us", "them", "whom", "whomever", "myself", "himself", "herself", "ourselves", "themselves"]);
-const SOUND_ALIKES = [["their", "there", "they're"], ["its", "it's"], ["to", "too", "two"], ["your", "you're"], ["whose", "who's"], ["are", "our", "hour"], ["then", "than"], ["affect", "effect", "affects", "effects"], ["lose", "loose"], ["accept", "except"]];
+const SOUND_ALIKES = [["than", "that"], ["threw", "through"], ["passed", "past"], ["their", "there", "they're"], ["its", "it's"], ["to", "too", "two"], ["your", "you're"], ["whose", "who's"], ["are", "our", "hour"], ["then", "than"], ["affect", "effect", "affects", "effects"], ["lose", "loose"], ["accept", "except"]];
 const POSSESSIVES = new Set(["mine", "yours", "his", "hers", "ours", "theirs", "my", "your", "our", "their", "its"]);
 // Irregular past tenses and other verb forms that don't end in -s, -ed or -ing.
 const VERB_FORMS = new Set(["is", "are", "was", "were", "be", "am", "has", "have", "had", "do", "does", "did", "went", "go", "saw", "see", "seen",
   "ran", "run", "took", "take", "made", "make", "gave", "give", "came", "come", "lay", "lie", "laid", "win", "won", "ride", "rode", "drive", "drove",
   "drink", "drank", "teach", "taught", "catch", "caught", "build", "built", "fly", "flew", "swim", "swam", "blow", "blew", "throw", "threw",
-  "grow", "grew", "know", "knew", "tell", "told", "bring", "brought", "think", "thought", "sit", "sat", "set", "eat", "ate", "send", "sent", "beat", "pay", "paid"]);
+  "grow", "grew", "know", "knew", "tell", "told", "bring", "brought", "think", "thought", "sit", "sat", "set", "eat", "ate", "send", "sent", "beat", "pay", "paid",
+  "dig", "dug", "find", "found", "get", "got", "wear", "wore", "freeze", "froze", "rise", "rose", "wake", "woke", "can", "could",
+  "don't", "doesn't", "didn't", "isn't", "aren't", "wasn't", "weren't", "hasn't", "haven't"]);
+const PERSONAL = new Set(["i", "me", "you", "he", "him", "she", "her", "it", "we", "us", "they", "them"]);
+const RELATIVE = new Set(["who", "whom", "which", "that", "whose"]);
+const JOINERS = new Set(["and", "but", "or", "so", "because", "before", "after", "when", "where", "while", "although", "since", "if", "unless", "until"]);
+const COMPARE = new Set(["good", "better", "best", "goodest", "bad", "worse", "worst", "baddest", "less", "fewer", "least", "more", "most", "much", "many"]);
 
 /**
  * What kind of slip a proofreading mistake is, from the word shown and its fix, so a miss can say more than
  * "read it slowly": a capital, an apostrophe, a mark, a sound-alike word, a pronoun, a verb, or spelling.
  */
 export function mistakeKind(shown, correct) {
-  const bare = (w) => w.replace(/[.,!?;:"]+$/, "");
+  // Marks can hang on either end of a word: a missing opening quote or parenthesis is punctuation too.
+  const bare = (w) => w.replace(/^[“"(‘]+/, "").replace(/[.,!?;:"”)]+$/, "");
   const a = shown.trim();
   const b = correct.trim();
   if (a.toLowerCase() === b.toLowerCase()) return "Capital letters: should this word start with a capital (a name, a place, the first word) or not?";
   if (bare(a) === bare(b) || bare(a).replace(/[—–-]+$/, "") === bare(b).replace(/[—–-]+$/, "")) {
-    return "Punctuation: which mark, if any, belongs right after this word? Check where the sentence ends and the comma rules (lists, joining words, starting parts, extra information).";
+    return "Punctuation: which mark, if any, belongs here? Check where the sentence ends, where quoted words start and stop, and the comma rules (lists, joining words, starting parts, extra information).";
   }
   const la = bare(a).toLowerCase();
   const lb = bare(b).toLowerCase();
   if (SOUND_ALIKES.some((set) => set.includes(la) && set.includes(lb))) return "Sound-alike or look-alike words: they sound or look almost the same but mean different things. Which one fits this sentence?";
   if (POSSESSIVES.has(lb) && /'/.test(la)) return "Possessive pronouns: mine, yours, ours and theirs already show ownership, with no apostrophe.";
-  if (la.replace(/'/g, "") === lb.replace(/'/g, "")) {
+  const noMark = (w) => w.replace(/'/g, "");
+  if (noMark(la) === noMark(lb) || (/'/.test(la + lb) && noMark(la).replace(/s+$/, "") === noMark(lb).replace(/s+$/, ""))) {
     if (POSSESSIVES.has(lb)) return "Possessive pronouns: mine, yours, ours and theirs already show ownership, with no apostrophe.";
     return "Apostrophes: is this word showing who owns something, a contraction, or just more than one?";
   }
-  if ((SUBJECT_PRONOUNS.has(la) || OBJECT_PRONOUNS.has(la)) && (SUBJECT_PRONOUNS.has(lb) || OBJECT_PRONOUNS.has(lb))) {
+  if (/sel(f|ves|fs)$/.test(la) && /sel(f|ves|fs)$/.test(lb)) return "Pronouns: myself, himself, themselves… pick the -self word that matches who it points back to (one or more than one).";
+  if (RELATIVE.has(la) && RELATIVE.has(lb)) return "Pronouns: use who for people and which for things (that works for either); whom when it receives the action.";
+  const reflexive = (w) => /sel(f|ves)$/.test(w);
+  if (reflexive(la) !== reflexive(lb) && (PERSONAL.has(la) || PERSONAL.has(lb))) return "Pronouns: use a -self word (myself, herself) only when it points back to the subject of the same sentence.";
+  if ((SUBJECT_PRONOUNS.has(la) || OBJECT_PRONOUNS.has(la)) && (SUBJECT_PRONOUNS.has(lb) || OBJECT_PRONOUNS.has(lb)) && SUBJECT_PRONOUNS.has(la) !== SUBJECT_PRONOUNS.has(lb)) {
     return "Pronouns: does this one do the action (I, he, she, we, they, who) or receive it (me, him, her, us, them, whom)?";
   }
+  if (PERSONAL.has(la) && PERSONAL.has(lb)) return "Pronouns: which pronoun matches the noun it stands for (and stays the same through the sentence)?";
+  if (JOINERS.has(la) && JOINERS.has(lb)) return "Joining words: which one shows how the two ideas connect (adding, choosing, a reason, a time, a contrast)?";
+  if (COMPARE.has(la) && COMPARE.has(lb)) return "Comparisons: better for two, best for three or more; fewer for things you can count, less for amounts.";
   const verbish = (w) => /(ed|ing)$/.test(w) || VERB_FORMS.has(w) || (/s$/.test(w) && VERB_FORMS.has(w.replace(/e?s$/, "")));
   if (POSSESSIVES.has(la) || POSSESSIVES.has(lb)) return "Pronouns: which form shows who owns it, or who does the action?";
-  const sameStem = (x, y) => x.replace(/(e?s|ed|ing)$/, "") === y.replace(/(e?s|ed|ing)$/, "");
-  if (verbish(la) || verbish(lb) || (sameStem(la, lb) && /(s|ed|ing)$/.test(la + lb) && !/'/.test(la + lb))) return "Verbs: check the tense (when it happened) and whether the verb agrees with its subject.";
+  const stems = (x) => new Set([x, x.replace(/ies$/, "y"), x.replace(/s$/, ""), x.replace(/es$/, ""), x.replace(/ed$/, ""), x.replace(/d$/, ""), x.replace(/ing$/, ""), x.replace(/ing$/, "e"),
+    x.replace(/ied$/, "y"), x.replace(/(.)\1(ed|ing)$/, "$1")]);
+  const stem = (x) => x.replace(/ies$/, "y").replace(/(es|s|ed|ing)$/, "");
+  const lyPair = (x, y) => /ly$/.test(y) && !/ly$/.test(x) && (y.replace(/l?ly$/, "") === x.replace(/(ness|e)$/, "") || y === `${x}ly`);
+  if (lyPair(la, lb) || lyPair(lb, la) || (/ness$/.test(la + lb) && stem(la.replace(/ly$|ness$/, "")) === stem(lb.replace(/ly$|ness$/, "")))) {
+    return "Adjective or adverb: an adjective describes a noun (a careful driver); an adverb tells how (drives carefully).";
+  }
+  const sa = stems(la);
+  const sameStem = la !== lb && [...stems(lb)].some((x) => x.length > 1 && sa.has(x));
+  // Tense and agreement only when it's the same verb (walk/walked, go/went, is/are, a made-up -ed form, was + -ing);
+  // two different verbs (strolled/went) are a word choice.
+  const verbForm = (w) => VERB_FORMS.has(w) || VERB_FORMS.has(w.replace(/e?s$/, "")) || VERB_FORMS.has(w.replace(/s$/, ""));
+  const madeUp = (x, y) => /ed$/.test(x) && !/ed$/.test(y) && (x[0] === y[0] || (verbForm(y) && !verbForm(x) && VERB_FORMS.has(x.replace(/e?d$/, ""))));
+  const helper = (x, y) => /ing$/.test(x) && /^(is|am|are|was|were)$/.test(y);
+  const phrase = (x, y) => / /.test(x + y) && /ing$/.test(x) && /ing$/.test(y) && /\b(is|am|are|was|were|will|be)\b/.test(x + " " + y);
+  if (la.length > 3 && editDistance(la, lb) === 1 && !sameStem && !verbForm(la) && !verbForm(lb)) return "Spelling: look closely, letter by letter.";
+  if ((sameStem && !/'/.test(la + lb)) || (verbForm(la) && verbForm(lb)) || phrase(la, lb) || madeUp(la, lb) || madeUp(lb, la) || helper(la, lb) || helper(lb, la)) {
+    return "Verbs: check the tense (when it happened) and whether the verb agrees with its subject.";
+  }
+  if (verbish(la) || verbish(lb) || /ed$/.test(la + lb)) return "Word choice: both could fit, so which word gives the exact meaning (or the right tone) here?";
   return "Word form or spelling: which version is the right word for this spot?";
 }
