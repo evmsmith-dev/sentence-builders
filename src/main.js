@@ -2432,6 +2432,24 @@ function wire() {
     },
     onLot: openSkillSheet,
     onBoard: openWeek,
+    // Island Home: how much of the screen the floating tools, Pip and buttons cover, so a place fits beside them.
+    insets: () => {
+      if (!document.body.classList.contains("island-home")) return null;
+      const H = innerHeight;
+      const W = innerWidth;
+      const rect = (id) => { const el = $(id); const r = el && !el.hidden && el.getBoundingClientRect(); return r && r.height ? r : null; };
+      const tools = document.querySelector("#home .home-tools")?.getBoundingClientRect();
+      const pip = rect("pip-home");
+      const bar = document.querySelector("#home .island-bar")?.getBoundingClientRect();
+      const top = tools && tools.height ? tools.bottom + 6 : 60;
+      const landscape = W > H && W >= 640;
+      if (landscape) {
+        const left = Math.min(pip?.left ?? W, bar?.left ?? W);
+        return { top, left: 0, right: Math.max(0, W - left + 8), bottom: 8 };
+      }
+      const low = Math.min(pip?.top ?? H, bar?.top ?? H);
+      return { top, left: 0, right: 0, bottom: Math.max(0, H - low + 6) };
+    },
     onPeak: (kind) => {
       if (kind === "summit" && !summitItems(state.player).length) {
         $("pip-home").innerHTML = pipSays("Pass a level anywhere on the island first, then climb up here to review it.", settings().pip, playButton(state.player));

@@ -11,7 +11,7 @@ const reduceMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matche
  * onArea(id|null): the district in view changed (null: the whole map). onLot(skillId, level): a lot was tapped.
  * onBoard(): the Town Square's Notice Board was tapped. onPeak("summit"|"lake"): a peak or the lake was tapped.
  */
-export function createTownMap(box, buttons, { onArea, onLot, onBoard = () => {}, onPeak = () => {} }) {
+export function createTownMap(box, buttons, { onArea, onLot, onBoard = () => {}, onPeak = () => {}, insets = () => null }) {
   let svg = null;
   let layout = null;
   let vb = { x: 0, y: 0, w: 1, h: 1 };
@@ -32,8 +32,10 @@ export function createTownMap(box, buttons, { onArea, onLot, onBoard = () => {},
     const w = clampW(v.w);
     const h = w * aspect();
     // Smaller than the map: keep inside it. Bigger: center it, with sea around.
-    const x = w >= layout.width ? (layout.width - w) / 2 : Math.min(layout.width - w, Math.max(0, v.x));
-    const y = h >= layout.height ? (layout.height - h) / 2 : Math.min(layout.height - h, Math.max(0, v.y));
+    // (Zoomed in on Island Home, the view may go a little past the edge, by what the floating buttons cover.)
+    const sl = zoomedIn(w) ? slack : {};
+    const x = w >= layout.width ? (layout.width - w) / 2 : Math.min(layout.width - w + (sl.right || 0), Math.max(-(sl.left || 0), v.x));
+    const y = h >= layout.height ? (layout.height - h) / 2 : Math.min(layout.height - h + (sl.bottom || 0), Math.max(-(sl.top || 0), v.y));
     vb = { x, y, w, h };
     svg.setAttribute("viewBox", `${x.toFixed(1)} ${y.toFixed(1)} ${w.toFixed(1)} ${h.toFixed(1)}`);
     const full = w >= fitW() - 0.5;
@@ -69,10 +71,25 @@ export function createTownMap(box, buttons, { onArea, onLot, onBoard = () => {},
   };
 
   /** The view that fits one district, with a little room around it. */
+  // Island Home: the tools row, Pip and the buttons float over the map, so a district is fitted into the part of the
+  // screen they leave free (on iPad, the place's name sign sat under the tools row).
+  let slack = { top: 0, left: 0 };
   function districtView(id) {
     const b = layout.areas[id];
-    const w = clampW(Math.max(b.w + 24, (b.h + 24) / aspect()));
-    return { x: b.x + b.w / 2 - w / 2, y: b.y + b.h / 2 - (w * aspect()) / 2, w };
+    const r = box.getBoundingClientRect();
+    const i = (r.width && insets()) || null;
+    if (!i) {
+      slack = { top: 0, left: 0 };
+      const w = clampW(Math.max(b.w + 24, (b.h + 24) / aspect()));
+      return { x: b.x + b.w / 2 - w / 2, y: b.y + b.h / 2 - (w * aspect()) / 2, w };
+    }
+    const freeW = Math.max(120, r.width - i.left - i.right);
+    const freeH = Math.max(120, r.height - i.top - i.bottom);
+    const units = Math.max((b.w + 24) / freeW, (b.h + 24) / freeH); // map units per pixel
+    const w = clampW(units * r.width);
+    const k = w / r.width;
+    slack = { top: i.top * k, left: i.left * k, right: i.right * k, bottom: i.bottom * k };
+    return { x: b.x + b.w / 2 - (i.left + freeW / 2) * k, y: b.y + b.h / 2 - (i.top + freeH / 2) * k, w };
   }
 
   function report(next) {

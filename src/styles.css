@@ -975,8 +975,9 @@ body.island-home #home #pip-home .link { margin-left: 8px; }
   /* Landscape (iPad and phones turned sideways): Pip and the buttons sit in a column on the right, so Pip's bubble
      doesn't cover the next level (the 4th grader); the map gets the rest. */
   body.island-home #home #pip-home { left: auto; right: 12px; width: min(330px, 38vw); bottom: calc(env(safe-area-inset-bottom) + 72px); }
-  body.island-home .island-bar { left: auto; right: 12px; width: min(330px, 38vw); }
-  body.island-home #home .map-zoom { right: calc(min(330px, 38vw) + 24px); }
+  /* The three buttons share the column (Build was pushed off the screen): they may shrink, and wrap if they must. */
+  body.island-home .island-bar { left: auto; right: 12px; width: min(360px, 40vw); flex-wrap: wrap; }
+  body.island-home .island-bar .island-btn { flex: 1 1 auto; min-width: 0; padding: 0 8px; font-size: 0.9rem; }
 }
 /* Pickers in Settings look like pickers: a ▾ on the right. */
 #settings-overlay select { appearance: none; -webkit-appearance: none; padding-right: 34px;
@@ -1153,7 +1154,11 @@ body.island-home.peaks-open #home #map-panel { display: none; }
    added; the bar under Pip has the Daily 5 (and streak), the Notice Board and Build. */
 .tool-btn.island-only { display: none; }
 body.island-home #home .home-tools .tool-btn.island-only { display: flex; }
-body.island-home #home .home-tools { flex-direction: row; width: auto; right: 64px; flex-wrap: nowrap; }
+/* The row is only as wide as its buttons, and its empty part never catches a tap (on iPad it stretched across the
+   screen, over the ⤢ button, so ⤢ couldn't be tapped). ⤢ stays top right, under the ⚙️. */
+body.island-home #home .home-tools { flex-direction: row; width: auto; right: auto; max-width: calc(100% - 84px); flex-wrap: nowrap; pointer-events: none; }
+body.island-home #home .home-tools > * { pointer-events: auto; }
+body.island-home #home .map-zoom { right: 10px; z-index: 6; }
 body.island-home #home .home-tools .tool-btn { flex: 0 1 auto; min-width: 58px; padding: 4px 6px; }
 .island-btn { padding: 0 6px; white-space: nowrap; font-size: 0.95rem; }
 @media (max-width: 420px) { .island-btn { font-size: 0.88rem; } }

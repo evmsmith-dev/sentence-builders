@@ -1910,3 +1910,17 @@ test("Listen and Write: Listen on a later question reads only that question's se
   const said = await page.evaluate(() => window.__said);
   expect(said).toEqual([second.text.replace(/["“”]/g, "")]);
 });
+
+for (const [name, vp] of [["iPad", { width: 1180, height: 820 }], ["phone", { width: 915, height: 412 }]]) {
+  test(`Island Home in landscape (${name}): ⤢ can be tapped and Daily 5, Board and Build all fit @layout`, async ({ page }) => {
+    await page.setViewportSize(vp);
+    const p = { ...player({ grade: 4, settings: { islandHome: true }, levels: { "commas-1": { stars: 2, best: 7, plays: 1 } } }), days: ["2026-11-17"] };
+    await openApp(page, { players: [p], current: "p1" });
+    await page.evaluate(() => document.querySelectorAll(".overlay").forEach((o) => { o.hidden = true; }));
+    await page.mouse.click(vp.width * 0.25, vp.height * 0.3); // zoom in to Punctuation Port
+    for (const id of ["#island-daily", "#island-board", "#island-build"]) await expect(page.locator(id)).toBeInViewport({ ratio: 1 });
+    await expect(page.locator("#map-fit")).toBeEnabled();
+    await page.locator("#map-fit").click({ timeout: 3000 }); // the tools row used to cover it
+    await expect(page.locator("#map-fit")).toBeDisabled();
+  });
+}
