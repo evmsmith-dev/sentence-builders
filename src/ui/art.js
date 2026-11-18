@@ -327,8 +327,9 @@ function districtSvg(player, district, { fresh, rising, week = null, blueprint =
     // On the blueprint, each skill's label says how much is built and how often answers are right the first time.
     const built = [1, 2, 3].filter((l) => levelStars(player, skill.id, l)).length;
     const rate = blueprint?.rates?.[skill.id];
-    const name = blueprint ? `${skill.short} · ${built}/3${rate == null ? "" : ` · ${rate}%`}` : skill.short;
-    const weak = blueprint && rate != null && rate < 75 ? " bp-weak" : "";
+    const gold = blueprint && skillTier(player, skill.id) === 3;
+    const name = blueprint ? `${gold ? "★ " : ""}${skill.short} · ${built}/3${rate == null ? "" : ` · ${rate}%`}` : skill.short;
+    const weak = blueprint && rate != null && rate < 75 ? " bp-weak" : gold ? " bp-gold" : "";
     return `<g data-skill="${skill.id}">${parts.join("")}<text class="skill-label${weak}" x="${mid}" y="${ground + 26}" text-anchor="middle" font-size="11" font-weight="700" fill="#2c3e5c" stroke="#fff" stroke-width="3" paint-order="stroke" pointer-events="none">${esc(name)}</text></g>`;
   }).join("");
   // Pip waits by the next level to play here (or at the end of the path once it's all built).
@@ -360,6 +361,8 @@ function districtSvg(player, district, { fresh, rising, week = null, blueprint =
     <g class="district-sign" pointer-events="none"><rect x="${signX}" y="14" width="${nameW}" height="38" rx="19" fill="#fff" opacity=".92"/>
       <text x="${signX + 12}" y="41" font-size="22" font-weight="700" fill="#2c3e5c" class="district-name">${district.emoji} ${esc(district.name)}</text></g>
     ${pip}
+    ${blueprint && player.bosses?.[district.world] ? `<g class="bp-stamp" pointer-events="none" transform="rotate(-6 286 ${park + 40})">
+      <rect x="218" y="${park + 22}" width="136" height="36" rx="6"/><text x="286" y="${park + 46}" text-anchor="middle" font-size="16" font-weight="800">APPROVED ✓</text></g>` : ""}
   </g>`;
 }
 
@@ -634,7 +637,7 @@ export function townSvg(player, { fresh = null, rising = null, week = null, revi
     return `<g class="region-label" pointer-events="none"><rect x="${b.x + 180 - w / 2}" y="${cy - 34}" width="${w}" height="64" rx="32" fill="#fff" opacity=".92"/>
       <text x="${b.x + 180}" y="${cy + 12}" text-anchor="middle" font-size="38" font-weight="700" fill="#1d2b4f">${esc(text)}</text></g>`;
   }).join("");
-  return `<svg class="town town-map${blueprint ? " blueprint" : ""}" viewBox="0 0 ${MAP_W} ${MAP_H}" role="img" aria-label="Grammar Island: ${built} of ${total} buildings built">
+  return `<svg class="town town-map${blueprint ? ` blueprint bp-style-${blueprint.style || "classic"}` : ""}" viewBox="0 0 ${MAP_W} ${MAP_H}" role="img" aria-label="Grammar Island: ${built} of ${total} buildings built">
     <defs><clipPath id="island"><path d="${coast}"/></clipPath>
       <radialGradient id="sun" cx=".3" cy=".2" r=".9"><stop offset="0" stop-color="#fff" stop-opacity=".25"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs>
     <rect x="-3000" y="-3000" width="${MAP_W + 6000}" height="${MAP_H + 6000}" fill="#5aa7de"/>

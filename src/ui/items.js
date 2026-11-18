@@ -12,7 +12,7 @@ import { nounTableQuestions } from "../lib/nountable.js";
 import { buildDiagram, explainSlot, guideOrder, layoutDiagram, wrongSlots } from "../lib/diagram.js";
 import {
   CHECK_KINDS, spaceAfter, checkBuild, checkLabels, checkMark, checkSort, joinTiles, paletteFor, parseBuild, parseCheck, parseFix, parseFlow,
-  parseJoin, parseCombine, checkCombine, checkDictation, dictationPhrases, dictationWords, parseLabels, parseMark, parseProofread, parseSort, parseWhich,
+  parseJoin, parseCombine, checkCombine, checkDictation, dictationPhrases, dictationWords, parseLabels, parseMark, parseProofread, parseSort, parseWhich, mistakeKind,
 } from "../lib/parse.js";
 import { FLOW_LABELS, LABELS, PATTERNS, SENTENCE_KINDS } from "../config.js";
 
@@ -881,6 +881,7 @@ function renderProofread(root, item, { hint, complete, onChange, onTap }) {
   let revealed = false;
   let done = false;
   let pointed = null;
+  const picks = []; // wrong fixes picked, for "You chose" in the results
   const errorAt = (i) => parsed.errors.find((e) => e.index === i);
   const choicesFor = {};
   for (const e of parsed.errors) choicesFor[e.index] = shuffle(e.choices);
@@ -947,16 +948,17 @@ function renderProofread(root, item, { hint, complete, onChange, onTap }) {
       } else {
         misses += 1;
         fixMisses[open] = (fixMisses[open] || 0) + 1;
+        picks.push(`"${e.prefix + fix.dataset.pfix + e.suffix}" for "${e.fixed}"`);
         if (fixMisses[open] >= 2) {
           revealed = true;
           fixed[open] = "shown";
-          hint(`Here's that one: "${e.fixed}".`);
+          hint(`Here's that one: "${e.fixed}". ${mistakeKind(e.shown, e.correct)}`);
           open = null;
           draw();
           finishIfDone();
         } else {
           fix.disabled = true;
-          hint(`Not that one. ${item.hint}`);
+          hint(`Not that one. ${mistakeKind(e.shown, e.correct)}`);
         }
       }
     }
@@ -968,6 +970,7 @@ function renderProofread(root, item, { hint, complete, onChange, onTap }) {
       return done ? "All fixed!" : "Find each mistake. Tap it, then pick the fix.";
     },
     usesCheck: false,
+    chosen: () => (picks.length ? picks.join("; ") : null),
     retry: () => {},
     reveal: () => {},
     lock: () => { done = true; draw(); },

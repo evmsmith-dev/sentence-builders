@@ -101,3 +101,37 @@ export function pickDailyItems({ items, levelKeys, stats = {}, count = 5, random
   return pickSummitItems({ items: quick, passedKeys: levelKeys, stats, count, random })
     .map((item) => ({ item, r: random() })).sort((a, b) => a.r - b.r).map(({ item }) => item);
 }
+
+/** A small seeded random number generator, so a Speed Proofread code gives everyone the same questions. */
+export function seeded(seed) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/**
+ * Speed Proofread: `count` quick questions from the given levels, chosen only by the seed (not by anyone's
+ * history), so a share code plays the same set on any device with the same content.
+ */
+export function pickSpeedItems({ items, levelKeys, seed, count = 12 }) {
+  const keys = new Set(levelKeys);
+  const pool = items.filter((i) => DAILY_TYPES.has(i.type) && keys.has(`${i.skill}-${i.level}`)).sort((a, b) => (a.id < b.id ? -1 : 1));
+  const random = seeded(seed);
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  return pool.slice(0, count);
+}
+
+/** "G7-4821" → { grade: 7, seed: 4821 }; null if it isn't a code. */
+export function parseSpeedCode(text) {
+  const m = String(text || "").trim().match(/^G?\s*([3-8])\s*-\s*(\d{4})$/i);
+  return m ? { grade: Number(m[1]), seed: Number(m[2]) } : null;
+}
+export const speedCode = (grade, seed) => `G${grade}-${seed}`;

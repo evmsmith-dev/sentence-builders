@@ -1360,6 +1360,59 @@ test("Q&A Flow answers show each word over its label and the pattern in words", 
   await expect(page.locator(".flow-sum").first()).toContainText("Pattern 6: subject noun, transitive verb, direct object, object complement noun");
 });
 
+test("Speed Proofread: a code plays the same questions, one try each, and keeps a personal best", async ({ page }) => {
+  await openApp(page, { players: [player({ grade: 7 })], current: "p1" });
+  await page.locator("[data-speed]").click();
+  await page.locator("#speed-code").fill("nope");
+  await page.locator("#speed-play-code").click();
+  await expect(page.locator("#speed-code-msg")).toContainText("G7-4821");
+  await page.locator("#speed-code").fill("g7-4821");
+  await page.locator("#speed-play-code").click();
+  await expect(page.locator("#progress-text")).toContainText("⏱ 1:");
+  const first = await currentItem(page);
+  await miss(page); // one try: the answer shows right away
+  await expect(page.locator("#next-btn")).toBeVisible();
+  await page.locator("#next-btn").click();
+  for (let n = 1; n < 12; n++) {
+    await answer(page);
+    await page.locator("#next-btn").click();
+  }
+  await expect(page.locator("#result-title")).toHaveText("New personal best!");
+  await expect(page.locator(".speed-code-text")).toHaveText("G7-4821");
+  await page.locator("#result-town").click();
+  await expect(page.locator("[data-speed] .world-meta")).toContainText("Best 11");
+  // The same code again starts with the same question.
+  await page.locator("[data-speed]").click();
+  await page.locator("#speed-code").fill("G7-4821");
+  await page.locator("#speed-play-code").click();
+  expect((await currentItem(page)).id).toBe(first.id);
+});
+
+test("Test out: 7 of 8 marks a world's grade 3–5 levels Reviewed and Next up skips them", async ({ page }) => {
+  await openApp(page, { players: [player({ grade: 7 })], current: "p1" });
+  await page.locator('[data-world="port"]').click();
+  await expect(page.locator(".testout-card")).toContainText("Test out");
+  await page.locator('[data-testout="port"]').click();
+  for (let n = 0; n < 8; n++) {
+    await answer(page);
+    await page.locator("#next-btn").click();
+  }
+  await expect(page.locator("#result-title")).toHaveText("Tested out");
+  await page.locator("#result-next").click();
+  await page.locator('[data-world="port"]').click();
+  await expect(page.locator(".testout-card")).toContainText("reviewed");
+  await expect(page.locator('.level-btn[data-skill="commas"][data-level="1"]')).toContainText("Reviewed");
+});
+
+test("Blueprint rewards: an APPROVED stamp for a beaten final draft and earned plan styles", async ({ page }) => {
+  await openApp(page, { players: [{ ...player({ grade: 8 }), bosses: { desk: "2026-11-17" } }], current: "p1" });
+  await expect(page.locator(".town .bp-stamp")).toHaveCount(1);
+  await expect(page.locator('#bp-style option[value="graphite"]')).not.toHaveAttribute("disabled", "");
+  await expect(page.locator('#bp-style option[value="night"]')).toHaveAttribute("disabled", "");
+  await page.locator("#bp-style").selectOption("graphite");
+  await expect(page.locator(".town.blueprint")).toHaveClass(/bp-style-graphite/);
+});
+
 test("Sentence of the Week: Today with Pip card, the Notice Board, a day's job, and the week's banner @layout", async ({ page }) => {
   await page.clock.setFixedTime(new Date(2026, 10, 18, 10)); // a Wednesday
   await openApp(page, { players: [player({ grade: 4 })], current: "p1" });

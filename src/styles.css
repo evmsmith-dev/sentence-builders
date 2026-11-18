@@ -1109,3 +1109,39 @@ body.island-home.peaks-open #home #map-panel { display: none; }
 .boss-card.beaten { border-style: solid; border-color: #2e7d32; }
 .boss-done { color: #2e7d32; font-size: 0.85rem; }
 .daily-row.done .today-chev { color: #2e7d32; }
+
+/* Test out (grades 6–8) and Speed Proofread */
+.testout-card { display: flex; gap: 0.75rem; align-items: center; justify-content: space-between; border: 2px solid var(--border); background: var(--card, #fff); border-radius: 14px; padding: 0.7rem 1rem; margin-bottom: 0.9rem; }
+.testout-card h2 { font-size: 1rem; margin: 0; }
+.testout-card .note { margin: 0.15rem 0 0; }
+.testout-card button { flex: none; }
+.testout-card.done h2 { color: #2e7d32; }
+.reviewed-mini { color: #2e7d32; font-size: 0.85rem; font-weight: 600; }
+.speed-code-row { display: flex; gap: 0.5rem; }
+.speed-code-row input { flex: 1; min-width: 0; font-size: 1.1rem; padding: 0.5rem 0.7rem; border: 2px solid var(--border); border-radius: 10px; text-transform: uppercase; }
+.speed-share { margin: 0.4rem 0; font-size: 1rem; }
+.speed-code-text { font-size: 1.15rem; letter-spacing: 0.05em; user-select: all; }
+#progress-text.speed-low { color: #c62828; font-weight: 700; }
+
+/* Blueprint rewards: an APPROVED stamp for a beaten final draft, gold labels for Gold skills, earned plan styles. */
+.town.blueprint .bp-stamp rect { fill: none !important; stroke: #ff8a80 !important; stroke-width: 2.5px !important; }
+.town.blueprint .bp-stamp text { fill: #ff8a80 !important; letter-spacing: 1px; }
+.town.blueprint .skill-label.bp-gold { fill: #ffd54f !important; }
+.town.blueprint.bp-style-graphite { background-color: #2b2e33; }
+.town.blueprint.bp-style-graphite :is(path, rect, ellipse, circle, polygon, line) { stroke: rgba(235, 235, 235, 0.7) !important; }
+.town.blueprint.bp-style-graphite text { fill: #f2f2f2 !important; }
+.town.blueprint.bp-style-night { background-color: #0b1626; }
+.town.blueprint.bp-style-night :is(path, rect, ellipse, circle, polygon, line) { stroke: #66e0ff !important; }
+.town.blueprint.bp-style-night text { fill: #bff3ff !important; }
+.town.blueprint.bp-style-gold { background-color: #1a2238; }
+.town.blueprint.bp-style-gold :is(path, rect, ellipse, circle, polygon, line) { stroke: #e9c46a !important; }
+.town.blueprint.bp-style-gold text { fill: #ffe8a8 !important; }
+.town.blueprint.bp-style-graphite :is(.region-label, .district-sign) rect { fill: #2b2e33 !important; }
+.town.blueprint.bp-style-night :is(.region-label, .district-sign) rect { fill: #0b1626 !important; }
+.town.blueprint.bp-style-gold :is(.region-label, .district-sign) rect { fill: #1a2238 !important; }
+.town.blueprint[class*="bp-style-"] .bp-stamp rect { stroke: #ff8a80 !important; }
+.town.blueprint[class*="bp-style-"] .bp-stamp text { fill: #ff8a80 !important; }
+.bp-style-pick { font-size: 0.85rem; color: var(--muted); display: inline-flex; gap: 0.3rem; align-items: center; }
+.bp-style-pick select { font-size: 0.85rem; padding: 2px 4px; border-radius: 6px; border: 1px solid var(--border); max-width: 11rem; }
+.bp-head { flex-wrap: wrap; }
+.bp-style-pick { flex-basis: 100%; }

@@ -33,6 +33,8 @@ export function newPlayer({ id, name, avatar, grade, now }) {
     homeworkOn: null, // the last day Pip's homework was checked (the Notice Board's flyer waits until then)
     dailyOn: null, // the last day the Daily 5 was finished
     bosses: {}, // Pip's final drafts beaten (grades 6–8): { world id: the day }
+    speedBest: null, // Speed Proofread personal best: { right, ms, on }
+    reviewed: {}, // grade 3–5 levels tested out of (grades 6–8): { world id: the day }
   };
 }
 
@@ -89,7 +91,7 @@ export function mostMissed(player, limit = 5) {
     .filter(([, s]) => s.misses > 0)
     .sort((a, b) => b[1].misses - a[1].misses || b[1].last - a[1].last)
     .slice(0, limit)
-    .map(([id, s]) => ({ id, misses: s.misses, seen: s.seen }));
+    .map(([id, s]) => ({ id, misses: s.misses, seen: s.seen, chosen: s.chosen || null }));
 }
 
 /** Stars for points out of `total` items (thresholds are set for 8 items and scale to other lengths). */
@@ -217,7 +219,7 @@ export function recordLevel(player, { skill, level, results, now, durationMs = 0
 
   for (const result of results) {
     const s = next.items[result.id] || { seen: 0, misses: 0, last: 0 };
-    next.items[result.id] = { seen: s.seen + 1, misses: s.misses + (result.tries > 1 || !result.correct ? 1 : 0), last: now };
+    next.items[result.id] = { seen: s.seen + 1, misses: s.misses + (result.tries > 1 || !result.correct ? 1 : 0), last: now, ...(result.chosen ? { chosen: result.chosen } : s.chosen ? { chosen: s.chosen } : {}) };
     if (result.correct && result.tries === 2) next.secondTryWins += 1;
   }
   if (!next.days.includes(date)) next.days.push(date);
@@ -313,7 +315,7 @@ export function recordPractice(player, { kind, results, now, durationMs = 0 }) {
   const date = localDate(now);
   for (const result of results) {
     const s = next.items[result.id] || { seen: 0, misses: 0, last: 0 };
-    next.items[result.id] = { seen: s.seen + 1, misses: s.misses + (result.tries > 1 || !result.correct ? 1 : 0), last: now };
+    next.items[result.id] = { seen: s.seen + 1, misses: s.misses + (result.tries > 1 || !result.correct ? 1 : 0), last: now, ...(result.chosen ? { chosen: result.chosen } : s.chosen ? { chosen: s.chosen } : {}) };
   }
   if (!next.days.includes(date)) next.days.push(date);
   next.time[date] = (next.time[date] || 0) + Math.min(Math.max(durationMs, 0), MAX_LEVEL_MS);
@@ -323,7 +325,7 @@ export function recordPractice(player, { kind, results, now, durationMs = 0 }) {
   const reached = right >= PRACTICE_GOAL;
   if (kind === "summit") next.summitOn = date; // Island Home's Review Dock is done for today
   if (kind === "daily") next.dailyOn = date; // the Daily 5 is done for today; it doesn't plant flags or float boats
-  if (reached && kind !== "daily") {
+  if (reached && (kind === "summit" || kind === "lake")) {
     if (kind === "summit") next.summits += 1;
     else next.lakeWins += 1;
   }
@@ -337,7 +339,7 @@ export function recordHomework(player, { results, now, durationMs = 0 }) {
   const date = localDate(now);
   for (const result of results) {
     const s = next.items[result.id] || { seen: 0, misses: 0, last: 0 };
-    next.items[result.id] = { seen: s.seen + 1, misses: s.misses + (result.tries > 1 || !result.correct ? 1 : 0), last: now };
+    next.items[result.id] = { seen: s.seen + 1, misses: s.misses + (result.tries > 1 || !result.correct ? 1 : 0), last: now, ...(result.chosen ? { chosen: result.chosen } : s.chosen ? { chosen: s.chosen } : {}) };
   }
   if (!next.days.includes(date)) next.days.push(date);
   next.time[date] = (next.time[date] || 0) + Math.min(Math.max(durationMs, 0), MAX_LEVEL_MS);
@@ -356,7 +358,7 @@ export function recordWeekDay(player, { progress, day, sentence, results, now, d
   const date = localDate(now);
   for (const result of results) {
     const s = next.items[result.id] || { seen: 0, misses: 0, last: 0 };
-    next.items[result.id] = { seen: s.seen + 1, misses: s.misses + (result.tries > 1 || !result.correct ? 1 : 0), last: now };
+    next.items[result.id] = { seen: s.seen + 1, misses: s.misses + (result.tries > 1 || !result.correct ? 1 : 0), last: now, ...(result.chosen ? { chosen: result.chosen } : s.chosen ? { chosen: s.chosen } : {}) };
   }
   if (!next.days.includes(date)) next.days.push(date);
   next.time[date] = (next.time[date] || 0) + Math.min(Math.max(durationMs, 0), MAX_LEVEL_MS);
@@ -371,3 +373,9 @@ export function recordWeekDay(player, { progress, day, sentence, results, now, d
   next.week = { key: progress.key, id: progress.id, done };
   return { player: next, bricks, right: results.filter((r) => r.correct && r.tries === 1).length, weekDone };
 }
+
+/** Speed Proofread: is this run a new personal best? More right wins; with the same number right, less time. */
+export const isBetterSpeed = (best, run) => !best || run.right > best.right || (run.right === best.right && run.ms < best.ms);
+
+/** Test-out: right on the first try, out of the questions asked, needed to mark a world's grade 3–5 levels reviewed. */
+export const TESTOUT_PASS = 7;

@@ -25,7 +25,7 @@ export const WORLDS = [
   { id: "port", tab: "Punctuation", name: "Punctuation Port", emoji: "⚓", ready: true, blurb: "Commas, colons, quotation marks, apostrophes, capitals and Listen and Write" },
   { id: "works", tab: "Word Works", name: "Word Works", emoji: "⚙️", ready: true, blurb: "Verb tenses, agreement, pronouns, word parts and word choice" },
   { id: "studio", tab: "Sentences", name: "Sentence Studio", emoji: "🎨", ready: true, blurb: "Fragments, run-ons, compound and complex sentences, figurative language, revising and sentence combining" },
-  { id: "flow", tab: "Q&A Flow", name: "Flow Factory", emoji: "🏭", ready: true, blurb: "Label every word with the Q&A Flow and the parts of speech, then mark it up (and diagram it, from grade 5)" },
+  { id: "flow", tab: "Q&A Flow", name: "Flow Factory", emoji: "🏭", ready: true, blurb: "Label every word with the Q&A Flow and the parts of speech, mark it up and diagram it" },
   {
     id: "desk", tab: "Revision", name: "Revision Ridge", emoji: "📝", ready: true, minGrade: 6,
     blurb: "Pronouns, punctuation, sentence types, modifiers and proofreading",
@@ -597,3 +597,14 @@ export function defaultSpot(d) {
 export function clampSpot(x, y) {
   return { x: Math.round(Math.min(348, Math.max(12, x))), y: Math.round(Math.min(SCENE.height - 4, Math.max(28, y))) };
 }
+
+/**
+ * Blueprint styles (grades 6–8), earned rather than bought: each Pip's final draft beaten and each skill at Gold
+ * is a point. Following the 8th-grade playtester: rewards tied to beating final drafts or Gold, not a shop.
+ */
+export const PLAN_STYLES = [
+  { id: "classic", name: "Classic blue", points: 0 },
+  { id: "graphite", name: "Graphite", points: 1 },
+  { id: "night", name: "Night shift", points: 3 },
+  { id: "gold", name: "Gold leaf", points: 6 },
+];

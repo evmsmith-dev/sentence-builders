@@ -1,12 +1,12 @@
 // Startup and screens: players, the town, worlds, levels, results, badges and settings.
 import {
   AVATARS, AVATAR_GROUPS, HABIT_BADGES, ITEMS_PER_LEVEL, MAX_GRADE, MAX_PLAYERS, MIN_GRADE, PIP, PIP_INTRO, DECOR, decorFor, HOMEWORK_PER_ROUND, PRACTICE_PER_ROUND, PRACTICE_GOAL, clampSpot, SKILLS, SPELLING_RULES, STUDIO_FROM_GRADE, NOUN_TABLE_FROM_GRADE, NOUN_KINDS, NOUN_REMINDERS_UNTIL, TIER_NAMES, WORLDS, WORLD_BADGES,
-  GOLD_DAYS, SENTENCE_KINDS, LABELS, LABEL_LISTS, PATTERNS, FLOW_LABELS, FLOW_PATTERNS, WORD_LISTS, WORD_PARTS, skillById, skillOpenFor, skillsInWorld, skillsInWorldFor, worldOpenFor, PIP_GROWN, GROWN_PIP_FROM_GRADE, CHALLENGE_PREREQS, CHALLENGE_UP_TO_GRADE, unlockMode} from "./config.js";
+  GOLD_DAYS, SENTENCE_KINDS, LABELS, LABEL_LISTS, PATTERNS, FLOW_LABELS, FLOW_PATTERNS, WORD_LISTS, WORD_PARTS, skillById, skillOpenFor, skillsInWorld, skillsInWorldFor, worldOpenFor, PIP_GROWN, GROWN_PIP_FROM_GRADE, CHALLENGE_PREREQS, CHALLENGE_UP_TO_GRADE, unlockMode, skillGate, PLAN_STYLES} from "./config.js";
 import { answerText, parseFlow, spokenText } from "./lib/parse.js";
-import { pickDailyItems, pickLevelItems, pickSpellingItems, pickSummitItems } from "./lib/select.js";
+import { pickDailyItems, pickLevelItems, pickSpeedItems, pickSpellingItems, pickSummitItems, parseSpeedCode, speedCode } from "./lib/select.js";
 import { recordHomework, recordPractice, buyDecor, moveDecor, removeDecor,
   currentBadges, habitValue, isPassed, isUnlocked, levelStars, localDate, mostMissed, newPlayer, normalizePlayer,
-  passedKeys, recordLevel, skillTier, weekSummary, recordWeekDay, isChallenge, isMastered, openChallenge, streakDays} from "./lib/progress.js";
+  passedKeys, recordLevel, skillTier, weekSummary, recordWeekDay, isChallenge, isMastered, openChallenge, streakDays, isBetterSpeed, TESTOUT_PASS} from "./lib/progress.js";
 import { loadCurrentId, loadPlayers, saveCurrentId, savePlayers } from "./storage.js";
 import { districtSkills, mapDistricts, mapLayout, parkSvg, pipSays, pipSvg, townSvg } from "./ui/art.js";
 import { createTownMap } from "./ui/townmap.js";
@@ -127,13 +127,16 @@ const skillsInWorldOrdered = (worldId, player) => {
  * the product owner and an 8th-grade playtester): middle-school levels up to their grade first (in each skill's
  * order, so level 1 still comes before level 2), then a grade ahead, and only then the grade 3–5 levels, as review.
  */
+/** A grade 3–5 level a grade 6–8 player tested out of (its world's test-out was passed). */
+const isReviewed = (player, skill, level) => player.grade >= OLDER_FROM_GRADE && skill.grades[level - 1] <= 5 && Boolean(player.reviewed?.[skill.world]);
+
 function nextUp(player) {
   if (player.grade >= OLDER_FROM_GRADE) {
     const g = player.grade;
     const rank = (lg) => (lg >= OLDER_FROM_GRADE && lg <= g ? 0 : lg > g ? 1 : 2 + (g - lg));
     const order = worldsFor(player).flatMap((w) => skillsInWorldOrdered(w.id, player)).filter((sk) => visibleSkills(player).includes(sk));
     const open = order.flatMap((skill) => [1, 2, 3].map((level) => ({ skill, level, r: rank(skill.grades[level - 1]) })))
-      .filter(({ skill, level }) => isUnlocked(player, skill.id, level) && !isPassed(player, skill.id, level));
+      .filter(({ skill, level }) => isUnlocked(player, skill.id, level) && !isPassed(player, skill.id, level) && !isReviewed(player, skill, level));
     const best = open.reduce((a, b) => (b.r < a.r ? b : a), open[0]);
     return best ? { skill: best.skill, level: best.level } : null;
   }
@@ -180,6 +183,18 @@ function skillRates(player) {
   return Object.fromEntries(Object.entries(sums).filter(([, r]) => r.seen).map(([k, r]) => [k, Math.round(((r.seen - r.misses) / r.seen) * 100)]));
 }
 
+/** Points toward blueprint styles: final drafts beaten plus skills at Gold. */
+const planPoints = (player) => Object.keys(player.bosses || {}).length + SKILLS.filter((s) => skillTier(player, s.id) === 3).length;
+function planStyle(player) {
+  const want = PLAN_STYLES.find((st) => st.id === player.settings?.planStyle);
+  return want && planPoints(player) >= want.points ? want.id : "classic";
+}
+function planStyleOptions(player) {
+  const pts = planPoints(player);
+  const now = planStyle(player);
+  return PLAN_STYLES.map((st) => `<option value="${st.id}" ${st.id === now ? "selected" : ""} ${pts >= st.points ? "" : "disabled"}>${esc(st.name)}${pts >= st.points ? "" : ` (🔒 ${st.points - pts} more)`}</option>`).join("");
+}
+
 function blueprintSummary(player, rates) {
   const skills = visibleSkills(player);
   const built = skills.reduce((n, s) => n + [1, 2, 3].filter((l) => isPassed(player, s.id, l)).length, 0);
@@ -218,6 +233,7 @@ function renderHome() {
     $("town-title").textContent = "📐 Island plan";
     $("bp-summary").textContent = blueprintSummary(player, rates);
     $("bp-toggle").textContent = state.mapOpen ? "Smaller" : "Open the plan";
+    $("bp-style").innerHTML = planStyleOptions(player);
   } else $("town-title").textContent = "🏝️ Grammar Island";
   $("who-btn").innerHTML = `<span class="avatar" aria-hidden="true">${player.avatar}</span> ${esc(player.name)}`;
   // Grades 3–5: a Challenge Trail that's ready opens (one a day), and Pip says why.
@@ -270,7 +286,7 @@ function renderHome() {
   const risingSkill = state.rising && skillById(state.rising.replace(/-\d$/, ""));
   if (risingSkill) state.mapArea = risingSkill.world;
   const open = state.mapArea === "peaks" || mapDistricts(player).some((d) => d.id === state.mapArea);
-  state.map.show(townSvg(player, { rising: state.rising, week: weekMapInfo(player), review: due > 0, blueprint: blueprint ? { rates } : null }), mapLayout(player), open ? state.mapArea : null);
+  state.map.show(townSvg(player, { rising: state.rising, week: weekMapInfo(player), review: due > 0, blueprint: blueprint ? { rates, style: planStyle(player) } : null }), mapLayout(player), open ? state.mapArea : null);
   if (state.rising) {
     const card = $("town").closest(".town-card");
     if (!matchMedia("(prefers-reduced-motion: reduce)").matches) setTimeout(() => card.scrollIntoView({ block: "center", behavior: "smooth" }), 150);
@@ -309,7 +325,7 @@ function renderHome() {
       <span class="world-text"><span class="world-name">Grammar Peaks</span><span class="world-blurb">Summit Review of the skills you've passed, and Spelling Lake</span></span>
       <span class="world-meta">🚩 ${player.summits || 0} · ⛵ ${player.lakeWins || 0}</span></button>`;
   const firstLocked = worldsFor(player).findIndex((w) => !worldOpenFor(w, player));
-  worldCards.splice(firstLocked < 0 ? worldCards.length : firstLocked, 0, peaksCard);
+  worldCards.splice(firstLocked < 0 ? worldCards.length : firstLocked, 0, peaksCard, speedCardHtml(player));
   $("world-list").innerHTML = worldCards.join("");
   showScreen("home");
 }
@@ -321,7 +337,7 @@ function renderWorld(worldId) {
   const world = WORLDS.find((w) => w.id === worldId);
   const player = state.player;
   $("world-title").textContent = `${world.emoji} ${world.name}`;
-  $("skill-list").innerHTML = bossCardHtml(worldId, player) + skillsInWorldOrdered(worldId, player).map((skill) => skillCardHtml(skill)).join("")
+  $("skill-list").innerHTML = bossCardHtml(worldId, player) + testoutCardHtml(worldId, player) + skillsInWorldOrdered(worldId, player).map((skill) => skillCardHtml(skill)).join("")
     + (world.comingSoon ? `<p class="note coming-soon">${esc(world.comingSoon)}</p>` : "");
   showScreen("world");
 }
@@ -392,6 +408,143 @@ function finishBoss() {
   state.play = null;
 }
 
+/* ==================== Test out (grades 6–8) ==================== */
+// The playtester's "start me at my grade": in each world, 8 quick questions from its grade 3–5 levels. 7 right on
+// the first try marks those levels Reviewed: out of Next up and the Daily 5, shown as reviewed in Progress.
+// Retake any time. Reviewed levels still count as not passed for badges and buildings.
+
+const TESTOUT_COUNT = 8;
+function testoutKeys(worldId, player) {
+  return skillsInWorldFor(worldId, player).flatMap((skill) => [1, 2, 3].filter((l) => skill.grades[l - 1] <= 5).map((l) => `${skill.id}-${l}`));
+}
+const testoutItems = (worldId, player) => pickDailyItems({ items: state.content.items, levelKeys: testoutKeys(worldId, player), stats: player.items, count: TESTOUT_COUNT });
+
+function testoutCardHtml(worldId, player) {
+  if (player.grade < OLDER_FROM_GRADE || testoutItems(worldId, player).length < TESTOUT_COUNT) return "";
+  const on = player.reviewed?.[worldId];
+  return `<section class="testout-card${on ? " done" : ""}"><div><h2>${on ? "✓ Grade 3–5 levels reviewed" : "Already know the grade 3–5 skills here?"}</h2>
+    <p class="note">${on ? "They're out of Next up and the Daily 5. Retake it any time." : `Test out: ${TESTOUT_COUNT} quick questions. ${TESTOUT_PASS} right on the first try marks them Reviewed.`}</p></div>
+    <button type="button" class="secondary" data-testout="${worldId}">${on ? "Retake" : "Test out"}</button></section>`;
+}
+
+function startTestout(worldId) {
+  const items = testoutItems(worldId, state.player);
+  if (!items.length) return;
+  closeOverlay("result-overlay");
+  state.play = { mode: "testout", world: worldId, skillId: items[0].skill, level: 1, items: withNames(items), index: 0, tries: 0, results: [], ctrl: null, done: false, startedAt: Date.now() };
+  showScreen("play");
+  showItem();
+}
+
+function finishTestout() {
+  const play = state.play;
+  const now = Date.now();
+  const out = recordPractice(state.player, { kind: "testout", results: play.results, now, durationMs: now - play.startedAt });
+  const passed = out.right >= TESTOUT_PASS;
+  if (passed) out.player.reviewed = { ...(out.player.reviewed || {}), [play.world]: localDate(now) };
+  savePlayer(out.player);
+  const world = WORLDS.find((w) => w.id === play.world);
+  $("progress-fill").style.width = "100%";
+  $("result-stars").innerHTML = "";
+  $("result-title").textContent = passed ? "Tested out" : "Not yet";
+  $("result-score").textContent = `${out.right} of ${play.results.length} right on the first try · ${world.name}`;
+  showResultBricks({ bricks: 0, player: out.player }, "");
+  $("result-pip").innerHTML = pipRemark(passed ? `The grade 3–5 levels in ${world.name} are marked Reviewed. Next up skips them now.`
+    : `${TESTOUT_PASS} of ${play.results.length} needed. Look at the ones below; you can retake it any time.`);
+  $("result-badges").innerHTML = "";
+  $("result-review").innerHTML = reviewHtml(play);
+  state.resultNext = passed ? { home: true } : { testout: play.world };
+  $("result-next").textContent = passed ? "Back to home" : "Retake";
+  $("result-again").hidden = true;
+  $("result-rule").hidden = true;
+  openOverlay("result-overlay");
+  if (passed) sound("done", settings().sound);
+  state.play = null;
+}
+
+/* ==================== Speed Proofread ==================== */
+// The playtester's pick: a 90-second round of quick questions near the player's grade. One try each; more right
+// wins, and with the same number right, less time. A personal best is kept. Every round has a code ("G7-4821"):
+// anyone who enters it gets the same questions, so a sibling or friend can race the same set, with no accounts.
+
+const SPEED_MS = 90 * 1000;
+const SPEED_COUNT = 12;
+const clock = (ms) => `${Math.floor(ms / 60000)}:${String(Math.floor((ms % 60000) / 1000)).padStart(2, "0")}`;
+const speedKeys = (grade) => SKILLS.filter((s) => skillGate(s) <= grade)
+  .flatMap((skill) => [1, 2, 3].filter((l) => skill.grades[l - 1] <= grade && skill.grades[l - 1] >= Math.max(3, grade - 2)).map((l) => `${skill.id}-${l}`));
+
+function speedCardHtml(player) {
+  const best = player.speedBest;
+  return `<button type="button" class="world-card speed-card" data-speed>
+    <span class="world-emoji" aria-hidden="true">⏱️</span>
+    <span class="world-text"><span class="world-name">Speed Proofread</span><span class="world-blurb">90 seconds, one try each. Beat your best, or race a friend with a code.</span></span>
+    <span class="world-meta">${best ? `Best ${best.right} · ${clock(best.ms)}` : "No best yet"}</span></button>`;
+}
+
+function openSpeed() {
+  const best = state.player.speedBest;
+  $("speed-best").textContent = best ? `Your best: ${best.right} right in ${clock(best.ms)}.` : "No personal best yet.";
+  $("speed-code").value = "";
+  $("speed-code-msg").textContent = "";
+  openOverlay("speed-overlay");
+}
+
+function startSpeed(grade, seed) {
+  const items = pickSpeedItems({ items: state.content.items, levelKeys: speedKeys(grade), seed, count: SPEED_COUNT });
+  if (!items.length) return;
+  closeOverlay("speed-overlay");
+  closeOverlay("result-overlay");
+  const now = Date.now();
+  state.play = { mode: "speed", grade, seed, deadline: now + SPEED_MS, skillId: items[0].skill, level: 1, items: withNames(items), index: 0, tries: 0, results: [], ctrl: null, done: false, startedAt: now };
+  showScreen("play");
+  showItem();
+  clearInterval(state.speedTimer);
+  state.speedTimer = setInterval(speedTick, 250);
+}
+
+function speedTick() {
+  const play = state.play;
+  if (!play || play.mode !== "speed") return clearInterval(state.speedTimer);
+  const left = Math.max(0, play.deadline - Date.now());
+  $("progress-text").textContent = `⏱ ${clock(left)}`;
+  $("progress-text").classList.toggle("speed-low", left < 15000);
+  if (left <= 0) finishLevel();
+}
+
+function finishSpeed() {
+  clearInterval(state.speedTimer);
+  const play = state.play;
+  const now = Date.now();
+  const ms = Math.min(now - play.startedAt, SPEED_MS);
+  const prev = state.player.speedBest;
+  const out = recordPractice(state.player, { kind: "speed", results: play.results, now, durationMs: ms });
+  const run = { right: out.right, ms, on: localDate(now) };
+  const best = isBetterSpeed(out.player.speedBest, run);
+  if (best) out.player.speedBest = run;
+  savePlayer(out.player);
+  const code = speedCode(play.grade, play.seed);
+  $("progress-fill").style.width = "100%";
+  $("progress-text").classList.remove("speed-low");
+  $("result-stars").innerHTML = "";
+  $("result-title").textContent = best ? "New personal best!" : `${out.right} right`;
+  $("result-score").textContent = `${out.right} right of ${play.results.length} answered · ${clock(ms)}${play.results.length === play.items.length ? " (all done)" : ""}`;
+  showResultBricks(out, `+${out.bricks} 🧱 bricks`);
+  $("result-pip").innerHTML = pipRemark(best ? (prev ? `Old best: ${prev.right} in ${clock(prev.ms)}. Not anymore.` : "First run on the board. Now beat it.")
+    : `Your best is still ${out.player.speedBest.right} in ${clock(out.player.speedBest.ms)}.`);
+  $("result-badges").innerHTML = `<p class="speed-share">Race a friend on these exact questions: code <strong class="speed-code-text">${code}</strong></p>`;
+  $("result-review").innerHTML = reviewHtml(play);
+  state.resultNext = { speed: true };
+  $("result-next").textContent = "New round";
+  $("result-again").hidden = true;
+  $("result-rule").hidden = true;
+  openOverlay("result-overlay");
+  if (best) {
+    sound("done", settings().sound);
+    cheer(3);
+  }
+  state.play = null;
+}
+
 /* ==================== Daily 5 and the streak ==================== */
 // The playtester's "one quick 2-minute thing" and a streak, front and center: five quick questions from the
 // player's grade (and the grade before), once a day, on the Today card. One missed day a week is forgiven.
@@ -400,7 +553,7 @@ const DAILY_COUNT = 5;
 function dailyItems(player) {
   const g = player.grade;
   const levelKeys = visibleSkills(player).flatMap((skill) => [1, 2, 3]
-    .filter((l) => skill.grades[l - 1] <= g && skill.grades[l - 1] >= g - 1 && isUnlocked(player, skill.id, l)).map((l) => `${skill.id}-${l}`));
+    .filter((l) => skill.grades[l - 1] <= g && skill.grades[l - 1] >= g - 1 && isUnlocked(player, skill.id, l) && !isReviewed(player, skill, l)).map((l) => `${skill.id}-${l}`));
   return pickDailyItems({ items: state.content.items, levelKeys, stats: player.items, count: DAILY_COUNT });
 }
 
@@ -408,7 +561,7 @@ function dailyCardHtml(player) {
   const streak = streakDays(player.days, Date.now());
   const done = player.dailyOn === localDate(Date.now());
   const streakText = streak ? `${streak}-day streak` : "Start a streak";
-  const line = done ? "Daily 5 done. Back tomorrow." : `Daily 5: five quick questions${streak && !playedToday(player) ? " to keep it going" : ""}`;
+  const line = done ? "Daily 5 done. Back tomorrow." : "Daily 5 · 2 minutes";
   return `<span class="homework-emoji" aria-hidden="true">${streak ? "🔥" : "⚡"}</span>
     <span><strong>${esc(streakText)}</strong><span>${esc(line)}</span></span>
     <span class="today-chev" aria-hidden="true">${done ? "✓" : "›"}</span>`;
@@ -425,7 +578,7 @@ function skillCardHtml(skill) {
       const starText = [1, 2, 3].map((n) => `<span class="${n <= stars ? "on" : ""}">★</span>`).join("");
       // Above the player's grade (grades 3–5): a Challenge Trail, with no grade number shown to the player.
       const challenge = isChallenge(player, skill.id, level);
-      const tag = challenge ? "⭐ Challenge" : `Grade ${skill.grades[level - 1]}`;
+      const tag = challenge ? "⭐ Challenge" : !stars && isReviewed(player, skill, level) ? "✓ Reviewed" : `Grade ${skill.grades[level - 1]}`;
       return `<button type="button" class="level-btn${challenge ? " challenge" : ""}" data-skill="${skill.id}" data-level="${level}" ${open ? "" : "disabled"}
           aria-label="${esc(skill.name)} level ${level}, ${challenge ? "challenge" : `grade ${skill.grades[level - 1]}`}${open ? `, ${stars} stars` : ", locked"}">
         <span class="level-num">Level ${level}</span><span class="level-grade">${tag}</span>
@@ -655,9 +808,9 @@ function finishPractice() {
 /** Pip's homework from grade 6: a slightly overconfident coworker who takes the grade. */
 // Following the 8th-grade playtester: he argues back a little, then takes the grade.
 const GROWN_HOMEWORK = {
-  "A+": ["A+. Fine. I'll admit the apostrophe thing was a mistake.", "Not one got past you? I'm telling everyone I did that on purpose."],
-  A: ["An A? I was going for subtle. You were not fooled.", "A. I'll fix those, but for the record the comma started it."],
-  B: ["A B? That comma was a style choice. ...Fine, I'll fix it.", "B. Respectable. For both of us."],
+  "A+": ["A+. Fine. I'll admit those were mistakes.", "Not one got past you? I'm telling everyone I did that on purpose."],
+  A: ["An A? I was going for subtle. You were not fooled.", "A. I'll fix those, but for the record, some of them were traps."],
+  B: ["A B? That one was a style choice. ...Fine, I'll fix it.", "B. Respectable. For both of us."],
   C: ["A C. In my defense, some of those were sneaky.", "C? I'd like a regrade. ...Request denied, I see."],
   "Try again": ["My mistakes win this round. Want another of my paragraphs?", "Ha. Even the grader missed some. Try another one?"],
 };
@@ -840,10 +993,13 @@ function showItem() {
   play.done = false;
   $("progress-fill").style.width = `${(play.index / play.items.length) * 100}%`;
   $("progress-text").textContent = `${play.index + 1} of ${play.items.length}`;
+  if (play.mode === "speed") speedTick();
   $("play-skill").textContent = play.mode === "homework" ? `📝 Pip's homework: ${item.title}`
     : play.mode === "summit" ? `⛰️ Summit Review · ${skill.name}`
     : play.mode === "lake" ? "💧 Spelling Lake"
     : play.mode === "daily" ? `⚡ Daily 5 · ${skill.name}`
+    : play.mode === "speed" ? `⏱️ Speed Proofread · ${play.index + 1} of ${play.items.length}`
+    : play.mode === "testout" ? `Test out · ${skill.name}`
     : play.mode === "boss" ? `📝 Pip's final draft: ${item.title}`
     : play.mode === "week" ? `📌 Sentence of the Week · ${WEEK_DAYS[play.day].name}`
     : item.review ? `Review: ${skill.name}` : `${skill.name} · Level ${item.level}`;
@@ -933,7 +1089,7 @@ function answerHtml(item) {
 const chosenLine = (chosen) => (chosen ? `<p class="chosen-line"><span class="answer-tag">You chose:</span> ${esc(chosen)}</p>` : "");
 /** Grades 6–8: one line on why, after a right answer too, for items whose hint states the rule. */
 const WHY_TYPES = new Set(["which", "mark", "fix", "sort", "check", "join", "build"]);
-const whyLine = (item) => (grownPip() && WHY_TYPES.has(item.type) && item.hint ? `<p class="why-line"><span class="answer-tag">Why:</span> ${esc(item.hint)}</p>` : "");
+const whyLine = (item) => (grownPip() && state.play?.mode !== "speed" && WHY_TYPES.has(item.type) && item.hint ? `<p class="why-line"><span class="answer-tag">Why:</span> ${esc(item.hint)}</p>` : "");
 
 function handleAnswer(right) {
   const play = state.play;
@@ -949,7 +1105,7 @@ function handleAnswer(right) {
     const line = play.tries === 1 ? pick(pipWords().right) : pick(pipWords().secondTry);
     $("feedback").className = "feedback good";
     $("feedback").innerHTML = `<p><strong>✓ ${esc(line)}</strong></p>${whyLine(item)}`;
-  } else if (play.tries === 1 && !play.ctrl.oneShot) {
+  } else if (play.tries === 1 && !play.ctrl.oneShot && play.mode !== "speed") {
     play.tries = 2;
     sound("wrong", s.sound);
     play.ctrl.retry();
@@ -1005,7 +1161,7 @@ function completeItem({ tries, correct }) {
   const play = state.play;
   if (!play || play.done) return;
   const item = play.items[play.index];
-  play.results.push({ id: item.id, type: item.type, tries, correct });
+  play.results.push({ id: item.id, type: item.type, tries, correct, chosen: play.ctrl.chosen?.() || null });
   finishItem();
   play.ctrl.lock();
   const s = settings();
@@ -1045,6 +1201,8 @@ function finishLevel() {
   if (play.mode === "homework") return finishHomework();
   if (play.mode === "summit" || play.mode === "lake") return finishPractice();
   if (play.mode === "daily") return finishDaily();
+  if (play.mode === "speed") return finishSpeed();
+  if (play.mode === "testout") return finishTestout();
   if (play.mode === "boss") return finishBoss();
   if (play.mode === "week") return finishWeekDay();
   $("result-rule").hidden = false;
@@ -1519,22 +1677,22 @@ function playerDetailHtml(p, now) {
   const week = weekSummary(p, now);
   const badges = Object.values(currentBadges(p)).filter(Boolean).length;
   const last = p.days.length ? [...p.days].sort().at(-1) : null;
-  const worlds = WORLDS.filter((w) => worldOpenFor(w, p)).map((world) => {
+  const worlds = worldsFor(p).filter((w) => worldOpenFor(w, p)).map((world) => {
     const rows = skillsInWorldFor(world.id, p).map((skill) => {
       const tier = skillTier(p, skill.id);
       const cells = [1, 2, 3].map((level) => {
         const stars = levelStars(p, skill.id, level);
         const open = isUnlocked(p, skill.id, level);
-        return `<td>${stars ? `<span class="stars-mini" aria-label="${stars} stars">${"★".repeat(stars)}</span>` : open ? '<span class="muted">open</span>' : '<span class="muted" aria-label="locked">🔒</span>'}</td>`;
+        return `<td>${stars ? `<span class="stars-mini" aria-label="${stars} stars">${"★".repeat(stars)}</span>` : isReviewed(p, skill, level) ? '<span class="reviewed-mini">✓ reviewed</span>' : open ? '<span class="muted">open</span>' : '<span class="muted" aria-label="locked">🔒</span>'}</td>`;
       }).join("");
       return `<tr><th scope="row">${esc(skill.name)}</th>${cells}<td>${tier ? TIER_NAMES[tier - 1] : "—"}</td></tr>`;
     }).join("");
     return `<h4>${world.emoji} ${esc(world.name)}</h4><table class="progress-table"><thead><tr><th scope="col">Skill</th><th scope="col">Level 1</th><th scope="col">Level 2</th><th scope="col">Level 3</th><th scope="col">Badge</th></tr></thead><tbody>${rows}</tbody></table>`;
   }).join("");
-  const missed = mostMissed(p).map(({ id, misses }) => {
+  const missed = mostMissed(p).map(({ id, misses, chosen }) => {
     const item = itemById(id);
     if (!item) return "";
-    return `<li><span class="missed-skill">${esc(skillById(item.skill)?.name || item.skill)}, level ${item.level} · missed ${misses}×</span>${answerHtml(item)}</li>`;
+    return `<li><span class="missed-skill">${esc(skillById(item.skill)?.name || item.skill)}, level ${item.level} · missed ${misses}×</span>${chosen ? `<span class="review-chosen">Last pick: ${esc(chosen)}</span>` : ""}${answerHtml(item)}</li>`;
   }).join("");
   return `<section class="card parent-card" data-parent-player="${esc(p.id)}">
     <h3><span aria-hidden="true">${p.avatar}</span> ${esc(p.name)} <span class="muted">· Grade ${p.grade}</span></h3>
@@ -1877,6 +2035,15 @@ function wire() {
     if (target.closest("#homework-btn")) return startHomework();
     if (target.closest("#week-btn, [data-week]")) return openWeek();
     if (target.closest("#daily-btn")) return startPractice("daily");
+    if (target.closest("[data-speed]")) return openSpeed();
+    if (target.closest("#speed-new")) return startSpeed(state.player.grade, 1000 + Math.floor(Math.random() * 9000));
+    if (target.closest("#speed-play-code")) {
+      const code = parseSpeedCode($("speed-code").value);
+      if (!code) return void ($("speed-code-msg").textContent = "Codes look like G7-4821.");
+      return startSpeed(code.grade, code.seed);
+    }
+    const testoutBtn = target.closest("[data-testout]");
+    if (testoutBtn) return startTestout(testoutBtn.dataset.testout);
     const bossBtn = target.closest("[data-boss]");
     if (bossBtn) return startBoss(bossBtn.dataset.boss);
     if (target.closest("[data-meet-pip]")) {
@@ -2117,6 +2284,12 @@ function wire() {
   });
   $("next-btn").addEventListener("click", nextItem);
   $("quit-btn").addEventListener("click", () => openOverlay("quit-overlay"));
+  // Blueprint style (earned with final drafts and Gold skills).
+  $("bp-style").addEventListener("change", (event) => {
+    if (!state.player) return;
+    savePlayer({ ...state.player, settings: { ...state.player.settings, planStyle: event.target.value } });
+    renderHome();
+  });
   $("quit-yes").addEventListener("click", () => {
     closeOverlay("quit-overlay");
     stopSaying();
@@ -2143,6 +2316,8 @@ function wire() {
     else if (next.homework) startHomework();
     else if (next.practice) startPractice(next.practice);
     else if (next.boss) startBoss(next.boss);
+    else if (next.speed) startSpeed(state.player.grade, 1000 + Math.floor(Math.random() * 9000));
+    else if (next.testout) startTestout(next.testout);
     else if (next.world) renderWorld(next.world);
     else openTip(next.skillId, next.level);
   });

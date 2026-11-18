@@ -624,3 +624,29 @@ export function validateItem(item) {
   }
   return true;
 }
+
+const SUBJECT_PRONOUNS = new Set(["i", "he", "she", "we", "they", "who", "whoever"]);
+const OBJECT_PRONOUNS = new Set(["me", "him", "her", "us", "them", "whom", "whomever", "myself", "himself", "herself", "ourselves", "themselves"]);
+const SOUND_ALIKES = [["their", "there", "they're"], ["its", "it's"], ["to", "too", "two"], ["your", "you're"], ["whose", "who's"], ["then", "than"], ["affect", "effect"], ["lose", "loose"], ["accept", "except"]];
+
+/**
+ * What kind of slip a proofreading mistake is, from the word shown and its fix, so a miss can say more than
+ * "read it slowly": a capital, an apostrophe, a mark, a sound-alike word, a pronoun, a verb, or spelling.
+ */
+export function mistakeKind(shown, correct) {
+  const bare = (w) => w.replace(/[.,!?;:"]+$/, "");
+  const a = shown.trim();
+  const b = correct.trim();
+  if (a.toLowerCase() === b.toLowerCase()) return "Capital letters: should this word start with a capital (a name, a place, the first word) or not?";
+  if (bare(a) === bare(b)) return "Punctuation: which mark, if any, belongs right after this word? Read where the sentence pauses or ends.";
+  const la = bare(a).toLowerCase();
+  const lb = bare(b).toLowerCase();
+  if (SOUND_ALIKES.some((set) => set.includes(la) && set.includes(lb))) return "Sound-alike words: they sound the same but mean different things. Which spelling fits this sentence?";
+  if (la.replace(/'/g, "") === lb.replace(/'/g, "")) return "Apostrophes: is this word showing who owns something, a contraction, or just more than one?";
+  if ((SUBJECT_PRONOUNS.has(la) || OBJECT_PRONOUNS.has(la)) && (SUBJECT_PRONOUNS.has(lb) || OBJECT_PRONOUNS.has(lb))) {
+    return "Pronouns: does this one do the action (I, he, she, we, they, who) or receive it (me, him, her, us, them, whom)?";
+  }
+  const verbish = (w) => /(ed|s|ing)$/.test(w) || ["is", "are", "was", "were", "be", "am", "has", "have", "do", "does", "did", "went", "saw", "ran", "took", "made", "gave", "came", "lay", "lie", "laid"].includes(w);
+  if (verbish(la) || verbish(lb)) return "Verbs: check the tense (when it happened) and whether the verb agrees with its subject.";
+  return "Word form or spelling: which version is the right word for this spot?";
+}
