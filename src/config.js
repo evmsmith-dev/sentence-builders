@@ -167,7 +167,7 @@ export const SKILLS = [
     levelPlan: [{ type: "proofread", count: 5 }],
   },
   {
-    id: "aside", world: "desk", name: "Dashes, hyphens and extra information", short: "Extra info", color: "#5d4037",
+    id: "aside", world: "desk", name: "Dashes, hyphens and asides", short: "Dashes", color: "#5d4037",
     grades: [6, 7, 8], benchmarks: "MN 6.2.1.1 (dashes, hyphens, ellipses), 7.2.1.1, 8.2.1.1",
     badge: { id: "dash-master", name: "Dash Master", emoji: "➖" },
   },

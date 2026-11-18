@@ -61,7 +61,7 @@ Grades 6–8: pronouns, punctuation, sentence types, modifiers and proofreading.
 | --- | --- | --- | --- |
 | Pronoun case and clarity | I or me? (gr 6) | Clear pronouns (gr 7) | Who or whom? (gr 8) |
 | Proofreading | Proofreading (gr 6) | Proofreading: 3 mistakes (gr 7) | Proofreading: 4 mistakes (gr 8) |
-| Dashes, hyphens and extra information | Hyphens and dashes (gr 6) | Commas around extra information (parentheticals) (gr 7) | Dashes, parentheses and ellipses (gr 8) |
+| Dashes, hyphens and asides | Hyphens and dashes (gr 6) | Commas around extra information (parentheticals) (gr 7) | Dashes, parentheses and ellipses (gr 8) |
 | Sentence types | Simple, compound, complex (gr 6) | Compound-complex sentences (gr 7) | Sentence variety (gr 8) |
 | Modifiers and voice | Commas between adjectives (gr 6) | Misplaced and dangling modifiers (gr 7) | Active voice, passive voice and moods (gr 8) |
 
