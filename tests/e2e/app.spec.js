@@ -1916,7 +1916,10 @@ for (const [name, vp] of [["iPad", { width: 1180, height: 820 }], ["phone", { wi
     await page.setViewportSize(vp);
     const p = { ...player({ grade: 4, settings: { islandHome: true }, levels: { "commas-1": { stars: 2, best: 7, plays: 1 } } }), days: ["2026-11-17"] };
     await openApp(page, { players: [p], current: "p1" });
-    await page.evaluate(() => document.querySelectorAll(".overlay").forEach((o) => { o.hidden = true; }));
+    // The Notice Board opens itself once a day, a moment after home shows: let it, then close it.
+    await expect(page.locator("#week-overlay")).toBeVisible();
+    await page.locator("#week-overlay [data-close]").first().click();
+    await expect(page.locator("#week-overlay")).toBeHidden();
     await page.mouse.click(vp.width * 0.25, vp.height * 0.3); // zoom in to Punctuation Port
     for (const id of ["#island-daily", "#island-board", "#island-build"]) await expect(page.locator(id)).toBeInViewport({ ratio: 1 });
     await expect(page.locator("#map-fit")).toBeEnabled();
