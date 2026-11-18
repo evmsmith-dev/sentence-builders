@@ -1930,6 +1930,15 @@ test("Listen and Write: Listen on a later question reads only that question's se
   expect(said).toEqual([second.text.replace(/["“”]/g, "")]);
 });
 
+test("Island Home on a narrow phone held upright: Daily 5, Speed, Board and Build all fit @layout", async ({ page }) => {
+  for (const vp of [{ width: 360, height: 780 }, { width: 412, height: 915 }]) {
+    await page.setViewportSize(vp);
+    const p = { ...player({ grade: 4, settings: { islandHome: true }, levels: { "commas-1": { stars: 2, best: 7, plays: 1 } } }), bricks: 666, days: ["2026-11-17", new Date().toISOString().slice(0, 10)] };
+    await openApp(page, { players: [p], current: "p1" });
+    for (const id of ["#island-daily", "#island-speed", "#island-board", "#island-build"]) await expect(page.locator(id)).toBeInViewport({ ratio: 1 });
+  }
+});
+
 for (const [name, vp] of [["iPad", { width: 1180, height: 820 }], ["phone", { width: 915, height: 412 }]]) {
   test(`Island Home in landscape (${name}): ⤢ can be tapped and Daily 5, Board and Build all fit @layout`, async ({ page }) => {
     await page.setViewportSize(vp);
@@ -1941,6 +1950,10 @@ for (const [name, vp] of [["iPad", { width: 1180, height: 820 }], ["phone", { wi
     await expect(page.locator("#week-overlay")).toBeHidden();
     await page.mouse.click(vp.width * 0.25, vp.height * 0.3); // zoom in to Punctuation Port
     for (const id of ["#island-daily", "#island-board", "#island-build"]) await expect(page.locator(id)).toBeInViewport({ ratio: 1 });
+    // All four buttons on one row, none stretched across a row of its own (Build did on iPad).
+    const boxes = await page.locator("#island-bar .island-btn").evaluateAll((els) => els.map((e) => e.getBoundingClientRect()).map((r) => ({ y: Math.round(r.top), w: r.width })));
+    expect(new Set(boxes.map((b) => b.y)).size).toBe(1);
+    expect(Math.max(...boxes.map((b) => b.w)) / Math.min(...boxes.map((b) => b.w))).toBeLessThan(1.3);
     await expect(page.locator("#map-fit")).toBeEnabled();
     // Shrinking Pip's message leaves the map zoomed in where it was.
     await page.locator("#pip-home [data-pip-min]").click();
@@ -1959,7 +1972,7 @@ for (const [name, vp] of [["iPad", { width: 1180, height: 820 }], ["phone", { wi
 }
 
 test("Island Home: the Backpack shows a dot for a new badge, and opening Badges clears it; Progress is under For grown-ups too", async ({ page }) => {
-  const p = { ...player({ grade: 4, settings: { islandHome: true }, levels: { "commas-1": { stars: 2, best: 7, plays: 1 } } }), days: ["2026-11-17"], badgesSeen: 0, backpackTaught: true };
+  const p = { ...player({ grade: 4, settings: { islandHome: true }, levels: { "commas-1": { stars: 2, best: 7, plays: 1 } } }), days: ["2026-11-17"], badgesSeen: 0, backpackTaught: true, boardSeenOn: new Date().toLocaleDateString("en-CA") }; // the Notice Board was seen today
   await openApp(page, { players: [p], current: "p1" });
   await page.evaluate(() => document.querySelectorAll(".overlay").forEach((o) => { o.hidden = true; }));
   await expect(page.locator("#backpack-btn .island-dot")).toBeVisible();
