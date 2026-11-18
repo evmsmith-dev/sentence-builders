@@ -2026,3 +2026,31 @@ test("Revision Ridge for a 3rd grader: the map just says it opens in grade 6", a
   await expect(page.locator(".town")).not.toContainText("or sooner");
   await expect(page.locator('[data-world="desk"]')).not.toContainText("or early");
 });
+
+test("Q&A Flow: “not” is an adverb — a wrong label explains why, and a right one offers a Why?", async ({ page }) => {
+  const { items } = JSON.parse(readFileSync("data/content.json", "utf8"));
+  const seen = Object.fromEntries(items.filter((i) => i.skill === "flow" && i.level === 2 && i.id !== "flow-2-26").map((i) => [i.id, { seen: 1, misses: 0, last: 1 }]));
+  await openApp(page, { players: [player({ grade: 5, items: seen })], current: "p1" });
+  await startLevel(page, "flow", 2, "flow");
+  const item = await currentItem(page);
+  expect(item.id).toBe("flow-2-26");
+  const parsed = parseFlow(item);
+  const notAt = parsed.words.findIndex((w) => w.word === "not");
+  for (const step of parsed.steps) {
+    const w = page.locator(`#item [data-fw="${step.index}"]`);
+    if (await w.isEnabled()) await w.click();
+    if (step.index === notAt) {
+      // A wrong label: the why for not, instead of the general adverb hint.
+      await page.locator('#item [data-label="V"]').click();
+      await expect(page.locator("#feedback")).toContainText("is playing to what extent? Not at all!");
+    }
+    await page.locator(`#item [data-label="${step.label}"]`).click();
+    if (step.index === notAt) {
+      const why = page.locator("#item [data-why]");
+      await expect(why).toHaveText("Why is “not” an adverb?");
+      await expect(page.locator("#item .why-text")).toBeHidden(); // only when tapped
+      await why.click();
+      await expect(page.locator("#item .why-text")).toContainText("Not is never part of the verb");
+    }
+  }
+});

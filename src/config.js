@@ -231,13 +231,30 @@ export const WORD_PARTS = [
 export const LABEL_LISTS = { A: "articles", P: "prepositions", HV: "helping", LV: "linking", SP: "subject-pronouns", CSP: "subject-pronouns", PPA: "possessive", C: "joining" };
 
 // Shurley-style labels for the Q&A Flow. Each level adds labels; earlier ones stay.
+/**
+ * Words kids ask "why is that an adverb?" about (a 4th grader, on "not"). Shown only when the word is labeled Adv in
+ * that sentence: instead of the general hint on a first miss, with the answer, and behind a "Why?" after a right label.
+ */
+export const TRICKY_ADVERBS = {
+  not: "Not is an adverb. It changes the verb: is playing becomes is NOT playing. Ask: is playing to what extent? Not at all! Not is never part of the verb, even when it sits in the middle.",
+  "n't": "n't is a short way to write not, so it's an adverb too. It's never part of the verb.",
+  never: "Never tells when: not at any time. It's an adverb, not part of the verb.",
+  always: "Always tells when: every time. It's an adverb.",
+  very: "Very tells to what extent about a describing word, like very fast. It's an adverb.",
+  so: "Here so tells to what extent, like so happy. That makes it an adverb.",
+  too: "Here too tells to what extent, like too cold. That makes it an adverb.",
+  here: "Here tells where. Words that tell where are adverbs.",
+  there: "There tells where, like over there. Words that tell where are adverbs.",
+};
+export const trickyAdverb = (word) => TRICKY_ADVERBS[String(word).toLowerCase().replace(/[^a-z']/g, "")] || null;
+
 export const LABELS = {
   SN: { name: "subject noun", hint: "The subject noun tells who or what the sentence is about." , find: 'Ask who or what: "Who scored?" → Maya' },
   SP: { name: "subject pronoun", hint: "A subject pronoun (I, you, he, she, it, we, they) takes the place of a noun as the subject." , find: 'Ask who: "Who laughed?" → she' },
   V: { name: "verb", hint: "The verb tells what is being said about the subject." , find: 'Ask what is being said about the subject: "Maya scored" → scored' },
   A: { name: "article adjective", hint: "A, an and the are article adjectives." , find: 'Always a, an or the' },
   Adj: { name: "adjective", hint: "An adjective tells what kind, which one or how many about a noun." , find: 'Ask what kind, which one or how many: "What kind of game?" → close' },
-  Adv: { name: "adverb", hint: "An adverb tells how, when, where or how much." , find: 'Ask how, when or where: "Scored how?" → easily' },
+  Adv: { name: "adverb", hint: "An adverb tells how, when, where or to what extent." , find: 'Ask how, when or where: "Scored how?" → easily' },
   P: { name: "preposition", hint: "A preposition like to, in, on or under starts a prepositional phrase." , find: 'Starts a phrase: to, in, on, under, for' },
   OP: { name: "object of the preposition", hint: "The object of the preposition is the noun after the preposition that answers what? or whom?" , find: 'Say the preposition + what: "To what?" → gym' },
   PPA: { name: "possessive pronoun adjective", hint: "My, your, his, her, its, our and their show who owns something: possessive pronoun adjectives." , find: 'Ask whose: "Whose phone?" → my' },

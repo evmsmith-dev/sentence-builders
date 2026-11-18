@@ -14,7 +14,7 @@ import {
   CHECK_KINDS, spaceAfter, checkBuild, checkLabels, checkMark, checkSort, joinTiles, paletteFor, parseBuild, parseCheck, parseFix, parseFlow,
   parseJoin, parseCombine, checkCombine, checkDictation, dictationPhrases, dictationWords, parseLabels, parseMark, parseProofread, parseSort, parseWhich, mistakeKind,
 } from "../lib/parse.js";
-import { FLOW_LABELS, LABELS, PATTERNS, SENTENCE_KINDS } from "../config.js";
+import { FLOW_LABELS, LABELS, PATTERNS, SENTENCE_KINDS, trickyAdverb } from "../config.js";
 
 const LABELS_BUTTON = '<button type="button" class="labels-help" data-labels-help>📘 Labels</button>';
 const NOUNS_BUTTON = '<button type="button" class="labels-help" data-nouns-help>📘 Nouns</button>';
@@ -541,7 +541,7 @@ function renderFlow(root, item, { hint, complete, onChange, onTap, showLabels, n
     <div class="flow-sentence">${parsed.words.map((w, i) =>
       `<button type="button" class="flow-word" data-fw="${i}"><span class="fw-label" aria-hidden="true"></span><span class="fw-text">${esc(w.word)}</span></button>`).join("")}</div>
     <div class="noun-table-wrap" hidden></div>
-    <div class="flow-ask"><div class="flow-ask-head"><p class="flow-count"></p>${LABELS_BUTTON}</div><p class="flow-q"></p><div class="flow-choices"></div></div>
+    <div class="flow-ask"><div class="flow-ask-head"><p class="flow-count"></p>${LABELS_BUTTON}</div><p class="flow-q"></p><div class="flow-choices"></div><div class="flow-why" hidden></div></div>
   </div>`;
   const stage = () => stages[at];
   // Two words answering the same question as parts of one compound (Mia and Leo; he and I; apples and grapes).
@@ -765,7 +765,26 @@ function renderFlow(root, item, { hint, complete, onChange, onTap, showLabels, n
     advance();
   }
 
+  function offerWhy(word, why) {
+    const box = root.querySelector(".flow-why");
+    if (!box) return;
+    box.hidden = false;
+    box.innerHTML = `<button type="button" class="link why-btn" data-why aria-expanded="false">Why is “${esc(word.replace(/[.,!?]$/, ""))}” an adverb?</button><p class="why-text" hidden>${esc(why)}</p>`;
+  }
+
   root.addEventListener("click", (event) => {
+    const whyBtn = event.target.closest("[data-why]");
+    if (whyBtn) {
+      const text = whyBtn.nextElementSibling;
+      text.hidden = !text.hidden;
+      whyBtn.setAttribute("aria-expanded", String(!text.hidden));
+      return;
+    }
+    // Any other tap moves on, so the Why? goes away with the next step.
+    if (!event.target.closest(".flow-why")) {
+      const box = root.querySelector(".flow-why");
+      if (box && !box.hidden && event.target.closest("button")) { box.hidden = true; box.innerHTML = ""; }
+    }
     if (event.target.closest("[data-labels-help]")) {
       showLabels(parsed.labels, parsed.patternChoices);
       return;
@@ -829,13 +848,17 @@ function renderFlow(root, item, { hint, complete, onChange, onTap, showLabels, n
       }
     } else if (chip && st.kind === "step" && phase === "label") {
       onTap();
+      // A tricky adverb (not, never, very…) gets its own why, instead of the general adverb hint.
+      const word = parsed.words[st.index].word;
+      const why = st.label === "Adv" ? trickyAdverb(word) : null;
       if (chip.dataset.label === st.label) {
         showStep();
         hint(null);
         advance();
+        if (why) offerWhy(word, why); // a "Why?" to tap, never shown on its own (the 8th grader: don't slow me down)
       } else {
         chip.disabled = true;
-        miss(LABELS[st.label].hint, stepText(), showStep);
+        miss(why || LABELS[st.label].hint, why ? `${stepText()} ${why}` : stepText(), showStep);
       }
     } else if (kindPick && st.kind === "kind") {
       onTap();

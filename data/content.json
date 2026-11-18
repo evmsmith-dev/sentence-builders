@@ -142,7 +142,7 @@
    },
    "flow-2": {
      "title": "Prepositions and possessives",
-     "rule": "A preposition (P) like to, in or under starts a phrase, and its object (OP) answers what? or whom? after it. My, his and our are possessive pronoun adjectives (PPA); Sam's is a possessive noun adjective (PNA). A helping verb (HV) like is or were comes before the main verb. In a question, the subject comes after the first verb (Did the bus leave?). Not is an adverb. In Down the hill rolled the ball, the subject (ball) comes after the verb: inverted order.",
+     "rule": "A preposition (P) like to, in or under starts a phrase, and its object (OP) answers what? or whom? after it. My, his and our are possessive pronoun adjectives (PPA); Sam's is a possessive noun adjective (PNA). A helping verb (HV) like is or were comes before the main verb. Not is an adverb (Adv), never part of the verb, even when it sits between them: is playing to what extent? Not at all! Very, so, never and always are often adverbs too. In a question, the subject comes after the first verb (Did the bus leave?). Not is an adverb. In Down the hill rolled the ball, the subject (ball) comes after the verb: inverted order.",
      "example": "My dog is sleeping in the sun. → PPA SN HV V P A OP"
    },
    "flow-3": {
@@ -332,7 +332,7 @@
    },
    "speech-1": {
     "title": "Nouns, verbs, adjectives and adverbs",
-    "rule": "A noun names a person, place, thing or idea. A verb shows action or being. An adjective describes a noun (what kind, which one, how many). An adverb tells how, when or where.",
+    "rule": "A noun names a person, place, thing or idea. A verb shows action or being. An adjective describes a noun (what kind, which one, how many). An adverb tells how, when, where or to what extent: not and very are adverbs too.",
     "example": "The tall girl jumped high. → adjective noun verb adverb (tall, girl, jumped, high)"
    },
    "speech-2": {

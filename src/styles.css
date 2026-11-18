@@ -1342,3 +1342,7 @@ body.island-home #home .home-tools .backpack-btn .tool-emoji { font-size: 1.4rem
 .ridge-paths li { margin: 2px 0; }
 .pre-done { color: #1e7b34; font-weight: 700; }
 .pre-todo { color: var(--muted); }
+/* Q&A Flow: "Why is “not” an adverb?" after a right label, tap to open. */
+.flow-why { margin-top: 8px; }
+.flow-why .why-btn { font-weight: 700; }
+.flow-why .why-text { margin: 6px 0 0; padding: 8px 10px; border-radius: 10px; background: #eef3ff; }
