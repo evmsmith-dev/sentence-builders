@@ -1697,8 +1697,9 @@ function drawMapPanel() {
     // Island Home hides this panel, so Pip says it (only when the Ridge is tapped, never on his own).
     if (islandOn(player) && player.pipMinOn !== localDate(Date.now()) && !state.pipQuiet) {
       const text = lockedWorldText(world, player);
-      // OK (or the –) puts Pip's usual message back; so does moving to another part of the island.
-      const actions = '<button type="button" class="primary" data-pip-back>OK</button><button type="button" class="pip-min" data-pip-min aria-label="Make Pip\'s message smaller">–</button>';
+      // Just the – (the same as on every Pip message) shrinks him; moving to another part of the island brings his usual
+      // message back. (An OK button that brought back another message was confusing.)
+      const actions = '<button type="button" class="pip-min" data-pip-min aria-label="Make Pip\'s message smaller">–</button>';
       $("pip-home").innerHTML = settings().pip ? pipSays(text.pip, true, actions) : `<p class="next-line">${esc(text.pip)} ${actions}</p>`;
       state.pipNote = true;
       if (text.explainsGold) savePlayer({ ...state.player, goldExplained: true });
