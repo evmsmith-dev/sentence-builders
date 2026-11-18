@@ -974,9 +974,11 @@ body.island-home #home #pip-home .link { margin-left: 8px; }
 @media (min-width: 640px) and (orientation: landscape) {
   /* Landscape (iPad and phones turned sideways): Pip and the buttons sit in a column on the right, so Pip's bubble
      doesn't cover the next level (the 4th grader); the map gets the rest. */
-  body.island-home #home #pip-home { left: auto; right: 12px; width: min(330px, 38vw); bottom: calc(env(safe-area-inset-bottom) + 72px); }
+  /* Pip sits right above the button bar, however tall the bar is (--island-bar-h is measured; Pip was hidden behind
+     the bar when its buttons wrapped onto two rows). */
+  body.island-home #home #pip-home { left: auto; right: 12px; width: min(400px, 42vw); bottom: calc(env(safe-area-inset-bottom) + var(--island-bar-h, 64px) + 16px); }
   /* The three buttons share the column (Build was pushed off the screen): they may shrink, and wrap if they must. */
-  body.island-home .island-bar { left: auto; right: 12px; width: min(360px, 40vw); flex-wrap: wrap; }
+  body.island-home .island-bar { left: auto; right: 12px; width: min(400px, 42vw); flex-wrap: wrap; }
   body.island-home .island-bar .island-btn { flex: 1 1 auto; min-width: 0; padding: 0 8px; font-size: 0.9rem; }
 }
 /* Pickers in Settings look like pickers: a ▾ on the right. */
@@ -1193,8 +1195,8 @@ body.island-home #home details.fold { display: none; }
 
 /* Island Home: a soft backing behind the bottom buttons, so map signs don't peek out between them. */
 body.island-home .island-bar { padding: 6px; border-radius: 18px; background: rgba(255, 255, 255, 0.82); box-shadow: var(--shadow); }
-body.island-home #home #pip-home { bottom: calc(env(safe-area-inset-bottom) + 78px); }
-@media (max-width: 420px) { body.island-home #home #pip-home { bottom: calc(env(safe-area-inset-bottom) + 70px); } }
+/* Pip sits just above the button bar, however tall it is (measured into --island-bar-h). */
+body.island-home #home #pip-home { bottom: calc(env(safe-area-inset-bottom) + var(--island-bar-h, 62px) + 16px); }
 .start-only { margin: 4px 0 12px; }
 .start-only .start-go { display: block; width: 100%; max-width: none; min-height: 54px; font-size: 1.2rem; }
 .town.blueprint .bp-stamp rect { stroke-width: 4px !important; }

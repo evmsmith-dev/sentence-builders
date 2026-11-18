@@ -1923,6 +1923,17 @@ for (const [name, vp] of [["iPad", { width: 1180, height: 820 }], ["phone", { wi
     await page.mouse.click(vp.width * 0.25, vp.height * 0.3); // zoom in to Punctuation Port
     for (const id of ["#island-daily", "#island-board", "#island-build"]) await expect(page.locator(id)).toBeInViewport({ ratio: 1 });
     await expect(page.locator("#map-fit")).toBeEnabled();
+    // Shrinking Pip's message leaves the map zoomed in where it was.
+    await page.locator("#pip-home [data-pip-min]").click();
+    await expect(page.locator("#map-fit")).toBeEnabled();
+    await page.locator("#pip-home [data-pip-expand]").click();
+    await expect(page.locator("#map-fit")).toBeEnabled();
+    // Pip stays above the button bar, even when its buttons wrap onto two rows (bigger text).
+    await page.addStyleTag({ content: ".island-bar .island-btn { font-size: 1.6rem !important; }" });
+    await page.waitForTimeout(200);
+    const pip = await page.locator("#pip-home").boundingBox();
+    const bar = await page.locator("#island-bar").boundingBox();
+    expect(pip.y + pip.height).toBeLessThanOrEqual(bar.y + 1);
     await page.locator("#map-fit").click({ timeout: 3000 }); // the tools row used to cover it
     await expect(page.locator("#map-fit")).toBeDisabled();
   });

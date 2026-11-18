@@ -242,6 +242,14 @@ export function createTownMap(box, buttons, { onArea, onLot, onBoard = () => {},
     },
     focus,
     fit,
+    /** The exact view, to put back after the home screen redraws (shrinking Pip zoomed the map out). */
+    saveView: () => ({ vb: { ...vb }, area, slack: { ...slack } }),
+    restoreView(saved) {
+      if (!svg || !saved) return;
+      slack = saved.slack;
+      setVB(saved.vb);
+      report(saved.area);
+    },
     get area() {
       return area;
     },

@@ -2298,10 +2298,18 @@ function wire() {
       return openTip(skillId, Number(level));
     }
     // Redrawing the home screen shouldn't jump the page back to the top.
-    const stay = (change) => { const y = window.scrollY; change(); renderHome(); window.scrollTo(0, y); };
+    const stay = (change, keepMap = false) => {
+      const y = window.scrollY;
+      const view = keepMap && state.map?.saveView();
+      change();
+      renderHome();
+      if (view) state.map.restoreView(view);
+      window.scrollTo(0, y);
+    };
     if (target.closest("#map-expand, #bp-toggle")) return stay(() => { state.mapOpen = !state.mapOpen; });
-    if (target.closest("[data-pip-min]")) return stay(() => { state.pipMin = true; });
-    if (target.closest("[data-pip-expand]")) return stay(() => { state.pipMin = false; });
+    // Shrinking or opening Pip's message leaves the map where it was (it used to zoom back out).
+    if (target.closest("[data-pip-min]")) return stay(() => { state.pipMin = true; }, true);
+    if (target.closest("[data-pip-expand]")) return stay(() => { state.pipMin = false; }, true);
     if (target.closest("#island-build")) {
       if (!playedToday(state.player)) {
         $("pip-home").innerHTML = pipSays("Build opens after your first lesson today. Do one, then spend your bricks!", true, playButton(state.player));
@@ -2425,6 +2433,14 @@ function wire() {
     fold.addEventListener("toggle", () => { state.folds = { ...(state.folds || {}), [fold.dataset.fold]: fold.open }; });
   }
   initBuildDragging();
+  // Island Home: Pip sits just above the button bar, however tall it gets (its buttons can wrap onto two rows).
+  const islandBar = document.querySelector("#home .island-bar");
+  if (islandBar && "ResizeObserver" in window) {
+    new ResizeObserver(() => {
+      const h = islandBar.getBoundingClientRect().height;
+      if (h) document.documentElement.style.setProperty("--island-bar-h", `${Math.ceil(h)}px`);
+    }).observe(islandBar);
+  }
   state.map = createTownMap($("town"), { zIn: $("map-in"), zOut: $("map-out"), zFit: $("map-fit") }, {
     onArea: (area) => {
       state.mapArea = area;
