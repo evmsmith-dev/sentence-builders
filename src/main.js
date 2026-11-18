@@ -1756,7 +1756,7 @@ function drawBuildScene(fresh = null) {
   // What's selected: its size and Put away, at the head of the shop.
   $("build-tools").innerHTML = item
     ? `<div class="build-selected"><span class="build-selected-name"><span aria-hidden="true">${item.emoji}</span> ${esc(item.name)}</span>
-        <span class="build-size" role="group" aria-label="Size">${DECOR_SIZE_NAMES.map((n, i) => `<button type="button" class="size-btn${i === size ? " on" : ""}" data-size="${i}" aria-pressed="${i === size}">${n}</button>`).join("")}</span>
+        <span class="build-size" role="group" aria-label="Size of this ${esc(item.name.toLowerCase())}"><span class="build-size-label" aria-hidden="true">Size of this one:</span> ${DECOR_SIZE_NAMES.map((n, i) => `<button type="button" class="size-btn${i === size ? " on" : ""}" data-size="${i}" aria-pressed="${i === size}">${n}</button>`).join("")}</span>
         <span class="build-selected-actions"><button type="button" class="secondary" data-put-away="${selected.uid}">${selected.free ? "Put away (a prize: no bricks back)" : `Put away (+${item.cost} 🧱)`}</button>
         <button type="button" class="link" data-deselect>Done</button></span></div>`
     : "";

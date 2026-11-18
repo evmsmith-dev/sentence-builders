@@ -864,6 +864,8 @@ test("bricks: a level pays bricks, the new building rises, and the Build screen 
   await page.locator('[data-buy="oak"]').click();
   await expect(page.locator("#build-bricks")).toContainText("23");
   await expect(page.locator(".build-selected")).toContainText("Oak tree"); // size and Put away, at the head of the shop
+  await expect(page.locator(".build-selected")).toContainText("Size of this one");
+  await expect(page.locator("#build-town .decor.selected")).toHaveCount(1); // the one the size buttons change glows
   await expect(page.locator("#build-town .build-hint")).toContainText("Drag the oak tree"); // the first time
   await expect(page.locator('[data-buy="oak"]')).toContainText("×1");
   await page.locator('[data-buy="oak"]').click(); // a second oak

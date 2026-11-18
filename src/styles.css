@@ -1306,3 +1306,7 @@ body.island-home #home #pip-home { bottom: calc(env(safe-area-inset-bottom) + va
   body.island-home .island-bar { width: min(420px, 46vw); flex-wrap: nowrap; padding: 4px; gap: 4px; }
   body.island-home .island-bar .island-btn { min-height: 40px; padding: 0 6px; font-size: 0.82rem; white-space: nowrap; }
 }
+
+/* Build: the selected decoration glows, so it's clear which one Small / Medium / Large and Put away will change. */
+.area-view .decor.selected { filter: drop-shadow(0 0 2px #fff) drop-shadow(0 0 3px #f2a900) drop-shadow(0 0 6px #f2a900); }
+.build-size-label { color: var(--muted); font-size: 0.85rem; font-weight: 600; }
