@@ -429,7 +429,7 @@ function renderHome() {
     const skills = skillsInWorldFor(world.id, player);
     const built = skills.reduce((n, s) => n + [1, 2, 3].filter((l) => isPassed(player, s.id, l)).length, 0);
     const open = worldOpenFor(world, player);
-    const meta = open ? `${built}/${skills.length * 3} built` : world.ready ? `Grade ${world.minGrade}+` : "Coming soon";
+    const meta = open ? `${built}/${skills.length * 3} built` : world.ready ? (unlockMode(player) === "mastery" ? `Grade ${world.minGrade}+, or early with ⭐` : `Grade ${world.minGrade}+`) : "Coming soon";
     return `<button type="button" class="world-card${open ? "" : " soon"}" data-world="${world.id}" ${open ? "" : "disabled"}>
       <span class="world-emoji" aria-hidden="true">${world.emoji}</span>
       <span class="world-text"><span class="world-name">${esc(world.name)}</span><span class="world-blurb">${esc(world.blurb)}</span></span>
@@ -1678,7 +1678,9 @@ function drawMapPanel() {
   if (here.locked) {
     const world = WORLDS.find((w) => w.id === here.world);
     $("map-panel").innerHTML = `<h3 class="map-title">🔒 ${esc(here.name)}</h3>
-      <p class="map-hint">This part of the island opens in grade ${world.minGrade}. ${esc(world.blurb)}.</p><div class="map-actions">${whole}</div>`;
+      <p class="map-hint">${esc(lockedWorldText(world, player).long)} ${esc(world.blurb)}.</p><div class="map-actions">${whole}</div>`;
+    // Island Home hides this panel, so Pip says it.
+    if (islandOn(player) && player.pipMinOn !== localDate(Date.now())) $("pip-home").innerHTML = pipSays(lockedWorldText(world, player).pip, settings().pip);
     return;
   }
   const skills = districtSkills(here, player);
@@ -1693,6 +1695,35 @@ function drawMapPanel() {
 }
 
 /** A skill's level card, from tapping its buildings on the map. */
+/**
+ * What a locked part of the island says. With Challenge Trails on (grades 3–5, the default), its skills can open
+ * early: each one once the skills it builds on are Gold. ("Opens in grade 6" alone wasn't true for them.)
+ */
+function lockedWorldText(world, player) {
+  const mode = unlockMode(player);
+  if (mode !== "mastery") {
+    const long = `This part of the island opens in grade ${world.minGrade}.`;
+    return { short: `Opens in grade ${world.minGrade}`, long, pip: long };
+  }
+  const paths = skillsInWorld(world.id).filter((sk) => CHALLENGE_PREREQS[sk.id]).map((sk) => {
+    const pre = CHALLENGE_PREREQS[sk.id];
+    const gold = pre.filter((id) => skillTier(player, id) === 3).length;
+    return `${sk.name}: ${pre.map((id) => skillById(id).name).join(" and ")} at Gold${gold ? ` (${gold} of ${pre.length} done)` : ""}`;
+  });
+  // Pip names just the closest one, so a 4th grader isn't handed a paragraph.
+  const closest = skillsInWorld(world.id).filter((sk) => CHALLENGE_PREREQS[sk.id])
+    .map((sk) => ({ sk, pre: CHALLENGE_PREREQS[sk.id], left: CHALLENGE_PREREQS[sk.id].filter((id) => skillTier(player, id) !== 3) }))
+    .sort((a, b) => a.left.length - b.left.length || a.pre.length - b.pre.length)[0];
+  const pip = closest
+    ? `${world.name || "This place"} opens in grade ${world.minGrade}, but you can open its skills sooner! Closest: get ${closest.left.map((id) => skillById(id).name).join(" and ")} to ⭐ Gold to open ${closest.sk.name}.`
+    : `This part of the island opens in grade ${world.minGrade}.`;
+  return {
+    pip,
+    short: `Opens in grade ${world.minGrade}, or early with ⭐ Gold`,
+    long: `This part of the island opens in grade ${world.minGrade}, or sooner: each skill opens as a ⭐ Challenge Trail once the skills it builds on are Gold. ${paths.join("; ")}.`,
+  };
+}
+
 function openSkillSheet(skillId) {
   $("skill-sheet").innerHTML = skillCardHtml(skillById(skillId));
   openOverlay("skill-overlay");

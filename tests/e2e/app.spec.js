@@ -317,7 +317,9 @@ test("Q&A Flow: a miss gives a step hint; a second miss shows that step and move
 test("Revision Ridge: closed below grade 6, open for a 7th grader with grades 6-7 unlocked", async ({ page }) => {
   await openApp(page, { players: [player({ grade: 4 }), player({ id: "p2", name: "Max", avatar: "🐯", grade: 7 })], current: "p1" });
   await expect(page.locator('[data-world="desk"]')).toBeDisabled();
-  await expect(page.locator('[data-world="desk"]')).toContainText("Grade 6+");
+  await expect(page.locator('[data-world="desk"]')).toContainText("Grade 6+, or early with ⭐");
+  // The lock says how its skills can open early as Challenge Trails (grades 3–5), not just "grade 6".
+  await expect(page.locator(".town")).toContainText("or sooner: ⭐ Gold opens Challenge Trails");
   await expect(page.locator(".town")).toHaveAttribute("aria-label", /of 57 buildings/);
   await page.locator("#who-btn").click();
   await page.locator('[data-player="p2"]').click();
@@ -1984,4 +1986,15 @@ test("Island Home: the Backpack shows a dot for a new badge, and opening Badges 
   await page.locator("#settings-btn").click();
   await page.locator("#settings-overlay .settings-grown summary").click();
   await expect(page.locator("#settings-overlay .see-progress")).toBeVisible();
+});
+
+test("Island Home: tapping locked Revision Ridge, Pip says it opens in grade 6 or sooner, and names the closest Challenge Trail", async ({ page }) => {
+  const p = { ...player({ grade: 4, settings: { islandHome: true } }), days: ["2026-11-17"], backpackTaught: true, boardSeenOn: new Date().toLocaleDateString("en-CA") };
+  await openApp(page, { players: [p], current: "p1" });
+  await expect(page.locator(".town")).toContainText("or sooner: ⭐ Gold opens Challenge Trails");
+  await page.locator("#map-fit").click();
+  const vp = page.viewportSize();
+  await page.mouse.click(vp.width * 0.5, vp.height * 0.66);
+  await expect(page.locator("#pip-home")).toContainText("Revision Ridge opens in grade 6, but you can open its skills sooner!");
+  await expect(page.locator("#pip-home")).toContainText("to ⭐ Gold to open");
 });

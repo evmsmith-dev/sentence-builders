@@ -1,5 +1,5 @@
 // Drawings made in code: Pip the foreman robot, and Grammar Island with its areas.
-import { DECOR_SIZES, DECOR, DISTRICTS, SCENE, WORLDS, skillsInWorldFor, worldOpenFor } from "../config.js";
+import { DECOR_SIZES, DECOR, DISTRICTS, SCENE, WORLDS, skillsInWorldFor, unlockMode, worldOpenFor } from "../config.js";
 import { isUnlocked, levelStars, skillTier } from "../lib/progress.js";
 import { esc } from "./dom.js";
 
@@ -295,7 +295,8 @@ function districtSvg(player, district, { fresh, rising, week = null, blueprint =
     return `${base}<path d="${outline}" fill="#e3e6ec"/>
       <path d="${outline}" fill="none" stroke="#a9b4c6" stroke-width="3" stroke-dasharray="10 8"/>
       <text x="180" y="78" text-anchor="middle" font-size="26" font-weight="700" fill="#5b6b85">🔒 ${esc(district.name)}</text>
-      <text x="180" y="110" text-anchor="middle" font-size="15" fill="#5b6b85">Opens in grade ${world.minGrade}</text>`;
+      <text x="180" y="134" text-anchor="middle" font-size="16" font-weight="700" fill="#5b6b85">Opens in grade ${world.minGrade}</text>
+      ${unlockMode(player) === "mastery" ? '<text x="180" y="156" text-anchor="middle" font-size="14" fill="#5b6b85">or sooner: ⭐ Gold opens Challenge Trails</text>' : ""}`;
   }
   const rows = pathRows(district, player);
   const park = rows ? SCENE.park + rows * ROW_H + 20 : SCENE.park;
