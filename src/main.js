@@ -90,8 +90,13 @@ function openAddPlayer() {
 /** Avatar buttons in groups; older players see Sports, music and more first. */
 function avatarGridHtml(selected, attr, olderFirst) {
   const groups = olderFirst ? [...AVATAR_GROUPS].reverse() : AVATAR_GROUPS;
-  return groups.map((g) => `<p class="avatar-group">${esc(g.name)}</p><div class="avatar-grid">${g.avatars.map((a) =>
-    `<button type="button" class="avatar-btn${a === selected ? " selected" : ""}" ${attr}="${a}" aria-pressed="${a === selected}" aria-label="Avatar ${a}">${a}</button>`).join("")}</div>`).join("");
+  const btns = (list) => list.map((a) =>
+    `<button type="button" class="avatar-btn${a === selected ? " selected" : ""}" ${attr}="${a}" aria-pressed="${a === selected}" aria-label="Avatar ${a}">${a}</button>`).join("");
+  // The first 12 of the player's group, then the rest under "More avatars", so the Start button stays in sight.
+  const first = groups[0].avatars.slice(0, 12);
+  const rest = [...groups[0].avatars.slice(12), ...groups.slice(1).flatMap((g) => g.avatars)];
+  const openRest = rest.includes(selected);
+  return `<div class="avatar-grid">${btns(first)}</div><details class="more-avatars"${openRest ? " open" : ""}><summary>More avatars</summary><div class="avatar-grid">${btns(rest)}</div></details>`;
 }
 
 function drawAvatars() {
@@ -185,8 +190,9 @@ function levelRowHtml(player) {
   const next = nextUp(player);
   if (!next) return "";
   const done = player.lessonOn === today();
+  const last = done && player.lessonLast && skillById(player.lessonLast.skill);
   return `<span class="step-num${done ? " done" : ""}" aria-hidden="true">${done ? "✓" : "1"}</span>
-    <span><strong>${done ? "Lesson done today" : "Your next level"}</strong><span>${esc(next.skill.name)}, level ${next.level}</span></span>
+    <span><strong>${done ? `Done today${last ? `: ${esc(last.name)}, level ${player.lessonLast.level}` : ""}` : "Your next level"}</strong><span>${done ? `Next time: ${esc(next.skill.name)}, level ${next.level}` : `${esc(next.skill.name)}, level ${next.level}`}</span></span>
     <span class="today-chev" aria-hidden="true">›</span>`;
 }
 
@@ -238,6 +244,10 @@ function planStyleOptions(player) {
 }
 
 function blueprintSummary(player, rates) {
+  const approved = WORLDS.filter((w) => player.bosses?.[w.id]).map((w) => w.name);
+  return [blueprintCounts(player, rates), approved.length ? `Approved ✓ ${approved.join(", ")}` : ""].filter(Boolean).join(" · ");
+}
+function blueprintCounts(player, rates) {
   const skills = visibleSkills(player);
   const built = skills.reduce((n, s) => n + [1, 2, 3].filter((l) => isPassed(player, s.id, l)).length, 0);
   const weak = skills.filter((s) => rates[s.id] != null && rates[s.id] < 75).length;
@@ -280,6 +290,7 @@ function renderHome() {
     $("bp-summary").textContent = blueprintSummary(player, rates);
     $("bp-toggle").textContent = state.mapOpen ? "Smaller" : "Open the plan";
     $("bp-style").innerHTML = planStyleOptions(player);
+    $("bp-style").closest("label").hidden = planPoints(player) < 1; // no picker of locked styles on day one
   } else $("town-title").textContent = "🏝️ Grammar Island";
   $("who-btn").innerHTML = `<span class="avatar" aria-hidden="true">${player.avatar}</span> ${esc(player.name)}`;
   // Grades 3–5: a Challenge Trail that's ready opens (one a day), and Pip says why.
@@ -329,7 +340,10 @@ function renderHome() {
     const go = island || due || trailNews ? play : startButton(player);
     $("pip-home").innerHTML = settings().pip && !grownPip()
       ? pipSays(greeting, true, go + tuck)
-      : `<p class="next-line">${due ? esc(greeting) : next ? `Next up: ${esc(next.skill.name)}, level ${next.level}.` : ""} ${go}${tuck}</p>`;
+      : island || due || trailNews
+        ? `<p class="next-line">${due ? esc(greeting) : next ? `Next up: ${esc(next.skill.name)}, level ${next.level}.` : ""} ${go}${tuck}</p>`
+        // Grades 6–8 (and Pip turned off): just the big Start button; Start here below says what it is.
+        : `<div class="start-only">${go}</div>`;
   }
   $("pip-home").classList.toggle("mini", Boolean(island && state.pipMin));
   // A building that just went up: the map opens on its district so the rise is seen.
@@ -361,7 +375,7 @@ function renderHome() {
   // A player who hasn't met Pip yet gets his welcome once (unless Pip is turned off).
   if (!player.introSeen && settings().pip && !topOverlay()) setTimeout(() => !$("home").hidden && !topOverlay() && openPipIntro(), 250);
   // Island Home: the Notice Board opens by itself once a day, when something is waiting, before free roaming.
-  else if (island && player.boardSeenOn !== localDate(Date.now()) && weekMapInfo(player)?.waiting && !topOverlay()) {
+  else if (island && boardStepShown(player) && player.boardSeenOn !== localDate(Date.now()) && weekMapInfo(player)?.waiting && !topOverlay()) {
     savePlayer({ ...player, boardSeenOn: localDate(Date.now()) });
     setTimeout(() => !$("home").hidden && !topOverlay() && openWeek(), 300);
   }
@@ -404,9 +418,12 @@ function renderWorld(worldId) {
   const mine = older ? skills.filter((sk) => sk.grades.some((g) => g >= OLDER_FROM_GRADE)) : skills;
   const earlier = older ? skills.filter((sk) => !mine.includes(sk)) : [];
   const earlierHtml = !earlier.length ? "" : mine.length
-    ? `<details class="fold earlier-grades"${state.earlierOpen?.[worldId] ? " open" : ""} data-earlier="${worldId}"><summary>Earlier grades (${earlier.length} skill${earlier.length === 1 ? "" : "s"}, grades 3–5)</summary>${earlier.map((skill) => skillCardHtml(skill)).join("")}</details>`
-    : earlier.map((skill) => skillCardHtml(skill)).join("");
-  $("skill-list").innerHTML = bossCardHtml(worldId, player) + testoutCardHtml(worldId, player) + mine.map((skill) => skillCardHtml(skill)).join("") + earlierHtml
+    ? `<details class="fold earlier-grades"${state.earlierOpen?.[worldId] ? " open" : ""} data-earlier="${worldId}"><summary>Earlier grades (${earlier.length} skill${earlier.length === 1 ? "" : "s"}, grades 3–5)</summary>${earlier.map((skill) => skillCardHtml(skill, { trailNote: false })).join("")}</details>`
+    : earlier.map((skill) => skillCardHtml(skill, { trailNote: false })).join("");
+  // The Challenge Trail rule is said once at the top, not under every skill (the senior's "printed five times").
+  const trailTop = unlockMode(player) === "mastery" && skills.some((sk) => [2, 3].some((l) => !isUnlocked(player, sk.id, l)))
+    ? '<p class="trail-note trail-top">⭐ Challenge Trails: get 7 or more right on a level, on two different days, to open the next one.</p>' : "";
+  $("skill-list").innerHTML = bossCardHtml(worldId, player) + testoutCardHtml(worldId, player) + trailTop + mine.map((skill) => skillCardHtml(skill, { trailNote: false })).join("") + earlierHtml
     + (world.comingSoon ? `<p class="note coming-soon">${esc(world.comingSoon)}</p>` : "");
   showScreen("world");
 }
@@ -540,6 +557,8 @@ function finishTestout() {
 const SPEED_MS = 90 * 1000;
 const SPEED_COUNT = 12;
 const clock = (ms) => `${Math.floor(ms / 60000)}:${String(Math.floor((ms % 60000) / 1000)).padStart(2, "0")}`;
+/** Times in Speed Round results, to a tenth of a second, so a tie looks like a tie. */
+const clockTenths = (ms) => `${clock(ms)}.${Math.floor((ms % 1000) / 100)}`;
 const speedKeys = (grade) => SKILLS.filter((s) => skillGate(s) <= grade)
   .flatMap((skill) => [1, 2, 3].filter((l) => skill.grades[l - 1] <= grade && skill.grades[l - 1] >= Math.max(3, grade - 2)).map((l) => `${skill.id}-${l}`));
 
@@ -587,7 +606,7 @@ function speedBoardHtml(code) {
     .sort((a, b) => b.run.right - a.run.right || a.run.ms - b.run.ms);
   if (!rows.length) return "";
   return `<div class="speed-board"><h3 class="review-title">Scoreboard for ${code}</h3><ol>${rows.map(({ p, run }) =>
-    `<li${p.id === state.player.id ? ' class="me"' : ""}><span>${p.avatar} ${esc(p.name)}</span><span>${run.right} right · ${clock(run.ms)}</span></li>`).join("")}</ol>
+    `<li${p.id === state.player.id ? ' class="me"' : ""}><span>${p.avatar} ${esc(p.name)}</span><span>${run.right} right · ${clockTenths(run.ms)}</span></li>`).join("")}</ol>
     ${rows.length === 1 ? '<p class="note">Hand the device to someone else, and they can enter this code from ⏱️ Speed Round.</p>' : ""}</div>`;
 }
 
@@ -608,15 +627,18 @@ function finishSpeed() {
   $("progress-text").classList.remove("speed-low");
   $("result-stars").innerHTML = "";
   $("result-title").textContent = best ? "New personal best!" : `${out.right} right`;
-  $("result-score").textContent = `${out.right} right of ${play.results.length} answered · ${clock(ms)}${play.results.length === play.items.length ? " (all done)" : ""}`;
+  $("result-score").textContent = `${out.right} right of ${play.results.length} answered · ${clockTenths(ms)}${play.results.length === play.items.length ? " (all done)" : ""}`;
   showResultBricks(out, `+${out.bricks} 🧱 bricks`);
-  $("result-pip").innerHTML = pipRemark(best ? (prev ? `Old best: ${prev.right} in ${clock(prev.ms)}. Not anymore.` : "First run on the board. Now beat it.")
-    : `Your best is still ${out.player.speedBest.right} in ${clock(out.player.speedBest.ms)}.`);
-  $("result-badges").innerHTML = `<p class="speed-share">Race a friend on these exact questions: code <strong class="speed-code-text">${code}</strong></p>${speedBoardHtml(code)}`;
-  $("result-review").innerHTML = reviewHtml(play);
+  $("result-pip").innerHTML = pipRemark(best ? (prev ? `Old best: ${prev.right} in ${clockTenths(prev.ms)}. Not anymore.` : "First run on the board. Now beat it.")
+    : `Your best is still ${out.player.speedBest.right} in ${clockTenths(out.player.speedBest.ms)}.`);
+  $("result-badges").innerHTML = "";
+  // The code and scoreboard come first; the questions to look again at come after them.
+  $("result-review").innerHTML = `<p class="speed-share">Race a friend on these exact questions: code <strong class="speed-code-text">${code}</strong></p>${speedBoardHtml(code)}${reviewHtml(play)}`;
   state.resultNext = { speed: true };
+  state.lastSpeed = { grade: play.grade, seed: play.seed };
   $("result-next").textContent = "New round";
-  $("result-again").hidden = true;
+  $("result-again").hidden = false;
+  $("result-again").textContent = `Rematch ${code}`;
   $("result-rule").hidden = true;
   openOverlay("result-overlay");
   if (best) {
@@ -649,7 +671,7 @@ function dailyCardHtml(player) {
 }
 
 /** One skill's card: badge, benchmarks and its three level buttons (on the world screen and from the town map). */
-function skillCardHtml(skill) {
+function skillCardHtml(skill, { trailNote = true } = {}) {
   const player = state.player;
   const tier = skillTier(player, skill.id);
     const goldDays = (player.goldDays[skill.id] || []).length;
@@ -677,7 +699,7 @@ function skillCardHtml(skill) {
         <span class="tier${tier ? "" : " none"}">${skill.badge.emoji} ${tier ? TIER_NAMES[tier - 1] : "No badge yet"}</span></div>
       
       <div class="levels">${levels}</div>
-      ${trail ? `<p class="trail-note">${esc(trail)}</p>` : ""}
+      ${trail && trailNote ? `<p class="trail-note">${esc(trail)}</p>` : ""}
       ${gold ? `<p class="gold-note">${esc(gold)}</p>` : ""}
     </section>`;
 }
@@ -847,8 +869,8 @@ function finishDaily() {
   $("result-pip").innerHTML = pipRemark(line);
   $("result-badges").innerHTML = prize ? `<p class="mystery-prize"><span class="prize-emoji" aria-hidden="true">🎁</span> Mystery prize: <strong>${prize.item.emoji} ${esc(prize.item.name)}</strong>! It's in the Town Square. Drag it anywhere in Build.</p>` : "";
   $("result-review").innerHTML = reviewHtml(play);
-  state.resultNext = { home: true };
-  $("result-next").textContent = blueprintOn(out.player) ? "Back to home" : "Back to the island";
+  state.resultNext = prize ? { prize: prize.player.decor.at(-1).uid } : { home: true };
+  $("result-next").textContent = prize ? "🎁 Place my prize" : blueprintOn(out.player) ? "Back to home" : "Back to the island";
   $("result-again").hidden = true;
   $("result-rule").hidden = true;
   openOverlay("result-overlay");
@@ -957,12 +979,14 @@ function weekCardHtml(player) {
   const now = Date.now();
   const progress = week ? weekProgressFor(player) : { done: [] };
   const next = week ? nextDay(progress, now) : null;
+  // Short, and never "Monday:" on a Tuesday (that read like being behind): today's job, or a day to catch up.
   const weekLine = !week ? "" : progress.done.length === 5 ? "Week done!"
-    : next !== null ? `${WEEK_DAYS[next].name}: ${WEEK_DAYS[next].task}` : `Done today. ${WEEK_DAYS[Math.min(todayIndex(now) + 1, 4)].name} is next.`;
-  const line = [weekLine, homeworkWaiting(player) ? "Pip needs a tutor" : ""].filter(Boolean).join(" · ") || "All done for today";
+    : next === null ? "Done for today"
+      : next === Math.min(todayIndex(now), 4) ? `Today: ${WEEK_DAYS[next].task}` : `Catch up: ${WEEK_DAYS[next].name}`;
+  const line = [weekLine, homeworkWaiting(player) ? "Pip's homework" : ""].filter(Boolean).join(" · ") || "All done for today";
   return `<span class="step-num optional" aria-hidden="true">${nextUp(player) ? "3" : "2"}</span>
     <span><strong>Notice Board <span class="opt-tag">optional</span></strong><span>${esc(line)}</span></span>
-    ${week ? weekDotsHtml(progress, now) : ""}<span class="today-chev" aria-hidden="true">›</span>`;
+    <span class="today-chev" aria-hidden="true">›</span>`;
 }
 
 /** What the Notice Board on the map shows: the days done, and whether one is waiting today. */
@@ -1298,6 +1322,7 @@ function finishLevel() {
   const now = Date.now();
   const out = recordLevel(state.player, { skill: play.skillId, level: play.level, results: play.results, now, durationMs: now - play.startedAt });
   out.player.lessonOn = localDate(now); // the Start here card's first step is done for today
+  out.player.lessonLast = { skill: play.skillId, level: play.level };
   savePlayer(out.player);
   const s = settings();
   const skill = skillById(play.skillId);
@@ -1332,6 +1357,15 @@ function finishLevel() {
   state.resultNext = out.passed ? (nextLevel ? { skillId: play.skillId, level: nextLevel } : { world: skill.world }) : { skillId: play.skillId, level: play.level };
   $("result-next").textContent = !out.passed ? "Try again" : nextLevel ? `Next: level ${nextLevel}` : `Back to ${WORLDS.find((w) => w.id === skill.world).name}`;
   $("result-again").hidden = !out.passed;
+  $("result-again").textContent = "Play again";
+  state.resultAlt = null;
+  // The same order as Start here: after today's lesson, the Daily 5 is next (the next level stays one tap away).
+  if (out.passed && out.player.dailyOn !== localDate(now) && play.mode === undefined) {
+    state.resultAlt = state.resultNext;
+    state.resultNext = { practice: "daily" };
+    $("result-next").textContent = "Next: Daily 5";
+    $("result-again").textContent = nextLevel ? `or level ${nextLevel}` : "or play again";
+  }
   openOverlay("result-overlay");
   if (out.passed) {
     sound("done", s.sound);
@@ -1345,6 +1379,9 @@ function finishLevel() {
 
 /* ==================== Looking back: mistakes and the Rule Book ==================== */
 
+/** Labeling items have long level hints; on the results, only their first sentence (the 4th-grade playtester). */
+const shortRule = (item) => (["flow", "labels", "diagram"].includes(item.type) ? item.hint.split(/(?<=[.!?])\s+/)[0] : item.hint);
+
 /** The round's missed items, written correctly with their rule. */
 function reviewHtml(play) {
   const rows = play.results.filter((r) => !r.correct || r.tries > 1).map((r) => {
@@ -1352,7 +1389,7 @@ function reviewHtml(play) {
     const status = r.correct ? "Fixed on the second try" : "Answer shown";
     return `<li class="review-row ${r.correct ? "second" : "missed"}"><span class="review-status">${status}</span>
       ${r.chosen ? `<span class="review-chosen">You chose: ${esc(r.chosen)}</span>` : ""}
-      <span class="review-answer">${r.chosen ? "Correct: " : ""}${answerHtml(item)}</span><span class="review-rule">${esc(item.hint)}</span></li>`;
+      <span class="review-answer">${r.chosen ? "Correct: " : ""}${answerHtml(item)}</span><span class="review-rule">${esc(shortRule(item))}</span></li>`;
   });
   if (!rows.length) return '<p class="review-none">No mistakes this round. ✓</p>';
   return `<h3 class="review-title">Look again (${rows.length})</h3><ol class="review-list">${rows.join("")}</ol>`;
@@ -1620,7 +1657,7 @@ function drawBuildScene(fresh = null) {
   $("build-town").innerHTML = parkSvg(player, { area: state.buildArea, fresh, selected: state.buildSelected })
     + (item
       ? `<div class="build-selected"><span><span aria-hidden="true">${item.emoji}</span> ${esc(item.name)}: drag it anywhere.</span>
-          <span class="build-selected-actions"><button type="button" class="secondary" data-put-away="${selected.uid}">Put away (+${item.cost} 🧱)</button>
+          <span class="build-selected-actions"><button type="button" class="secondary" data-put-away="${selected.uid}">${selected.free ? "Put away (a prize: no bricks back)" : `Put away (+${item.cost} 🧱)`}</button>
           <button type="button" class="link" data-deselect>Done</button></span></div>`
       : `<p class="build-hint">${player.decor.some((p) => p.area === state.buildArea) ? "Drag anything to move it. Tap one to put it away." : "Build something, then drag it where you want it."}</p>`);
 }
@@ -2423,6 +2460,13 @@ function wire() {
     else if (next.homework) startHomework();
     else if (next.practice) startPractice(next.practice);
     else if (next.boss) startBoss(next.boss);
+    else if (next.prize) {
+      // Build opens on the Town Square with the prize picked up, ready to drag.
+      state.buildArea = "square";
+      state.buildSelected = next.prize;
+      renderBuild(next.prize);
+      window.scrollTo(0, 0);
+    }
     else if (next.speed) startSpeed(state.player.grade, 1000 + Math.floor(Math.random() * 9000));
     else if (next.testout) startTestout(next.testout);
     else if (next.world) renderWorld(next.world);
@@ -2430,6 +2474,8 @@ function wire() {
   });
   $("result-again").addEventListener("click", () => {
     closeOverlay("result-overlay");
+    if (state.resultNext?.speed && state.lastSpeed) return startSpeed(state.lastSpeed.grade, state.lastSpeed.seed);
+    if (state.resultAlt?.skillId) return openTip(state.resultAlt.skillId, state.resultAlt.level);
     openTip(state.lastPlayed.skillId, state.lastPlayed.level);
   });
   $("result-town").addEventListener("click", () => {

@@ -1180,3 +1180,16 @@ body.island-home #home details.fold { display: none; }
 .step-num.optional { border-style: dashed; color: var(--muted); border-color: var(--muted); }
 .opt-tag { font-size: 0.75rem; font-weight: 600; color: var(--muted); border: 1px solid var(--border); border-radius: 8px; padding: 0 6px; margin-left: 4px; vertical-align: middle; }
 .daily-row strong { color: #b4441b; }
+
+/* Island Home: a soft backing behind the bottom buttons, so map signs don't peek out between them. */
+body.island-home .island-bar { padding: 6px; border-radius: 18px; background: rgba(255, 255, 255, 0.82); box-shadow: var(--shadow); }
+body.island-home #home #pip-home { bottom: calc(env(safe-area-inset-bottom) + 78px); }
+@media (max-width: 420px) { body.island-home #home #pip-home { bottom: calc(env(safe-area-inset-bottom) + 70px); } }
+.start-only { margin: 4px 0 12px; }
+.start-only .start-go { display: block; width: 100%; max-width: none; min-height: 54px; font-size: 1.2rem; }
+.town.blueprint .bp-stamp rect { stroke-width: 4px !important; }
+.trail-top { margin: 0 0 10px; }
+.more-avatars { margin-top: 6px; }
+.more-avatars summary { cursor: pointer; color: var(--primary); font-weight: 600; padding: 6px 0; }
+.settings-group { margin: 14px 0 4px; padding-top: 10px; border-top: 2px solid var(--border); font-size: 1.05rem; }
+.settings-group:first-of-type { border-top: 0; padding-top: 0; margin-top: 4px; }

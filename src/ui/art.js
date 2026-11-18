@@ -361,8 +361,8 @@ function districtSvg(player, district, { fresh, rising, week = null, blueprint =
     <g class="district-sign" pointer-events="none"><rect x="${signX}" y="14" width="${nameW}" height="38" rx="19" fill="#fff" opacity=".92"/>
       <text x="${signX + 12}" y="41" font-size="22" font-weight="700" fill="#2c3e5c" class="district-name">${district.emoji} ${esc(district.name)}</text></g>
     ${pip}
-    ${blueprint && player.bosses?.[district.world] ? `<g class="bp-stamp" pointer-events="none" transform="rotate(-6 286 ${park + 40})">
-      <rect x="218" y="${park + 22}" width="136" height="36" rx="6"/><text x="286" y="${park + 46}" text-anchor="middle" font-size="16" font-weight="800">APPROVED ✓</text></g>` : ""}
+    ${blueprint && player.bosses?.[district.world] ? `<g class="bp-stamp" pointer-events="none" transform="rotate(-6 180 ${park + 46})">
+      <rect x="60" y="${park + 16}" width="240" height="60" rx="8"/><text x="180" y="${park + 58}" text-anchor="middle" font-size="32" font-weight="800">APPROVED ✓</text></g>` : ""}
   </g>`;
 }
 

@@ -36,6 +36,7 @@ test("Speed personal best: more right wins, then less time", () => {
   assert.equal(isBetterSpeed({ right: 8, ms: 80000 }, { right: 8, ms: 70000 }), true);
   assert.equal(isBetterSpeed({ right: 8, ms: 80000 }, { right: 8, ms: 85000 }), false);
   assert.equal(isBetterSpeed({ right: 8, ms: 80000 }, { right: 7, ms: 10000 }), false);
+  assert.equal(isBetterSpeed({ right: 12, ms: 4000 }, { right: 12, ms: 3950 }), false, "under a tenth faster is a tie");
 });
 
 test("Mystery prize: once a day, a free everyday decoration that refunds nothing", async () => {

@@ -232,16 +232,16 @@ export const LABEL_LISTS = { A: "articles", P: "prepositions", HV: "helping", LV
 
 // Shurley-style labels for the Q&A Flow. Each level adds labels; earlier ones stay.
 export const LABELS = {
-  SN: { name: "subject noun", hint: "The subject noun tells who or what the sentence is about." , find: 'Ask who or what: "What ran?" → dogs' },
-  SP: { name: "subject pronoun", hint: "A subject pronoun (I, you, he, she, it, we, they) takes the place of a noun as the subject." , find: 'Ask who: "Who sang?" → she' },
-  V: { name: "verb", hint: "The verb tells what is being said about the subject." , find: 'Ask what is being said about the subject: "dogs ran" → ran' },
+  SN: { name: "subject noun", hint: "The subject noun tells who or what the sentence is about." , find: 'Ask who or what: "Who scored?" → Maya' },
+  SP: { name: "subject pronoun", hint: "A subject pronoun (I, you, he, she, it, we, they) takes the place of a noun as the subject." , find: 'Ask who: "Who laughed?" → she' },
+  V: { name: "verb", hint: "The verb tells what is being said about the subject." , find: 'Ask what is being said about the subject: "Maya scored" → scored' },
   A: { name: "article adjective", hint: "A, an and the are article adjectives." , find: 'Always a, an or the' },
-  Adj: { name: "adjective", hint: "An adjective tells what kind, which one or how many about a noun." , find: 'Ask what kind, which one or how many: "What kind of dog?" → small' },
-  Adv: { name: "adverb", hint: "An adverb tells how, when, where or how much." , find: 'Ask how, when or where: "Ran how?" → quickly' },
+  Adj: { name: "adjective", hint: "An adjective tells what kind, which one or how many about a noun." , find: 'Ask what kind, which one or how many: "What kind of game?" → close' },
+  Adv: { name: "adverb", hint: "An adverb tells how, when, where or how much." , find: 'Ask how, when or where: "Scored how?" → easily' },
   P: { name: "preposition", hint: "A preposition like to, in, on or under starts a prepositional phrase." , find: 'Starts a phrase: to, in, on, under, for' },
-  OP: { name: "object of the preposition", hint: "The object of the preposition is the noun after the preposition that answers what? or whom?" , find: 'Say the preposition + what: "To what?" → door' },
-  PPA: { name: "possessive pronoun adjective", hint: "My, your, his, her, its, our and their show who owns something: possessive pronoun adjectives." , find: 'Ask whose: "Whose dog?" → my' },
-  PNA: { name: "possessive noun adjective", hint: "A noun with 's that shows who owns something, like Sam's, is a possessive noun adjective." , find: 'Ask whose: "Whose dog?" → Sam\'s' },
+  OP: { name: "object of the preposition", hint: "The object of the preposition is the noun after the preposition that answers what? or whom?" , find: 'Say the preposition + what: "To what?" → gym' },
+  PPA: { name: "possessive pronoun adjective", hint: "My, your, his, her, its, our and their show who owns something: possessive pronoun adjectives." , find: 'Ask whose: "Whose phone?" → my' },
+  PNA: { name: "possessive noun adjective", hint: "A noun with 's that shows who owns something, like Sam's, is a possessive noun adjective." , find: 'Ask whose: "Whose phone?" → Sam\'s' },
   HV: { name: "helping verb", hint: "A helping verb like is, are, was or were comes before the main verb." , find: 'Comes right before the main verb: "is running" → is' },
   "V-t": { name: "transitive verb", hint: "A verb that has a direct object is a transitive verb." , find: 'The verb when the sentence has a direct object: "kicked the ball" → kicked' },
   DO: { name: "direct object", hint: "The direct object answers what? or whom? after the verb and doesn't mean the same thing as the subject." , find: 'Ask verb + what or whom: "Sam kicked what?" → ball' },
@@ -249,7 +249,7 @@ export const LABELS = {
   LV: { name: "linking verb", hint: "A linking verb like is or was links the subject to a word that renames or describes it." , find: 'A verb like is, am, are, was or were with a PrN or PA after it' },
   PrN: { name: "predicate noun", hint: "A predicate noun comes after a linking verb and means the same thing as the subject." , find: 'Ask subject + verb + who or what; it means the same as the subject: "Dad is who?" → teacher' },
   PA: { name: "predicate adjective", hint: "A predicate adjective comes after a linking verb and describes the subject." , find: 'Ask subject + verb + what; it describes the subject: "Soup is what?" → hot' },
-  OCN: { name: "object complement noun", hint: "An object complement noun comes after the direct object and renames it: verb + DO + what?" , find: 'Ask verb + DO + what; it renames the DO: "named hamster what?" → Peanut' },
+  OCN: { name: "object complement noun", hint: "An object complement noun comes after the direct object and renames it: verb + DO + what?" , find: 'Ask verb + DO + what; it renames the DO: "named mascot what?" → Blizzard' },
   OCA: { name: "object complement adjective", hint: "An object complement adjective comes after the direct object and describes it: verb + DO + what?" , find: 'Ask verb + DO + what; it describes the DO: "made trail what?" → muddy' },
   CSN: { name: "compound subject noun", hint: "Two subject nouns joined by and, or or but share the same verb. Each one is a compound subject noun." , find: 'Ask who or what; two answers: "Who sang?" → Mia and Leo' },
   CSP: { name: "compound subject pronoun", hint: "Two subject pronouns (or a noun and a pronoun) joined by and or or. Each pronoun is a compound subject pronoun." , find: 'Ask who; two answers: "Who left?" → he and I' },
@@ -264,7 +264,7 @@ export const LABELS = {
   CPA: { name: "compound predicate adjective", hint: "Two predicate adjectives joined by and, or or but. Both describe the subject after a linking verb." , find: 'Ask subject + verb + what; two answers that describe the subject: "Soup is what?" → hot and salty' },
   PrP: { name: "predicate pronoun", hint: "A predicate pronoun comes after a linking verb and means the same person as the subject: I, he, she, we, they." , find: 'Ask subject + verb + who; a pronoun answers: "The winner was who?" → she' },
   CPrP: { name: "compound predicate pronoun", hint: "Two predicate pronouns (or a noun and a pronoun) joined by and or or after a linking verb." , find: 'Ask subject + verb + who; two answers: "The helpers were who?" → he and I' },
-  CAdj: { name: "compound adjective", hint: "Two adjectives joined by and, or or but that describe the same noun." , find: 'Ask what kind; two answers: "What kind of dog?" → big and fluffy' },
+  CAdj: { name: "compound adjective", hint: "Two adjectives joined by and, or or but that describe the same noun." , find: 'Ask what kind; two answers: "What kind of jacket?" → warm and dry' },
   CAdv: { name: "compound adverb", hint: "Two adverbs joined by and, or or but that tell about the same verb." , find: 'Ask how, when or where; two answers: "Ran how?" → fast and far' },
   I: { name: "interjection", hint: "An interjection is a word that shows strong feeling, like wow, oh or hooray. It's set off by a comma or an exclamation point." , find: 'A feeling word at the start: wow, oh, hey, hooray, oops' },
 };
@@ -374,7 +374,7 @@ export const AVATARS = AVATAR_GROUPS.flatMap((g) => g.avatars);
  * {name} is the player's name.
  */
 export const PIP_INTRO = [
-  ["Hi, {name}! I'm Pip, the foreman of Grammar Island. Let's build it together! Tap ▶ Start on the home screen and I'll pick what's next.", "Hi, {name}. I'm Pip. I run the building crew on Grammar Island. Tap ▶ Start and I'll pick what's next."],
+  ["Hi, {name}! I'm Pip, the foreman of Grammar Island. Let's build it together! Tap the big blue button on the home screen and I'll pick what's next.", "Hi, {name}. I'm Pip. I run the building crew on Grammar Island. Tap the big button on the home screen and I'll pick what's next."],
   ["Every level you pass puts up a building on the island. Tap a place on the map to see its path of levels.", "Each level you pass adds a building. Tap a place on the map to see its path of levels."],
   ["Before each level I'll show you the rule, and if something's tricky I'll give you a hint.", "I'll show the rule before each level and give a hint when an answer misses."],
   ["Right answers earn 🧱 bricks. Spend them to decorate the island any way you like.", "Right answers earn 🧱 bricks for decorating the island."],

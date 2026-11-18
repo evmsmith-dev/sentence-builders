@@ -752,7 +752,8 @@ test("Edit player: ✏️ on a player card changes name, grade and avatar on Sav
   // Cancel throws away changes.
   await page.locator('[data-edit-player="p1"]').click();
   await expect(page.locator("#edit-overlay")).toBeVisible();
-  await expect(page.locator("#edit-avatar-grid .avatar-group").first()).toHaveText("Sports, music and more");
+  await expect(page.locator("#edit-avatar-grid .avatar-btn").first()).toHaveText("😎"); // grade 6+: sports, music and more first
+  await page.locator("#edit-avatar-grid .more-avatars summary").click();
   await page.locator('#edit-avatar-grid [data-edit-avatar="🎧"]').click();
   await page.locator("#edit-overlay [data-close]").click();
   await expect(page.locator('[data-player="p1"]')).toContainText("🦊");
@@ -1286,7 +1287,8 @@ test("Listen and Write: Show the words setting @layout", async ({ page }) => {
 
 test("Grades 6–8: Next up starts at middle-school work, Revision Ridge leads, and no standards codes or nicknames", async ({ page }) => {
   await openApp(page, { players: [player({ grade: 7 })], current: "p1" });
-  await expect(page.locator("#pip-home")).toContainText("Next up: Pronoun case and clarity, level 1");
+  await expect(page.locator("#level-btn")).toContainText("Pronoun case and clarity, level 1");
+  await expect(page.locator("#pip-home .start-go")).toHaveText("▶ Start");
   await expect(page.locator("#world-list .world-card").first()).toHaveAttribute("data-world", "desk");
   await openWorld(page, "desk");
   await expect(page.locator(".skill-sub")).toHaveCount(0);
@@ -1301,8 +1303,8 @@ test("Grades 6–8: Next up skips grade 3–5 levels until the middle-school one
   for (const id of ["case", "proofread", "aside", "types", "modifiers", "flow2"]) for (const l of [1, 2]) levels[`${id}-${l}`] = passed;
   levels["diagram-2"] = passed; levels["diagram-3"] = passed;
   await openApp(page, { players: [player({ grade: 7, levels })], current: "p1" });
-  await expect(page.locator("#pip-home")).toContainText("level 3"); // a grade 8 level comes before grade 3 commas
-  await expect(page.locator("#pip-home")).not.toContainText("Commas");
+  await expect(page.locator("#level-btn")).toContainText("level 3"); // a grade 8 level comes before grade 3 commas
+  await expect(page.locator("#level-btn")).not.toContainText("Commas");
 });
 
 test("Two choices: a miss shows the answer right away, says what was chosen, and counts as missed", async ({ page }) => {
@@ -1394,6 +1396,7 @@ test("Speed Round: a code plays the same questions, one try each, and keeps a pe
   }
   await expect(page.locator("#result-title")).toHaveText("New personal best!");
   await expect(page.locator(".speed-code-text")).toHaveText("G7-4821");
+  await expect(page.locator("#result-again")).toHaveText("Rematch G7-4821");
   await page.locator("#result-town").click();
   await openMore(page);
   await expect(page.locator(".speed-card .world-meta")).toContainText("Best 11");
@@ -1444,8 +1447,11 @@ test("Island Home: Daily 5 and Speed are on the island, Play stays at the peaks,
     await page.locator("#next-btn").click();
   }
   await expect(page.locator(".mystery-prize")).toContainText("Mystery prize");
-  await expect(page.locator("#result-town")).toBeHidden(); // one way back, not two
-  await page.locator("#result-next").click();
+  await expect(page.locator("#result-next")).toHaveText("🎁 Place my prize");
+  await page.locator("#result-next").click(); // Build opens on the Town Square with the prize picked up
+  await expect(page.locator("#build")).toBeVisible();
+  await expect(page.locator(".build-selected")).toContainText("no bricks back");
+  await page.locator("#build-back").click();
   await expect(page.locator("#island-daily")).toContainText("✓");
 });
 
@@ -1502,8 +1508,8 @@ test("Sentence of the Week: Today with Pip card, the Notice Board, a day's job, 
   await page.clock.setFixedTime(new Date(2026, 10, 18, 10)); // a Wednesday
   await openApp(page, { players: [player({ grade: 4 })], current: "p1" });
   await expect(page.locator("#week-btn")).toContainText("Notice Board");
-  await expect(page.locator("#week-btn")).toContainText("Pip needs a tutor");
-  await expect(page.locator("#week-btn")).toContainText("Monday: Parts of speech");
+  await expect(page.locator("#week-btn")).toContainText("Pip's homework");
+  await expect(page.locator("#week-btn")).toContainText("Catch up: Monday"); // a Wednesday with Monday not done
   await expect(page.locator(".town .notice-board")).toBeAttached();
   await expect(page.locator(".town .board-alert")).toBeAttached();
   await openBoard(page);
@@ -1519,7 +1525,7 @@ test("Sentence of the Week: Today with Pip card, the Notice Board, a day's job, 
   await expect(page.locator("#result-title")).toHaveText("Monday done!");
   await expect(page.locator("#result-next")).toHaveText("Next: Tuesday");
   await page.locator("#result-town").click();
-  await expect(page.locator("#week-btn .week-dots .done")).toHaveCount(1);
+  await expect(page.locator("#week-btn")).toContainText("Catch up: Tuesday"); // Monday done; the dots are on the Notice Board itself
 });
 
 test("Sentence of the Week: a week already started keeps its sentence when new weeks are added", async ({ page }) => {
@@ -1539,7 +1545,7 @@ test("Sentence of the Week: Friday finishes the week with bonus bricks and a ban
   p.week = { key: weekKey(friday), id: week.id, done: [0, 1, 2, 3] };
   p.bricks = 0;
   await openApp(page, { players: [p], current: "p1" });
-  await expect(page.locator("#week-btn")).toContainText("Friday: Join and write it");
+  await expect(page.locator("#week-btn")).toContainText("Today: Join and write it");
   await openBoard(page);
   await page.locator('#week-overlay [data-week-day="4"]').click();
   await answer(page);
@@ -1557,6 +1563,7 @@ test("Sentence of the Week: Friday finishes the week with bonus bricks and a ban
 test("Island Home: the island fills the screen; review first, the Notice Board once a day, build after a lesson @layout", async ({ page }) => {
   await page.clock.setFixedTime(new Date(2026, 10, 17, 10));
   const p = player({ grade: 4, settings: { islandHome: true }, levels: { "commas-1": { best: 7, stars: 2, plays: 1 } } });
+  p.days = ["2026-11-16"]; // not day one: the Notice Board opens itself from day two
   p.items = Object.fromEntries(Array.from({ length: 5 }, (_, i) => [`commas-1-0${i + 1}`, { seen: 1, misses: 1, last: 1 }]));
   await openApp(page, { players: [p], current: "p1" });
   await expect(page.locator("body")).toHaveClass(/island-home/);
@@ -1624,7 +1631,7 @@ test("Grades 6-8: the island as a blueprint, Worlds first, no brick shop; Settin
 test("Grades 6-8: grown-up Pip (line drawing, no greeting, plain words) @layout", async ({ page }) => {
   await openApp(page, { players: [player({ grade: 7 })], current: "p1" });
   await expect(page.locator("#pip-home .bubble")).toHaveCount(0);
-  await expect(page.locator("#pip-home")).toContainText("Next up:");
+  await expect(page.locator("#level-btn")).toContainText("Your next level");
   await expect(page.locator("#pip-home .next-play")).toBeVisible();
   await startLevel(page, "commas", 1, "port");
   await miss(page);
@@ -1677,7 +1684,8 @@ test("after a level: Not now on the next level's tip goes to the level list, not
     await answer(page);
     await page.locator("#next-btn").click();
   }
-  await page.locator("#result-next").click(); // the next level's Tip Card
+  await expect(page.locator("#result-next")).toHaveText("Next: Daily 5"); // the same order as Start here
+  await page.locator("#result-again").click(); // "or level 2": the next level's Tip Card
   await expect(page.locator("#tip-overlay")).toBeVisible();
   await page.locator("#tip-close").click();
   await expect(page.locator("#tip-overlay")).toBeHidden();
@@ -1695,7 +1703,7 @@ test("Challenge Trails (grades 3-5): mastery opens the next level with Pip's new
   await expect(level2).toContainText("⭐ Challenge");
   await expect(level2).not.toContainText("Grade");
   await expect(page.locator('.level-btn[data-skill="commas"][data-level="3"]')).toBeDisabled();
-  await expect(page.locator(".skill-card").first()).toContainText("get 7 or more right on level 2, on two different days");
+  await expect(page.locator(".trail-top")).toContainText("get 7 or more right on a level, on two different days");
   // Missed sentences waiting: review comes first.
   await page.evaluate(() => {
     const players = JSON.parse(localStorage.getItem("sentenceBuilders_players"));

@@ -648,7 +648,7 @@ function renderFlow(root, item, { hint, complete, onChange, onTap, showLabels, n
     const choices = root.querySelector(".flow-choices");
     if (done) {
       count.textContent = "";
-      q.textContent = `${parsed.labelLine}${parsed.pattern ? ` · ${PATTERNS[parsed.pattern]}` : ""}`;
+      q.textContent = ""; // the labels are on the words, and the answer below spells out the pattern
       choices.innerHTML = "";
       return;
     }
@@ -761,7 +761,8 @@ function renderFlow(root, item, { hint, complete, onChange, onTap, showLabels, n
         draw();
         onChange();
       } else {
-        miss(`Not that word. The question is "${st.question}"${LABELS[st.label]?.find ? ` Tip: ${LABELS[st.label].find}.` : " Which word answers it?"}`, stepText(), showStep);
+        const youTip = parsed.words[st.index].word === "(You)" ? " In a command, the subject is the understood (You): it isn't written, but it's there, at the start." : "";
+        miss(`Not that word. The question is "${st.question}"${youTip || (LABELS[st.label]?.find ? ` Tip: ${LABELS[st.label].find}.` : " Which word answers it?")}`, stepText(), showStep);
         draw();
       }
     } else if (chip && st.kind === "step" && phase === "label") {
@@ -805,7 +806,7 @@ function renderFlow(root, item, { hint, complete, onChange, onTap, showLabels, n
       if (done || !st) return table.length ? "Labeled, marked up and in the table!" : tasks.length ? "Labeled and marked up!" : "Labeled!";
       if (st.kind === "kind") return "What kind of sentence is it?";
       if (st.kind === "pattern") return "Which pattern is it?";
-      return st.question && phase === "word" ? st.question : "Pick its label.";
+      return st.question && phase === "word" ? "Tap the word that answers the question." : "Pick its label.";
     },
     usesCheck: false,
     selfScoring: true,
@@ -970,7 +971,7 @@ function renderProofread(root, item, { hint, complete, onChange, onTap }) {
       return done ? "All fixed!" : "Find each mistake. Tap it, then pick the fix.";
     },
     usesCheck: false,
-    chosen: () => (picks.length ? picks.join("; ") : null),
+    chosen: () => (picks.length ? [...new Set(picks)].join("; ") : null),
     retry: () => {},
     reveal: () => {},
     lock: () => { done = true; draw(); },

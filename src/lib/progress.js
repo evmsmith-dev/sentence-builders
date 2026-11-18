@@ -377,7 +377,8 @@ export function recordWeekDay(player, { progress, day, sentence, results, now, d
 }
 
 /** Speed Proofread: is this run a new personal best? More right wins; with the same number right, less time. */
-export const isBetterSpeed = (best, run) => !best || run.right > best.right || (run.right === best.right && run.ms < best.ms);
+// A faster time only counts by a tenth of a second or more, so a tie never shows as a new best.
+export const isBetterSpeed = (best, run) => !best || run.right > best.right || (run.right === best.right && run.ms <= best.ms - 100);
 
 /** Test-out: right on the first try, out of the questions asked, needed to mark a world's grade 3–5 levels reviewed. */
 export const TESTOUT_PASS = 7;
