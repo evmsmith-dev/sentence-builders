@@ -59,7 +59,11 @@ function renderMark(root, item, { onChange, onTap }, { allowEmpty = false } = {}
       const gap = `<button type="button" class="gap${marks ? " filled" : ""}${selected === i ? " selected" : ""}" data-gap="${i}"
         aria-label="Space ${esc(gapLabel(i))}${marks ? `: ${esc([...marks].map((m) => MARK_NAMES[m] || m).join(", "))}` : ""}"
         aria-pressed="${selected === i}" ${locked ? "disabled" : ""}><span>${marks ? esc(marks) : "·"}</span></button>`;
-      return i < parsed.words.length ? `${gap}<span class="word">${esc(parsed.words[i])}</span>` : gap;
+      // A word can be tapped too: it puts the mark right after that word, where a comma goes (a parent's feedback:
+      // kids tapped the word before the comma and were told it was wrong, when only the dot was tappable).
+      return i < parsed.words.length
+        ? `${gap}<button type="button" class="word word-tap" data-after="${i + 1}" ${locked ? "disabled" : ""} aria-label="After ${esc(parsed.words[i])}">${esc(parsed.words[i])}</button>`
+        : gap;
     }).join("");
     palette.hidden = selected === null || locked;
     if (selected !== null) {
@@ -71,7 +75,8 @@ function renderMark(root, item, { onChange, onTap }, { allowEmpty = false } = {}
   }
   root.addEventListener("click", (event) => {
     if (locked) return;
-    const gap = event.target.closest("[data-gap]");
+    const after = event.target.closest("[data-after]");
+    const gap = event.target.closest("[data-gap]") || (after && sentence.querySelector(`[data-gap="${after.dataset.after}"]`));
     const mark = event.target.closest("[data-mark]");
     if (gap && single) {
       const i = Number(gap.dataset.gap);
@@ -94,7 +99,7 @@ function renderMark(root, item, { onChange, onTap }, { allowEmpty = false } = {}
   });
   draw();
   return {
-    prompt: single ? `Tap each space where ${single === "," ? "a comma" : `a ${MARK_NAMES[single] || single}`} goes.` : "Tap a space, then add the marks that go there.",
+    prompt: single ? `Tap the word that comes before each ${single === "," ? "comma" : MARK_NAMES[single] || single}.` : "Tap a word (or the dot after it), then add the marks that go after it.",
     usesCheck: true,
     canCheck: () => allowEmpty || filled.some(Boolean),
     check: () => checkMark(parsed, filled),

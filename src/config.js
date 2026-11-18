@@ -594,9 +594,12 @@ export function defaultSpot(d) {
 }
 
 /** Keeps a decoration inside the scene (x, y is the bottom middle of the emoji). */
-export function clampSpot(x, y) {
-  return { x: Math.round(Math.min(348, Math.max(12, x))), y: Math.round(Math.min(SCENE.height - 4, Math.max(28, y))) };
+export function clampSpot(x, y, height = SCENE.height) {
+  return { x: Math.round(Math.min(348, Math.max(12, x))), y: Math.round(Math.min(height - 4, Math.max(28, y))) };
 }
+/** Decoration sizes (Build round 1, the 4th grader's "teeny"): small, medium (the default) and large. */
+export const DECOR_SIZES = [0.8, 1.15, 1.6];
+export const DECOR_SIZE_NAMES = ["Small", "Medium", "Large"];
 
 /**
  * Blueprint styles (grades 6–8), earned rather than bought: each Pip's final draft beaten and each skill at Gold

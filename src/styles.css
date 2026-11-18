@@ -1222,3 +1222,20 @@ body.island-home #home #pip-home { bottom: calc(env(safe-area-inset-bottom) + 78
 /* The done row's "Next time" line wraps instead of being cut off. */
 .today-card .level-row strong + span { white-space: normal; }
 .settings-grown .switch-row { border-bottom: 0; }
+
+/* Mark items: words are tappable (the mark goes right after the tapped word). */
+.marks .word-tap { border: 0; background: none; padding: 2px 1px; font: inherit; color: inherit; cursor: pointer; border-radius: 6px; }
+.marks .word-tap:hover, .marks .word-tap:focus-visible { background: #eef3ff; }
+
+/* ---------- Build round 1: the whole place, big; sizes ---------- */
+.area-view { width: 100%; height: auto; max-height: 80vh; display: block; border-radius: 14px; }
+.area-view .lot-hit, .area-view .board-hit { pointer-events: none; }
+.area-view .decor.drag { cursor: grab; touch-action: none; -webkit-user-select: none; user-select: none; }
+.build-size { display: inline-flex; gap: 4px; margin: 6px 0; }
+.size-btn { min-height: 40px; padding: 4px 12px; border-radius: 10px; border: 2px solid var(--border); background: var(--card); font-weight: 700; color: var(--text); }
+.size-btn.on { border-color: var(--primary); background: #e8efff; color: var(--primary); }
+.build-selected { flex-wrap: wrap; }
+/* On the island map, decorations never block a tap on a level (they can sit right next to buildings now). */
+.town-map .decor { pointer-events: none; }
+/* The whole-area view is big, so it no longer sticks over the shop list (buying scrolls back up to it). */
+#build-town { position: static; }

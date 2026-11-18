@@ -1,14 +1,14 @@
 // Startup and screens: players, the town, worlds, levels, results, badges and settings.
 import {
-  AVATARS, AVATAR_GROUPS, HABIT_BADGES, ITEMS_PER_LEVEL, MAX_GRADE, MAX_PLAYERS, MIN_GRADE, PIP, PIP_INTRO, DECOR, decorFor, HOMEWORK_PER_ROUND, PRACTICE_PER_ROUND, PRACTICE_GOAL, clampSpot, SKILLS, SPELLING_RULES, STUDIO_FROM_GRADE, NOUN_TABLE_FROM_GRADE, NOUN_KINDS, NOUN_REMINDERS_UNTIL, TIER_NAMES, WORLDS, WORLD_BADGES,
+  AVATARS, AVATAR_GROUPS, HABIT_BADGES, ITEMS_PER_LEVEL, MAX_GRADE, MAX_PLAYERS, MIN_GRADE, PIP, PIP_INTRO, DECOR, decorFor, HOMEWORK_PER_ROUND, PRACTICE_PER_ROUND, PRACTICE_GOAL, clampSpot, DECOR_SIZE_NAMES, SKILLS, SPELLING_RULES, STUDIO_FROM_GRADE, NOUN_TABLE_FROM_GRADE, NOUN_KINDS, NOUN_REMINDERS_UNTIL, TIER_NAMES, WORLDS, WORLD_BADGES,
   GOLD_DAYS, SENTENCE_KINDS, LABELS, LABEL_LISTS, PATTERNS, FLOW_LABELS, FLOW_PATTERNS, WORD_LISTS, WORD_PARTS, skillById, skillOpenFor, skillsInWorld, skillsInWorldFor, worldOpenFor, PIP_GROWN, GROWN_PIP_FROM_GRADE, CHALLENGE_PREREQS, CHALLENGE_UP_TO_GRADE, unlockMode, skillGate, PLAN_STYLES} from "./config.js";
 import { answerText, parseFlow, spokenText } from "./lib/parse.js";
 import { pickDailyItems, pickTestoutItems, testoutNeed, pickLevelItems, pickSpeedItems, pickSpellingItems, pickSummitItems, parseSpeedCode, speedCode } from "./lib/select.js";
-import { recordHomework, recordPractice, buyDecor, moveDecor, removeDecor,
+import { recordHomework, recordPractice, buyDecor, moveDecor, removeDecor, resizeDecor,
   currentBadges, habitValue, isPassed, isUnlocked, levelStars, localDate, mostMissed, newPlayer, normalizePlayer,
   passedKeys, recordLevel, skillTier, weekSummary, recordWeekDay, isChallenge, isMastered, openChallenge, streakDays, isBetterSpeed, mysteryPrize} from "./lib/progress.js";
 import { loadCurrentId, loadPlayers, saveCurrentId, savePlayers } from "./storage.js";
-import { districtSkills, mapDistricts, mapLayout, parkSvg, pipSays, pipSvg, townSvg } from "./ui/art.js";
+import { buildAreaSvg, districtSkills, mapDistricts, mapLayout, parkSvg, pipSays, pipSvg, townSvg } from "./ui/art.js";
 import { createTownMap } from "./ui/townmap.js";
 import { $, closeOverlay, esc, initBackButton, openOverlay, pick, showScreen, topOverlay } from "./ui/dom.js";
 import { renderItem } from "./ui/items.js";
@@ -716,17 +716,23 @@ function skillCardHtml(skill, { trailNote = true } = {}) {
     }).join("");
     // How the next Challenge Trail opens (grades 3–5, mastery): the level before it, 7 of 8 on two different days.
     const nextLocked = [2, 3].find((l) => !isUnlocked(player, skill.id, l));
+    // Say how far along the player is, and what to do next (a parent: two perfect scores on one day, and it wasn't
+    // clear why level 3 stayed locked).
+    const strongDays = player.levels[`${skill.id}-${nextLocked - 1}`]?.strongOn || [];
+    const doneToday = strongDays.includes(localDate(Date.now()));
     const trail = unlockMode(player) === "mastery" && nextLocked && isUnlocked(player, skill.id, nextLocked - 1)
       ? (isMastered(player, skill.id, nextLocked - 1)
-        ? "A Challenge Trail is ready here. One opens each day, so it may open tomorrow."
-        : `To open level ${nextLocked}: get 7 or more right on level ${nextLocked - 1}, on two different days.`) : "";
-    const gold = tier === 3 ? "Gold! A gold flag flies on its top building." : isPassed(player, skill.id, 3) ? `Gold: 7+ on level 3 on ${GOLD_DAYS} days (${goldDays}/${GOLD_DAYS})` : "";
+        ? `Level ${nextLocked} is ready to open. One Challenge Trail opens each day, so it may open tomorrow.`
+        : `⭐ Level ${nextLocked} is a Challenge Trail. It opens after you score 7 or more on level ${nextLocked - 1} on two different days: ${Math.min(strongDays.length, GOLD_DAYS)} of ${GOLD_DAYS} done.${doneToday ? " Come back tomorrow for the next one." : ""}`) : "";
+    // Gold only once level 3 is open, so it never points at a locked level.
+    const gold = tier === 3 ? "Gold! A gold flag flies on its top building."
+      : isPassed(player, skill.id, 3) && isUnlocked(player, skill.id, 3) ? `For Gold: score 7 or more on level 3 on two different days (${Math.min(goldDays, GOLD_DAYS)} of ${GOLD_DAYS} done).` : "";
     return `<section class="skill-card" style="--skill:${skill.color}">
       <div class="skill-head"><h2>${esc(skill.name)}</h2>
         <span class="tier${tier ? "" : " none"}">${skill.badge.emoji} ${tier ? TIER_NAMES[tier - 1] : "No badge yet"}</span></div>
       
       <div class="levels">${levels}</div>
-      ${trail && trailNote ? `<p class="trail-note">${esc(trail)}</p>` : ""}
+      ${trail && (trailNote || strongDays.length) ? `<p class="trail-note">${esc(trail)}</p>` : ""}
       ${gold ? `<p class="gold-note">${esc(gold)}</p>` : ""}
     </section>`;
 }
@@ -1703,12 +1709,17 @@ function drawBuildScene(fresh = null) {
   const player = state.player;
   const selected = player.decor.find((p) => p.uid === state.buildSelected);
   const item = selected && DECOR.find((d) => d.id === selected.id);
-  $("build-town").innerHTML = parkSvg(player, { area: state.buildArea, fresh, selected: state.buildSelected })
+  // Round 1: the whole place, path and buildings included, big; a decoration can go anywhere in it.
+  const view = buildAreaSvg(player, { area: state.buildArea, fresh, selected: state.buildSelected });
+  state.buildHeight = view.height;
+  const size = selected?.size ?? 1;
+  $("build-town").innerHTML = view.svg
     + (item
-      ? `<div class="build-selected"><span><span aria-hidden="true">${item.emoji}</span> ${esc(item.name)}: drag it anywhere.</span>
+      ? `<div class="build-selected"><span><span aria-hidden="true">${item.emoji}</span> ${esc(item.name)}: drag it anywhere, even next to a building.</span>
+          <span class="build-size" role="group" aria-label="Size">${DECOR_SIZE_NAMES.map((n, i) => `<button type="button" class="size-btn${i === size ? " on" : ""}" data-size="${i}" aria-pressed="${i === size}">${n}</button>`).join("")}</span>
           <span class="build-selected-actions"><button type="button" class="secondary" data-put-away="${selected.uid}">${selected.free ? "Put away (a prize: no bricks back)" : `Put away (+${item.cost} 🧱)`}</button>
           <button type="button" class="link" data-deselect>Done</button></span></div>`
-      : `<p class="build-hint">${player.decor.some((p) => p.area === state.buildArea) ? "Drag anything to move it. Tap one to put it away." : "Build something, then drag it where you want it."}</p>`);
+      : `<p class="build-hint">${player.decor.some((p) => p.area === state.buildArea) ? "Drag anything anywhere: by a building, on the path, in the sky. Tap one to change its size or put it away." : "Build something, then drag it anywhere in this place."}</p>`);
 }
 
 function buyDecoration(id) {
@@ -1752,7 +1763,7 @@ function initBuildDragging() {
     const dy = at.y - drag.start.y;
     if (!drag.moved && Math.hypot(dx, dy) < 4) return;
     drag.moved = true;
-    const spot = clampSpot(drag.x0 + dx, drag.y0 + dy);
+    const spot = clampSpot(drag.x0 + dx, drag.y0 + dy, state.buildHeight);
     drag.el.setAttribute("x", spot.x);
     drag.el.setAttribute("y", spot.y);
     const shadow = drag.svg.querySelector(`[data-shadow="${drag.uid}"]`);
@@ -1765,7 +1776,7 @@ function initBuildDragging() {
     drag = null;
     el.classList.remove("dragging");
     if (moved) {
-      savePlayer(moveDecor(state.player, uid, Number(el.getAttribute("x")), Number(el.getAttribute("y"))));
+      savePlayer(moveDecor(state.player, uid, Number(el.getAttribute("x")), Number(el.getAttribute("y")), state.buildHeight));
       state.buildSelected = uid;
     } else {
       state.buildSelected = state.buildSelected === uid ? null : uid;
@@ -1782,8 +1793,8 @@ function initBuildDragging() {
     const uid = el.dataset.uid;
     if (step) {
       event.preventDefault();
-      const p = state.player.decor.find((d) => d.uid === uid);
-      savePlayer(moveDecor(state.player, uid, p.x + step[0], p.y + step[1]));
+      const el2 = box.querySelector(`[data-uid="${uid}"]`);
+      savePlayer(moveDecor(state.player, uid, Number(el2.getAttribute("x")) + step[0], Number(el2.getAttribute("y")) + step[1], state.buildHeight));
       state.buildSelected = uid;
     } else if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
@@ -1800,6 +1811,9 @@ function initBuildDragging() {
       renderBuild();
     } else if (event.target.closest("[data-deselect]")) {
       state.buildSelected = null;
+      drawBuildScene();
+    } else if (event.target.closest("[data-size]") && state.buildSelected) {
+      savePlayer(resizeDecor(state.player, state.buildSelected, Number(event.target.closest("[data-size]").dataset.size)));
       drawBuildScene();
     }
   });

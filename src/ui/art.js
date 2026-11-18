@@ -1,5 +1,5 @@
 // Drawings made in code: Pip the foreman robot, and Grammar Island with its areas.
-import { DECOR, DISTRICTS, SCENE, WORLDS, skillsInWorldFor, worldOpenFor } from "../config.js";
+import { DECOR_SIZES, DECOR, DISTRICTS, SCENE, WORLDS, skillsInWorldFor, worldOpenFor } from "../config.js";
 import { isUnlocked, levelStars, skillTier } from "../lib/progress.js";
 import { esc } from "./dom.js";
 
@@ -168,15 +168,16 @@ function placedDecor(player, area) {
 }
 
 /** One decoration as an emoji; `fresh` pops in (just built). In the Build close-up it can be dragged. */
-function decorSvg(p, y, { fresh = null, drag = false, selected = null } = {}) {
+function decorSvg(p, y, { fresh = null, drag = false, selected = null, sky = false } = {}) {
   const d = p.item;
   const cls = ["decor", p.uid === fresh ? "pop" : "", drag ? "drag" : "", p.uid === selected ? "selected" : "",
     drag && d.move ? `idle-${d.move}` : ""].filter(Boolean).join(" ");
   // Each one starts at its own point in the loop, so two tractors don't move in step.
   const delay = d.move ? ` style="animation-delay:-${((p.x * 7 + y * 3) % 90) / 10}s"` : "";
-  const size = d.zone === "square" && d.row === "back" ? 30 : 26;
+  // Bigger than before (the 4th grader: "teeny"), and each one can be small, medium or large.
+  const size = Math.round((d.zone === "square" && d.row === "back" ? 32 : 28) * DECOR_SIZES[p.size ?? 1]);
   const handle = drag ? ` data-uid="${p.uid}" tabindex="0" role="button" aria-label="${d.name}: drag to move, or tap to select"` : "";
-  const shadow = p.y >= SCENE.park ? `<ellipse cx="${p.x + 3}" cy="${y - 1}" rx="${size * 0.4}" ry="3.5" fill="#000" opacity=".16"/>` : "";
+  const shadow = !sky && (p.full || p.y >= SCENE.park) ? `<ellipse cx="${p.x + 3}" cy="${y - 1}" rx="${size * 0.4}" ry="3.5" fill="#000" opacity=".16"/>` : "";
   if (!drag) {
     const body = `${shadow}<text x="${p.x}" y="${y}" text-anchor="middle" font-size="${size}">${d.emoji}<title>${d.name}</title></text>`;
     return `<g class="${cls}">${d.move ? `<g class="move move-${d.move}"${delay}>${body}</g>` : body}</g>`;
@@ -276,7 +277,7 @@ const pipOnMap = (x, y) => `<g pointer-events="none" transform="translate(${x - 
   <rect x="21" y="52" width="6" height="7" rx="2" fill="#3c6bc9"/><rect x="37" y="52" width="6" height="7" rx="2" fill="#3c6bc9"/><title>Pip</title></g></g>`;
 
 /** One area, drawn at 0,0 and 360 wide: a raised plateau with its path of levels, a park and a pond. */
-function districtSvg(player, district, { fresh, rising, week = null, blueprint = null }) {
+function districtSvg(player, district, { fresh, rising, week = null, blueprint = null, build = null }) {
   const h = districtHeight(district, player);
   const theme = THEMES[district.id] || THEMES.square;
   const outline = plateauPath(360, h);
@@ -298,7 +299,8 @@ function districtSvg(player, district, { fresh, rising, week = null, blueprint =
   const water = park + PARK;
   // The blueprint (grades 6–8) is the plan of the buildings: no decorations, no Pip.
   const placed = blueprint ? [] : placedDecor(player, district.id);
-  const at = (p) => (p.y < SCENE.park ? p.y : park + (p.y - SCENE.park));
+  // Decorations placed in Build's whole-area view (`full`) keep their spot; older ones sit in the park strip and water.
+  const at = (p) => (p.full ? p.y : p.y < SCENE.park ? p.y : park + (p.y - SCENE.park));
   const { nodes, d } = areaPath(district, player);
   // The level spots: a pad on the path, with its building once that level is passed.
   const bySkill = new Map();
@@ -342,7 +344,7 @@ function districtSvg(player, district, { fresh, rising, week = null, blueprint =
   const entry = ENTRY[district.id];
   const signX = entry?.side === "top" && entry.x < 180 ? 350 - nameW : 10;
   // Something in the sky (a balloon, a kite) that would sit behind the place's name floats just under it instead.
-  const skyAt = (p) => (p.y < SCENE.park && p.x > signX - 14 && p.x < signX + nameW + 14 && p.y < 62 ? p.y + 46 : at(p));
+  const skyAt = (p) => (!p.full && p.y < SCENE.park && p.x > signX - 14 && p.x < signX + nameW + 14 && p.y < 62 ? p.y + 46 : at(p));
   const board = district.id === "square" && week ? noticeBoardSvg(week) + bannersSvg(player.banners || []) : "";
   const sign = district.id === "square" && !placed.length
     ? `<text x="180" y="${park + 42}" text-anchor="middle" class="park-sign">Town Square: build here with 🧱 bricks</text>` : "";
@@ -358,10 +360,11 @@ function districtSvg(player, district, { fresh, rising, week = null, blueprint =
     <rect x="8" y="${water + 6}" width="344" height="${BAND - 10}" rx="14" fill="${district.water}"/>${wave(water + 16, 20, 340)}
     ${skillGroups}
     ${board}
-    ${placed.map((p) => decorSvg(p, skyAt(p), { fresh })).join("")}
+    ${build ? "" : placed.map((p) => decorSvg(p, skyAt(p), { fresh })).join("")}
     <g class="district-sign" pointer-events="none"><rect x="${signX}" y="14" width="${nameW}" height="38" rx="19" fill="#fff" opacity=".92"/>
       <text x="${signX + 12}" y="41" font-size="22" font-weight="700" fill="#2c3e5c" class="district-name">${district.emoji} ${esc(district.name)}</text></g>
-    ${pip}
+    ${build ? "" : pip}
+    ${build ? placed.map((p) => decorSvg(p, at(p), { fresh, drag: true, selected: build.selected })).join("") : ""}
     ${blueprint && player.bosses?.[district.world] ? `<g class="bp-stamp" pointer-events="none" transform="rotate(-6 180 ${park + 46})">
       <rect x="60" y="${park + 16}" width="240" height="60" rx="8"/><text x="180" y="${park + 58}" text-anchor="middle" font-size="32" font-weight="800">APPROVED ✓</text></g>` : ""}
   </g>`;
@@ -659,6 +662,20 @@ export function townSvg(player, { fresh = null, rising = null, week = null, revi
 }
 
 /** Close-up of one district's decorations for the Build screen: sky, park and water, where kids drag things. */
+/**
+ * Build's whole-area view (round 1): the place as it is on the island, with its path and buildings, and every
+ * decoration draggable anywhere in it. Returns { svg, height } (height in the area's units, for keeping things inside).
+ */
+export function buildAreaSvg(player, { area = "square", fresh = null, selected = null } = {}) {
+  const district = mapDistricts(player).find((d) => d.id === area) || mapDistricts(player)[0];
+  const height = districtHeight(district, player);
+  const placed = placedDecor(player, district.id);
+  const svg = `<svg class="town park-view area-view" viewBox="0 -4 360 ${height + 40}" role="group" aria-label="${esc(district.name)}: ${placed.length} decoration${placed.length === 1 ? "" : "s"}. Drag one anywhere to move it.">
+    <rect x="-20" y="-20" width="400" height="${height + 80}" fill="#5aa7de"/>
+    ${districtSvg(player, district, { fresh, rising: null, week: null, build: { selected } })}</svg>`;
+  return { svg, height };
+}
+
 export function parkSvg(player, { area = "square", fresh = null, selected = null } = {}) {
   const district = DISTRICTS.find((d) => d.id === area) || DISTRICTS[0];
   const placed = placedDecor(player, district.id);

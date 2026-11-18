@@ -1,7 +1,7 @@
 // A player's progress: what's unlocked, recording a finished level, stars, mastery and badges.
 // Pure functions on plain data, so they're easy to test and save.
 import {
-  BRICKS, CHALLENGE_PREREQS, DECOR, skillGate, GOLD_DAYS, unlockMode, GOLD_POINTS, PRACTICE_GOAL, clampSpot, defaultSpot, HABIT_BADGES, POINTS, SKILLS, STAR_THRESHOLDS, WORLD_BADGES, skillById, skillOpenFor, skillsInWorld,
+  BRICKS, CHALLENGE_PREREQS, DECOR, skillGate, GOLD_DAYS, unlockMode, GOLD_POINTS, PRACTICE_GOAL, clampSpot, defaultSpot, SCENE, HABIT_BADGES, POINTS, SKILLS, STAR_THRESHOLDS, WORLD_BADGES, skillById, skillOpenFor, skillsInWorld,
 } from "../config.js";
 
 export const levelKey = (skill, level) => `${skill}-${level}`;
@@ -112,6 +112,8 @@ export const isPassed = (player, skill, level) => levelStars(player, skill, leve
 /** Level 1 is always open. A later level opens when the one before is passed, or right away if it's at or below the player's grade. */
 export function isUnlocked(player, skillId, level) {
   if (level === 1) return true;
+  // A level already passed stays open, even if Settings later switched to a stricter way of opening levels.
+  if (isPassed(player, skillId, level)) return true;
   const skill = skillById(skillId);
   if (skill && skill.grades[level - 1] <= player.grade) return true;
   const mode = unlockMode(player);
@@ -282,9 +284,20 @@ export function buyDecor(player, id, area = "square") {
 }
 
 /** Moves a placed decoration (kept inside the scene). */
-export function moveDecor(player, uid, x, y) {
+/**
+ * Moves a placed decoration. With `height` (the whole area's height, from Build's full view), x and y are in the
+ * area's own units and the decoration is marked `full`, so it can sit anywhere: by a house, on the path, in the sky.
+ * Without it, x and y are in the old close-up's units (the park strip, the water and the sky).
+ */
+export function moveDecor(player, uid, x, y, height = null) {
   const next = normalizePlayer(player);
-  return { ...next, decor: next.decor.map((d) => (d.uid === uid ? { ...d, ...clampSpot(x, y) } : d)) };
+  return { ...next, decor: next.decor.map((d) => (d.uid === uid ? { ...d, ...clampSpot(x, y, height || SCENE.height), ...(height ? { full: true } : {}) } : d)) };
+}
+
+/** Changes a decoration's size: 0 small, 1 medium (default), 2 large. */
+export function resizeDecor(player, uid, size) {
+  const next = normalizePlayer(player);
+  return { ...next, decor: next.decor.map((d) => (d.uid === uid ? { ...d, size: Math.max(0, Math.min(2, size)) } : d)) };
 }
 
 /** Puts a decoration away and gives all its bricks back, so rearranging the town never costs anything. */
