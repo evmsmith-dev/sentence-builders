@@ -1504,6 +1504,22 @@ test("Grades 6–8 worlds: grade 3–5 skills wait under Earlier grades", async 
   await expect(page.locator('.level-btn[data-skill="flow"][data-level="1"]')).toBeVisible();
 });
 
+test("📘 on a question opens its rule and comes straight back to the same question", async ({ page }) => {
+  await openApp(page, { players: [player({ grade: 4 })], current: "p1" });
+  await startLevel(page, "commas", 1);
+  const id = await page.locator("#item").getAttribute("data-item-id");
+  await page.locator("#rule-btn").click();
+  await expect(page.locator("#tip-overlay")).toBeVisible();
+  await expect(page.locator("#tip-title")).toHaveText("Commas in a list");
+  await expect(page.locator("#tip-start")).toHaveText("Back to the question");
+  await expect(page.locator("#tip-close")).toBeHidden();
+  await page.locator("#tip-start").click();
+  await expect(page.locator("#tip-overlay")).toBeHidden();
+  await expect(page.locator("#item")).toHaveAttribute("data-item-id", id);
+  await answer(page); // the question still works
+  await expect(page.locator("#feedback.good")).toBeVisible();
+});
+
 test("Sentence of the Week: Today with Pip card, the Notice Board, a day's job, and the week's banner @layout", async ({ page }) => {
   await page.clock.setFixedTime(new Date(2026, 10, 18, 10)); // a Wednesday
   await openApp(page, { players: [player({ grade: 4 })], current: "p1" });

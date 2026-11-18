@@ -307,16 +307,17 @@ function districtSvg(player, district, { fresh, rising, week = null, blueprint =
     const open = isUnlocked(player, n.skill.id, n.level);
     const label = `${n.skill.name}, level ${n.level}, ${stars ? `${stars} star${stars === 1 ? "" : "s"}` : open ? "not built yet" : "locked"}`;
     const pad = blueprint
-      ? `<ellipse class="${stars ? "bp-built" : "bp-foot"}" cx="${n.x}" cy="${n.ground}" rx="20" ry="8"/>`
-      : `<ellipse cx="${n.x}" cy="${n.ground + 4}" rx="20" ry="8" fill="${shade(theme.edge, 0.8)}"/>
-      <ellipse cx="${n.x}" cy="${n.ground}" rx="20" ry="8" fill="${open ? "#ffffff" : "#e2e4e9"}" stroke="${theme.edge}" stroke-width="1.5"/>`;
-    const empty = `<text x="${n.x}" y="${n.ground + 4}" text-anchor="middle" font-size="10" font-weight="700" fill="${shade(theme.edge, 0.7)}">${open ? n.level : "🔒"}</text>`;
+      ? `<ellipse class="${stars ? "bp-built" : "bp-foot"}" cx="${n.x}" cy="${n.ground}" rx="24" ry="10"/>`
+      : `<ellipse cx="${n.x}" cy="${n.ground + 4}" rx="24" ry="10" fill="${shade(theme.edge, 0.8)}"/>
+      <ellipse cx="${n.x}" cy="${n.ground}" rx="24" ry="10" fill="${open ? "#ffffff" : "#e2e4e9"}" stroke="${theme.edge}" stroke-width="1.5"/>`;
+    // Bigger pads and numbers, and a tap area as wide as the gap to the next level (the 4th grader: "tiny").
+    const empty = `<text x="${n.x}" y="${n.ground + 5}" text-anchor="middle" font-size="14" font-weight="800" fill="${shade(theme.edge, 0.7)}">${open ? n.level : "🔒"}</text>`;
     let body = empty;
     if (stars) {
       const drawn = building(district.id, n.x, n.ground, n.skill, n.level, stars, skillTier(player, n.skill.id) === 3);
       body = rising === `${n.skill.id}-${n.level}` ? `<g class="rise">${drawn}</g>` : drawn;
     }
-    const hit = `<rect class="lot-hit" data-skill="${n.skill.id}" data-level="${n.level}" x="${n.x - 22}" y="${n.ground - 86}" width="44" height="98" fill="transparent"><title>${esc(label)}</title></rect>`;
+    const hit = `<rect class="lot-hit" data-skill="${n.skill.id}" data-level="${n.level}" x="${n.x - 28}" y="${n.ground - 88}" width="56" height="108" fill="transparent"><title>${esc(label)}</title></rect>`;
     if (!bySkill.has(n.skill.id)) bySkill.set(n.skill.id, { skill: n.skill, parts: [], xs: [], ground: n.ground });
     const group = bySkill.get(n.skill.id);
     group.parts.push(pad + body + hit);

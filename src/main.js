@@ -707,7 +707,7 @@ function skillCardHtml(skill, { trailNote = true } = {}) {
 /* ==================== Tip Card ==================== */
 
 /** The Tip Card before a level, or (review) to look at the rule again from the results. */
-function openTip(skillId, level, { review = false } = {}) {
+function openTip(skillId, level, { review = false, during = false } = {}) {
   // Review first: with missed sentences waiting, Challenge Trails wait until today's Summit Review.
   if (!review && isChallenge(state.player, skillId, level) && reviewDue(state.player)) {
     $("gate-body").innerHTML = pipSays(`Review first! ${reviewDue(state.player)} sentences you missed are waiting at Grammar Peaks. After a Summit Review, Challenge Trails are open again today.`, true);
@@ -716,9 +716,9 @@ function openTip(skillId, level, { review = false } = {}) {
   }
   const skill = skillById(skillId);
   const tip = state.content.tips[`${skillId}-${level}`];
-  state.tip = { skillId, level, tip, review };
-  $("tip-start").textContent = review ? "Back to my results" : grownPip() ? "Start" : "Let's build";
-  $("tip-close").hidden = review;
+  state.tip = { skillId, level, tip, review: review || during, during };
+  $("tip-start").textContent = during ? "Back to the question" : review ? "Back to my results" : grownPip() ? "Start" : "Let's build";
+  $("tip-close").hidden = review || during;
   $("tip-level").textContent = `${skill.name} · Level ${level} · Grade ${skill.grades[level - 1]}`;
   $("tip-pip").innerHTML = settings().pip ? pipArt(48) : "";
   $("tip-title").textContent = tip.title;
@@ -1142,6 +1142,8 @@ function showItem() {
   $("prompt").textContent = play.ctrl.prompt;
   $("check-btn").hidden = !play.ctrl.usesCheck;
   $("say-btn").hidden = !canSay();
+  // 📘 The rule for this question, without leaving the level (the senior: the Rule Book was a trip home).
+  $("rule-btn").hidden = !state.content.tips[`${item.skill}-${item.level}`];
   updateCheck();
   if (settings().autoRead && item.type !== "dictate") readItem(); // a dictation plays its own sentence
 }
@@ -2371,12 +2373,17 @@ function wire() {
     say(`${tip.title}. ${tip.rule} For example: ${tip.example}`);
   });
   $("tip-start").addEventListener("click", () => {
+    if (state.tip.during) return closeOverlay("tip-overlay"); // the 📘 button mid-question: straight back to it
     if (state.tip.review) {
       closeOverlay("tip-overlay");
       openOverlay("result-overlay");
     } else {
       startLevel(state.tip.skillId, state.tip.level);
     }
+  });
+  $("rule-btn").addEventListener("click", () => {
+    const item = state.play?.items[state.play.index];
+    if (item) openTip(item.skill, item.level, { during: true });
   });
   $("result-rule").addEventListener("click", () => {
     closeOverlay("result-overlay");
