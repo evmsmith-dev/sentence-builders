@@ -135,3 +135,21 @@ export function parseSpeedCode(text) {
   return m ? { grade: Number(m[1]), seed: Number(m[2]) } : null;
 }
 export const speedCode = (grade, seed) => `G${grade}-${seed}`;
+
+/**
+ * Test out: `perSkill` quick questions from each skill's grade 3–5 levels, least recently seen first, so every
+ * skill in the world is checked (the grammar teacher: 8 questions for a whole world let a lucky guesser through).
+ * skillKeys: { skillId: ["commas-1", "commas-2", ...] }.
+ */
+export function pickTestoutItems({ items, skillKeys, stats = {}, perSkill = 2, random = Math.random }) {
+  const order = practiceOrder(stats, random);
+  const out = [];
+  for (const keys of Object.values(skillKeys)) {
+    const set = new Set(keys);
+    out.push(...items.filter((i) => DAILY_TYPES.has(i.type) && set.has(`${i.skill}-${i.level}`)).sort(byKey(order)).slice(0, perSkill));
+  }
+  return out.map((item) => ({ item, r: random() })).sort((a, b) => a.r - b.r).map(({ item }) => item);
+}
+
+/** Right answers needed to test out of `total` questions: all but one in every eight. */
+export const testoutNeed = (total) => total - Math.floor(total / 8);

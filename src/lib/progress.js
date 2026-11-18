@@ -380,9 +380,6 @@ export function recordWeekDay(player, { progress, day, sentence, results, now, d
 // A faster time only counts by a tenth of a second or more, so a tie never shows as a new best.
 export const isBetterSpeed = (best, run) => !best || run.right > best.right || (run.right === best.right && run.ms <= best.ms - 100);
 
-/** Test-out: right on the first try, out of the questions asked, needed to mark a world's grade 3–5 levels reviewed. */
-export const TESTOUT_PASS = 7;
-
 /**
  * The Daily 5 mystery prize (the 4th-grade playtester's idea): once a day, a surprise everyday decoration, free,
  * placed in the Town Square. It's marked free, so putting it away doesn't turn it into bricks.

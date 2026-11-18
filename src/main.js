@@ -3,10 +3,10 @@ import {
   AVATARS, AVATAR_GROUPS, HABIT_BADGES, ITEMS_PER_LEVEL, MAX_GRADE, MAX_PLAYERS, MIN_GRADE, PIP, PIP_INTRO, DECOR, decorFor, HOMEWORK_PER_ROUND, PRACTICE_PER_ROUND, PRACTICE_GOAL, clampSpot, SKILLS, SPELLING_RULES, STUDIO_FROM_GRADE, NOUN_TABLE_FROM_GRADE, NOUN_KINDS, NOUN_REMINDERS_UNTIL, TIER_NAMES, WORLDS, WORLD_BADGES,
   GOLD_DAYS, SENTENCE_KINDS, LABELS, LABEL_LISTS, PATTERNS, FLOW_LABELS, FLOW_PATTERNS, WORD_LISTS, WORD_PARTS, skillById, skillOpenFor, skillsInWorld, skillsInWorldFor, worldOpenFor, PIP_GROWN, GROWN_PIP_FROM_GRADE, CHALLENGE_PREREQS, CHALLENGE_UP_TO_GRADE, unlockMode, skillGate, PLAN_STYLES} from "./config.js";
 import { answerText, parseFlow, spokenText } from "./lib/parse.js";
-import { pickDailyItems, pickLevelItems, pickSpeedItems, pickSpellingItems, pickSummitItems, parseSpeedCode, speedCode } from "./lib/select.js";
+import { pickDailyItems, pickTestoutItems, testoutNeed, pickLevelItems, pickSpeedItems, pickSpellingItems, pickSummitItems, parseSpeedCode, speedCode } from "./lib/select.js";
 import { recordHomework, recordPractice, buyDecor, moveDecor, removeDecor,
   currentBadges, habitValue, isPassed, isUnlocked, levelStars, localDate, mostMissed, newPlayer, normalizePlayer,
-  passedKeys, recordLevel, skillTier, weekSummary, recordWeekDay, isChallenge, isMastered, openChallenge, streakDays, isBetterSpeed, TESTOUT_PASS, mysteryPrize} from "./lib/progress.js";
+  passedKeys, recordLevel, skillTier, weekSummary, recordWeekDay, isChallenge, isMastered, openChallenge, streakDays, isBetterSpeed, mysteryPrize} from "./lib/progress.js";
 import { loadCurrentId, loadPlayers, saveCurrentId, savePlayers } from "./storage.js";
 import { districtSkills, mapDistricts, mapLayout, parkSvg, pipSays, pipSvg, townSvg } from "./ui/art.js";
 import { createTownMap } from "./ui/townmap.js";
@@ -169,13 +169,15 @@ const today = () => localDate(Date.now());
 /** The Notice Board step shows once the player has played on a day before today (not on day one). */
 const boardStepShown = (player) => (player.days || []).some((d) => d !== today());
 
+/** Daily 5 first as a warm-up (the grammar teacher) once there's something to review; a new player starts on a level. */
+const warmUpFirst = (player) => passedKeys(player).length > 0 || Object.keys(player.reviewed || {}).length > 0;
 function startSteps(player) {
   const next = nextUp(player);
-  return [
-    next && { id: "level", done: player.lessonOn === today() },
-    { id: "daily", done: player.dailyOn === today() },
-  ].filter(Boolean);
+  const level = next && { id: "level", done: player.lessonOn === today() };
+  const daily = { id: "daily", done: player.dailyOn === today() };
+  return (warmUpFirst(player) ? [daily, level] : [level, daily]).filter(Boolean);
 }
+const stepNumber = (player, id) => startSteps(player).findIndex((st) => st.id === id) + 1;
 
 /** The big Start button: the first step not done, or another level once both are done. */
 function startButton(player) {
@@ -191,7 +193,7 @@ function levelRowHtml(player) {
   if (!next) return "";
   const done = player.lessonOn === today();
   const last = done && player.lessonLast && skillById(player.lessonLast.skill);
-  return `<span class="step-num${done ? " done" : ""}" aria-hidden="true">${done ? "✓" : "1"}</span>
+  return `<span class="step-num${done ? " done" : ""}" aria-hidden="true">${done ? "✓" : stepNumber(player, "level")}</span>
     <span><strong>${done ? `Done today${last ? `: ${esc(last.name)}, level ${player.lessonLast.level}` : ""}` : "Your next level"}</strong><span>${done ? `Next time: ${esc(next.skill.name)}, level ${next.level}` : `${esc(next.skill.name)}, level ${next.level}`}</span></span>
     <span class="today-chev" aria-hidden="true">›</span>`;
 }
@@ -365,6 +367,10 @@ function renderHome() {
   $("week-btn").hidden = !boardStepShown(player);
   $("level-btn").innerHTML = levelRowHtml(player);
   $("level-btn").hidden = !nextUp(player);
+  // Rows in Start here's order: the warm-up first once there's something to review.
+  const order = startSteps(player).map((st) => st.id);
+  $("daily-btn").style.order = String(order.indexOf("daily") + 1);
+  $("level-btn").style.order = String(order.indexOf("level") + 1);
   const nx = nextUp(player);
   if (nx) $("level-btn").dataset.nextUp = `${nx.skill.id}-${nx.level}`;
   $("daily-btn").innerHTML = dailyCardHtml(player);
@@ -500,17 +506,20 @@ function finishBoss() {
 // the first try marks those levels Reviewed: out of Next up and the Daily 5, shown as reviewed in Progress.
 // Retake any time. Reviewed levels still count as not passed for badges and buildings.
 
-const TESTOUT_COUNT = 8;
+const TESTOUT_MIN = 6; // fewer quick questions than this (Flow Factory's labeling skills): no test-out card
 function testoutKeys(worldId, player) {
-  return skillsInWorldFor(worldId, player).flatMap((skill) => [1, 2, 3].filter((l) => skill.grades[l - 1] <= 5).map((l) => `${skill.id}-${l}`));
+  return Object.fromEntries(skillsInWorldFor(worldId, player).map((skill) => [skill.id, [1, 2, 3].filter((l) => skill.grades[l - 1] <= 5).map((l) => `${skill.id}-${l}`)])
+    .filter(([, keys]) => keys.length));
 }
-const testoutItems = (worldId, player) => pickDailyItems({ items: state.content.items, levelKeys: testoutKeys(worldId, player), stats: player.items, count: TESTOUT_COUNT });
+// Two questions from every skill (the grammar teacher), and all but one in eight right.
+const testoutItems = (worldId, player) => pickTestoutItems({ items: state.content.items, skillKeys: testoutKeys(worldId, player), stats: player.items, perSkill: 2 });
 
 function testoutCardHtml(worldId, player) {
-  if (player.grade < OLDER_FROM_GRADE || testoutItems(worldId, player).length < TESTOUT_COUNT) return "";
+  const total = testoutItems(worldId, player).length;
+  if (player.grade < OLDER_FROM_GRADE || total < TESTOUT_MIN) return "";
   const on = player.reviewed?.[worldId];
   return `<section class="testout-card${on ? " done" : ""}"><div><h2>${on ? "✓ Grade 3–5 levels reviewed" : "Already know the grade 3–5 skills here?"}</h2>
-    <p class="note">${on ? "They're out of Next up and the Daily 5. Retake it any time." : `Test out: ${TESTOUT_COUNT} quick questions. ${TESTOUT_PASS} right on the first try marks them Reviewed.`}</p></div>
+    <p class="note">${on ? "They're out of Next up and the Daily 5. Retake it any time." : `Test out: ${total} quick questions, two from each skill. ${testoutNeed(total)} right on the first try marks them Reviewed.`}</p></div>
     <button type="button" class="secondary" data-testout="${worldId}">${on ? "Retake" : "Test out"}</button></section>`;
 }
 
@@ -527,7 +536,8 @@ function finishTestout() {
   const play = state.play;
   const now = Date.now();
   const out = recordPractice(state.player, { kind: "testout", results: play.results, now, durationMs: now - play.startedAt });
-  const passed = out.right >= TESTOUT_PASS;
+  const need = testoutNeed(play.results.length);
+  const passed = out.right >= need;
   if (passed) out.player.reviewed = { ...(out.player.reviewed || {}), [play.world]: localDate(now) };
   savePlayer(out.player);
   const world = WORLDS.find((w) => w.id === play.world);
@@ -537,7 +547,7 @@ function finishTestout() {
   $("result-score").textContent = `${out.right} of ${play.results.length} right on the first try · ${world.name}`;
   showResultBricks({ bricks: 0, player: out.player }, "");
   $("result-pip").innerHTML = pipRemark(passed ? `The grade 3–5 levels in ${world.name} are marked Reviewed. Next up skips them now.`
-    : `${TESTOUT_PASS} of ${play.results.length} needed. Look at the ones below; you can retake it any time.`);
+    : `${need} of ${play.results.length} needed. Look at the ones below; you can retake it any time.`);
   $("result-badges").innerHTML = "";
   $("result-review").innerHTML = reviewHtml(play);
   state.resultNext = passed ? { home: true } : { testout: play.world };
@@ -653,18 +663,25 @@ function finishSpeed() {
 // player's grade (and the grade before), once a day, on the Today card. One missed day a week is forgiven.
 
 const DAILY_COUNT = 5;
+// The grammar teacher: real review, so it comes from levels passed (and levels tested out of, which come back now and
+// then), and only fills up from open levels at the player's grade when there aren't enough yet.
 function dailyItems(player) {
   const g = player.grade;
-  const levelKeys = visibleSkills(player).flatMap((skill) => [1, 2, 3]
-    .filter((l) => skill.grades[l - 1] <= g && skill.grades[l - 1] >= g - 1 && isUnlocked(player, skill.id, l) && !isReviewed(player, skill, l)).map((l) => `${skill.id}-${l}`));
-  return pickDailyItems({ items: state.content.items, levelKeys, stats: player.items, count: DAILY_COUNT });
+  const known = visibleSkills(player).flatMap((skill) => [1, 2, 3]
+    .filter((l) => isPassed(player, skill.id, l) || isReviewed(player, skill, l)).map((l) => `${skill.id}-${l}`));
+  const picked = pickDailyItems({ items: state.content.items, levelKeys: known, stats: player.items, count: DAILY_COUNT });
+  if (picked.length >= DAILY_COUNT) return picked;
+  const fill = visibleSkills(player).flatMap((skill) => [1, 2, 3]
+    .filter((l) => skill.grades[l - 1] <= g && skill.grades[l - 1] >= g - 1 && isUnlocked(player, skill.id, l) && !known.includes(`${skill.id}-${l}`)).map((l) => `${skill.id}-${l}`));
+  const more = pickDailyItems({ items: state.content.items, levelKeys: fill, stats: player.items, count: DAILY_COUNT - picked.length });
+  return [...picked, ...more];
 }
 
 function dailyCardHtml(player) {
   const streak = streakDays(player.days, Date.now());
   const done = player.dailyOn === localDate(Date.now());
   const streakText = streak ? `🔥 ${streak}-day streak` : "Starts a streak";
-  const step = nextUp(player) ? "2" : "1"; // step 2 on Start here (step 1 when every level is built)
+  const step = stepNumber(player, "daily");
   return `<span class="step-num${done ? " done" : ""}" aria-hidden="true">${done ? "✓" : step}</span>
     <span><strong>${done ? "Daily 5 done" : "Daily 5 · 2 minutes"}</strong><span>${esc(done ? `${streakText} · back tomorrow` : streakText)}</span></span>
     <span class="today-chev" aria-hidden="true">›</span>`;
@@ -869,8 +886,10 @@ function finishDaily() {
   $("result-pip").innerHTML = pipRemark(line);
   $("result-badges").innerHTML = prize ? `<p class="mystery-prize"><span class="prize-emoji" aria-hidden="true">🎁</span> Mystery prize: <strong>${prize.item.emoji} ${esc(prize.item.name)}</strong>! It's in the Town Square. Drag it anywhere in Build.</p>` : "";
   $("result-review").innerHTML = reviewHtml(play);
-  state.resultNext = prize ? { prize: prize.player.decor.at(-1).uid } : { home: true };
-  $("result-next").textContent = prize ? "🎁 Place my prize" : blueprintOn(out.player) ? "Back to home" : "Back to the island";
+  // After the warm-up, the day's lesson is next (unless there's a prize to place first).
+  const nextLevel = out.player.lessonOn !== localDate(now) && nextUp(out.player);
+  state.resultNext = prize ? { prize: prize.player.decor.at(-1).uid } : nextLevel ? { skillId: nextLevel.skill.id, level: nextLevel.level } : { home: true };
+  $("result-next").textContent = prize ? "🎁 Place my prize" : nextLevel ? `Next: ${nextLevel.skill.name}, level ${nextLevel.level}` : blueprintOn(out.player) ? "Back to home" : "Back to the island";
   $("result-again").hidden = true;
   $("result-rule").hidden = true;
   openOverlay("result-overlay");

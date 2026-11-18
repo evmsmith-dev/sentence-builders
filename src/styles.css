@@ -1194,3 +1194,6 @@ body.island-home #home #pip-home { bottom: calc(env(safe-area-inset-bottom) + 78
 .settings-group { margin: 14px 0 4px; padding-top: 10px; border-top: 2px solid var(--border); font-size: 1.05rem; }
 .settings-group:first-of-type { border-top: 0; padding-top: 0; margin-top: 4px; }
 .prompt-row .rule-btn { margin-left: auto; }
+.start-card { display: flex; flex-direction: column; }
+.start-card .today-title { order: 0; }
+.start-card #week-btn { order: 5; }

@@ -627,7 +627,13 @@ export function validateItem(item) {
 
 const SUBJECT_PRONOUNS = new Set(["i", "he", "she", "we", "they", "who", "whoever"]);
 const OBJECT_PRONOUNS = new Set(["me", "him", "her", "us", "them", "whom", "whomever", "myself", "himself", "herself", "ourselves", "themselves"]);
-const SOUND_ALIKES = [["their", "there", "they're"], ["its", "it's"], ["to", "too", "two"], ["your", "you're"], ["whose", "who's"], ["then", "than"], ["affect", "effect"], ["lose", "loose"], ["accept", "except"]];
+const SOUND_ALIKES = [["their", "there", "they're"], ["its", "it's"], ["to", "too", "two"], ["your", "you're"], ["whose", "who's"], ["are", "our", "hour"], ["then", "than"], ["affect", "effect", "affects", "effects"], ["lose", "loose"], ["accept", "except"]];
+const POSSESSIVES = new Set(["mine", "yours", "his", "hers", "ours", "theirs", "my", "your", "our", "their", "its"]);
+// Irregular past tenses and other verb forms that don't end in -s, -ed or -ing.
+const VERB_FORMS = new Set(["is", "are", "was", "were", "be", "am", "has", "have", "had", "do", "does", "did", "went", "go", "saw", "see", "seen",
+  "ran", "run", "took", "take", "made", "make", "gave", "give", "came", "come", "lay", "lie", "laid", "win", "won", "ride", "rode", "drive", "drove",
+  "drink", "drank", "teach", "taught", "catch", "caught", "build", "built", "fly", "flew", "swim", "swam", "blow", "blew", "throw", "threw",
+  "grow", "grew", "know", "knew", "tell", "told", "bring", "brought", "think", "thought", "sit", "sat", "set", "eat", "ate", "send", "sent", "beat", "pay", "paid"]);
 
 /**
  * What kind of slip a proofreading mistake is, from the word shown and its fix, so a miss can say more than
@@ -638,15 +644,23 @@ export function mistakeKind(shown, correct) {
   const a = shown.trim();
   const b = correct.trim();
   if (a.toLowerCase() === b.toLowerCase()) return "Capital letters: should this word start with a capital (a name, a place, the first word) or not?";
-  if (bare(a) === bare(b)) return "Punctuation: which mark, if any, belongs right after this word? Read where the sentence pauses or ends.";
+  if (bare(a) === bare(b) || bare(a).replace(/[—–-]+$/, "") === bare(b).replace(/[—–-]+$/, "")) {
+    return "Punctuation: which mark, if any, belongs right after this word? Check where the sentence ends and the comma rules (lists, joining words, starting parts, extra information).";
+  }
   const la = bare(a).toLowerCase();
   const lb = bare(b).toLowerCase();
-  if (SOUND_ALIKES.some((set) => set.includes(la) && set.includes(lb))) return "Sound-alike words: they sound the same but mean different things. Which spelling fits this sentence?";
-  if (la.replace(/'/g, "") === lb.replace(/'/g, "")) return "Apostrophes: is this word showing who owns something, a contraction, or just more than one?";
+  if (SOUND_ALIKES.some((set) => set.includes(la) && set.includes(lb))) return "Sound-alike or look-alike words: they sound or look almost the same but mean different things. Which one fits this sentence?";
+  if (POSSESSIVES.has(lb) && /'/.test(la)) return "Possessive pronouns: mine, yours, ours and theirs already show ownership, with no apostrophe.";
+  if (la.replace(/'/g, "") === lb.replace(/'/g, "")) {
+    if (POSSESSIVES.has(lb)) return "Possessive pronouns: mine, yours, ours and theirs already show ownership, with no apostrophe.";
+    return "Apostrophes: is this word showing who owns something, a contraction, or just more than one?";
+  }
   if ((SUBJECT_PRONOUNS.has(la) || OBJECT_PRONOUNS.has(la)) && (SUBJECT_PRONOUNS.has(lb) || OBJECT_PRONOUNS.has(lb))) {
     return "Pronouns: does this one do the action (I, he, she, we, they, who) or receive it (me, him, her, us, them, whom)?";
   }
-  const verbish = (w) => /(ed|s|ing)$/.test(w) || ["is", "are", "was", "were", "be", "am", "has", "have", "do", "does", "did", "went", "saw", "ran", "took", "made", "gave", "came", "lay", "lie", "laid"].includes(w);
-  if (verbish(la) || verbish(lb)) return "Verbs: check the tense (when it happened) and whether the verb agrees with its subject.";
+  const verbish = (w) => /(ed|ing)$/.test(w) || VERB_FORMS.has(w) || (/s$/.test(w) && VERB_FORMS.has(w.replace(/e?s$/, "")));
+  if (POSSESSIVES.has(la) || POSSESSIVES.has(lb)) return "Pronouns: which form shows who owns it, or who does the action?";
+  const sameStem = (x, y) => x.replace(/(e?s|ed|ing)$/, "") === y.replace(/(e?s|ed|ing)$/, "");
+  if (verbish(la) || verbish(lb) || (sameStem(la, lb) && /(s|ed|ing)$/.test(la + lb) && !/'/.test(la + lb))) return "Verbs: check the tense (when it happened) and whether the verb agrees with its subject.";
   return "Word form or spelling: which version is the right word for this spot?";
 }

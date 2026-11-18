@@ -49,3 +49,14 @@ test("Mystery prize: once a day, a free everyday decoration that refunds nothing
   assert.ok(mysteryPrize(out.player, now + 864e5), "again tomorrow");
   assert.equal(removeDecor(out.player, out.player.decor[0].uid).bricks, out.player.bricks, "putting it away gives no bricks");
 });
+
+test("Test out: two questions from every skill, all but one in eight right", async () => {
+  const { pickTestoutItems, testoutNeed } = await import("../../src/lib/select.js");
+  const items = ["a", "b", "c"].flatMap((sk) => Array.from({ length: 5 }, (_, i) => ({ id: `${sk}-1-${i}`, skill: sk, level: 1, type: "which" })));
+  const picked = pickTestoutItems({ items, skillKeys: { a: ["a-1"], b: ["b-1"], c: ["c-1"] }, perSkill: 2, random: () => 0.3 });
+  assert.equal(picked.length, 6);
+  for (const sk of ["a", "b", "c"]) assert.equal(picked.filter((i) => i.skill === sk).length, 2);
+  assert.equal(testoutNeed(8), 7);
+  assert.equal(testoutNeed(10), 9);
+  assert.equal(testoutNeed(16), 14);
+});

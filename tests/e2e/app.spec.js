@@ -1341,7 +1341,8 @@ test("Daily 5 and the streak: a row on the Today card, five quick questions, the
     await page.locator("#next-btn").click();
   }
   await expect(page.locator("#result-title")).toHaveText("🔥 3-day streak");
-  await page.locator("#result-next").click();
+  await expect(page.locator("#result-next")).toContainText("Next: Pronoun case and clarity, level 1"); // the warm-up, then today's lesson
+  await page.locator("#result-town").click();
   await expect(page.locator("#daily-btn")).toContainText("Daily 5 done");
 });
 
@@ -1407,7 +1408,7 @@ test("Speed Round: a code plays the same questions, one try each, and keeps a pe
   expect((await currentItem(page)).id).toBe(first.id);
 });
 
-test("Test out: 7 of 8 marks a world's grade 3–5 levels Reviewed and Next up skips them", async ({ page }) => {
+test("Test out: two per skill, all but one right, marks a world's grade 3–5 levels Reviewed and Next up skips them", async ({ page }) => {
   await openApp(page, { players: [player({ grade: 7 })], current: "p1" });
   await openWorld(page, "port");
   await expect(page.locator(".testout-card")).toContainText("Test out");
@@ -1518,6 +1519,23 @@ test("📘 on a question opens its rule and comes straight back to the same ques
   await expect(page.locator("#item")).toHaveAttribute("data-item-id", id);
   await answer(page); // the question still works
   await expect(page.locator("#feedback.good")).toBeVisible();
+});
+
+test("Daily 5 is a warm-up of passed levels, first on Start here once there's something to review", async ({ page }) => {
+  const passed = { stars: 2, best: 7, plays: 1 };
+  await openApp(page, { players: [player({ grade: 4, levels: { "commas-1": passed, "verbs-1": passed } })], current: "p1" });
+  await expect(page.locator("#pip-home [data-start]")).toHaveText("▶ Start: Daily 5");
+  await expect(page.locator("#daily-btn .step-num")).toHaveText("1");
+  await expect(page.locator("#level-btn .step-num")).toHaveText("2");
+  await page.locator("#pip-home [data-start]").click();
+  const skills = new Set();
+  for (let n = 0; n < 5; n++) {
+    const item = await currentItem(page);
+    skills.add(`${item.skill}-${item.level}`);
+    await answer(page);
+    await page.locator("#next-btn").click();
+  }
+  expect([...skills].every((k) => k === "commas-1" || k === "verbs-1")).toBe(true);
 });
 
 test("Sentence of the Week: Today with Pip card, the Notice Board, a day's job, and the week's banner @layout", async ({ page }) => {

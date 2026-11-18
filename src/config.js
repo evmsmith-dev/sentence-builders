@@ -210,7 +210,7 @@ export const WORD_LISTS = [
   { id: "subject-pronouns", title: "Subject pronouns (SP)", note: "They do the action: She laughed.", words: ["I", "you", "he", "she", "it", "we", "they"] },
   { id: "object-pronouns", title: "Object pronouns", note: "They get the action or come after a preposition: Mom called me. Sit with us.", words: ["me", "you", "him", "her", "it", "us", "them"] },
   { id: "possessive", title: "Possessive pronouns (PPA)", note: "They show who owns something, with no apostrophe: my bike, its tail.", words: ["my", "your", "his", "her", "its", "our", "their"] },
-  { id: "reflexive", title: "Reflexive pronouns", note: "For when the one doing the action also gets it: I made it myself.", words: ["myself", "yourself", "himself", "herself", "itself", "ourselves", "yourselves", "themselves"] },
+  { id: "reflexive", title: "Reflexive pronouns", note: "For when the one doing the action also gets it: I made myself a sandwich.", words: ["myself", "yourself", "himself", "herself", "itself", "ourselves", "yourselves", "themselves"] },
   { id: "joining", title: "Joining words for compound sentences", note: "With a comma, they join two complete sentences.", words: ["for", "and", "nor", "but", "or", "yet", "so"] },
   { id: "starting", title: "Joining words for complex sentences", note: "They start a part that can't stand alone: because it rained.", words: ["after", "although", "as", "because", "before", "even though", "if", "since", "though", "unless", "until", "when", "whenever", "where", "while"] },
   { id: "relative", title: "Relative pronouns", note: "They start a part that tells more about a noun: the girl who won.", words: ["who", "whom", "whose", "which", "that"] },
@@ -265,7 +265,7 @@ export const LABELS = {
   PrP: { name: "predicate pronoun", hint: "A predicate pronoun comes after a linking verb and means the same person as the subject: I, he, she, we, they." , find: 'Ask subject + verb + who; a pronoun answers: "The winner was who?" → she' },
   CPrP: { name: "compound predicate pronoun", hint: "Two predicate pronouns (or a noun and a pronoun) joined by and or or after a linking verb." , find: 'Ask subject + verb + who; two answers: "The helpers were who?" → he and I' },
   CAdj: { name: "compound adjective", hint: "Two adjectives joined by and, or or but that describe the same noun." , find: 'Ask what kind; two answers: "What kind of jacket?" → warm and dry' },
-  CAdv: { name: "compound adverb", hint: "Two adverbs joined by and, or or but that tell about the same verb." , find: 'Ask how, when or where; two answers: "Ran how?" → fast and far' },
+  CAdv: { name: "compound adverb", hint: "Two adverbs joined by and, or or but that tell about the same verb." , find: 'Ask how, when or where; two answers: "Ran how?" → fast and smoothly' },
   I: { name: "interjection", hint: "An interjection is a word that shows strong feeling, like wow, oh or hooray. It's set off by a comma or an exclamation point." , find: 'A feeling word at the start: wow, oh, hey, hooray, oops' },
 };
 export const LEVEL_LABELS = [
