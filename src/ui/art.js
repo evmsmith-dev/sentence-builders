@@ -377,7 +377,7 @@ function districtSvg(player, district, { fresh, rising, week = null, blueprint =
 }
 
 /**
- * The Town Square's Notice Board: the Sentence of the Week (a stamp for each day done) and Pip's "Tutor needed"
+ * The Town Square's Notice Board: the Sentence of the Week (a stamp for each day done) and Pip's "Help wanted"
  * flyer (until his homework is checked today), with a "!" when either is waiting.
  */
 function noticeBoardSvg({ done, waiting, tutor, today }) {
@@ -394,8 +394,9 @@ function noticeBoardSvg({ done, waiting, tutor, today }) {
   const flyer = `<g transform="rotate(${tutor ? 4 : -3} ${fx + 18} ${y + 22})">
       <rect x="${fx}" y="${y + 5}" width="36" height="34" rx="2" fill="#fff" stroke="#d8cdb6"/>
       <circle cx="${fx + 18}" cy="${y + 7}" r="2.2" fill="#e5484d"/>
-      <text x="${fx + 18}" y="${y + 16}" text-anchor="middle" font-size="6" font-weight="800" fill="#1f4e8c">${tutor ? "TUTOR" : "THANKS"}</text>
-      <text x="${fx + 18}" y="${y + 23}" text-anchor="middle" font-size="6" font-weight="800" fill="#1f4e8c">${tutor ? "NEEDED" : "TUTOR!"}</text>
+      ${tutor ? `<text x="${fx + 18}" y="${y + 16}" text-anchor="middle" font-size="6" font-weight="800" fill="#1f4e8c">HELP</text>
+      <text x="${fx + 18}" y="${y + 23}" text-anchor="middle" font-size="6" font-weight="800" fill="#1f4e8c">WANTED</text>`
+        : `<text x="${fx + 18}" y="${y + 20}" text-anchor="middle" font-size="6.5" font-weight="800" fill="#1f4e8c">THANKS!</text>`}
       <rect x="${fx + 12}" y="${y + 26}" width="12" height="9" rx="2.5" fill="#4f86e8"/><circle cx="${fx + 15.5}" cy="${y + 30}" r="1.2" fill="#fff"/><circle cx="${fx + 20.5}" cy="${y + 30}" r="1.2" fill="#fff"/>
       <rect x="${fx + 11}" y="${y + 24.5}" width="14" height="2.5" rx="1.2" fill="#f5b72e"/></g>`;
   return `<g class="notice-board">

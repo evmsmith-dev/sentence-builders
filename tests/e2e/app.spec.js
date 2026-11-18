@@ -972,7 +972,10 @@ test("Quote marks: an opening mark goes before the tapped word, a closing one af
 
 test("Pip's homework: grade three paragraphs, earn bricks, and it doesn't count as a level", async ({ page }) => {
   await openApp(page, { players: [player({ grade: 7, settings: { showIsland: true } })], current: "p1" });
-  await openBoard(page); // the Notice Board: Pip's "Tutor needed" flyer
+  await expect(page.locator(".town")).toContainText("WANTED"); // the flyer says Help wanted (a 4th grader didn't know "tutor")
+  await openBoard(page); // the Notice Board: Pip's "Help wanted" flyer
+  await expect(page.locator("#week-body")).toContainText("Help wanted: check Pip's homework");
+  await expect(page.locator("#week-body")).toContainText("I need a tutor."); // grade 7: grown-up Pip
   await page.locator("#homework-btn").click();
   await expect(page.locator("#play-skill")).toContainText("📝 Pip's homework:");
   await expect(page.locator("#progress-text")).toHaveText("1 of 3");
@@ -2053,4 +2056,12 @@ test("Q&A Flow: “not” is an adverb — a wrong label explains why, and a rig
       await expect(page.locator("#item .why-text")).toContainText("Not is never part of the verb");
     }
   }
+});
+
+test("Notice Board for a 4th grader: Help wanted, and tutor explained in the sheet", async ({ page }) => {
+  await openApp(page, { players: [player({ grade: 4 })], current: "p1" });
+  await expect(page.locator(".town")).toContainText("WANTED");
+  await expect(page.locator(".town")).not.toContainText("TUTOR");
+  await openBoard(page);
+  await expect(page.locator("#week-body")).toContainText("Pip needs a tutor, someone who helps him learn.");
 });

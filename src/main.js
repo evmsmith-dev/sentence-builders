@@ -1051,7 +1051,7 @@ function weekDotsHtml(progress, now) {
 
 const homeworkWaiting = (player) => player.homeworkOn !== localDate(Date.now());
 
-/** Today with Pip's first row: the Notice Board, with this week's job and Pip's "Tutor needed" flyer. */
+/** Today with Pip's first row: the Notice Board, with this week's job and Pip's "Help wanted" flyer. */
 function weekCardHtml(player) {
   const week = currentWeek(player);
   const now = Date.now();
@@ -1092,10 +1092,11 @@ function openWeek() {
   const banners = (player.banners || []).length;
   const tutor = homeworkWaiting(player);
   $("week-body").innerHTML = `<section class="board-notice tutor-notice${tutor ? "" : " answered"}" aria-labelledby="tutor-title">
-      <h3 id="tutor-title">📝 Tutor needed</h3>
-      <p>${tutor ? (grownPip() ? `I wrote ${HOMEWORK_PER_ROUND} paragraphs and I'm fairly sure they're fine. Check them, and grade me honestly.`
-          : `Pip has ${HOMEWORK_PER_ROUND} paragraphs of homework. Can you find his mistakes? You'll earn bricks, and Pip gets a grade.`)
-        : grownPip() ? "Thanks for the corrections. I have more paragraphs if you want them." : "Thanks for checking Pip's homework today! He always has more, if you'd like to keep tutoring."}</p>
+      <h3 id="tutor-title">📝 Help wanted: check Pip's homework</h3>
+      <p>${tutor ? (grownPip() ? `I need a tutor. I wrote ${HOMEWORK_PER_ROUND} paragraphs and I think they're fine. Check them, and grade me honestly.`
+          // "Tutor" is taught right where it's used (a 4th grader didn't know the word); the flyer just says Help wanted.
+          : `Pip needs a tutor, someone who helps him learn. He wrote ${HOMEWORK_PER_ROUND} paragraphs and thinks they're fine. Can you check them? You'll earn bricks, and Pip gets a grade.`)
+        : grownPip() ? "Thanks for the corrections. I have more paragraphs if you want them." : "Thanks for checking Pip's homework today! He always has more, if you'd like to keep being his tutor."}</p>
       <button type="button" id="homework-btn" class="${tutor ? "primary" : "secondary"}">${tutor ? "Help Pip" : "Check more homework"}</button>
     </section>
     <section class="board-notice" aria-labelledby="sow-title">

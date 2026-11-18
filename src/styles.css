@@ -940,7 +940,7 @@ body.spacing .sentence { line-height: 2.3; }
 .today-card .week-dots { margin: 0; gap: 3px; flex: none; }
 .today-card .week-dots span { width: 18px; height: 18px; font-size: 0.6rem; border-width: 1.5px; }
 
-/* Notice Board sheet: Pip's "Tutor needed" flyer, then the Sentence of the Week. */
+/* Notice Board sheet: Pip's "Help wanted" flyer, then the Sentence of the Week. */
 .board-notice { margin: 10px 0; padding: 12px 14px; border-radius: 14px; border: 2px solid var(--border); background: var(--card); }
 .board-notice h3 { margin: 0 0 6px; font-size: 1.1rem; }
 .board-notice p { margin: 0 0 8px; }

@@ -360,7 +360,7 @@ export function recordHomework(player, { results, now, durationMs = 0 }) {
   next.time[date] = (next.time[date] || 0) + Math.min(Math.max(durationMs, 0), MAX_LEVEL_MS);
   const bricks = results.reduce((sum, r) => sum + (!r.correct ? 0 : r.tries === 1 ? 2 : 1) * BRICKS.homeworkFix, 0);
   next.bricks += bricks;
-  next.homeworkOn = date; // the Notice Board's "Tutor needed" flyer is answered for today
+  next.homeworkOn = date; // the Notice Board's "Help wanted" flyer is answered for today
   return { player: next, bricks, grade: homeworkGrade(results), right: results.filter((r) => r.correct && r.tries === 1).length };
 }
 
