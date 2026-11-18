@@ -1641,11 +1641,26 @@ function renderRules(focusWorld, back) {
 /* ==================== The town map ==================== */
 
 /** Under the map: the districts to jump to, or (zoomed in) that district's skills and its decorating. */
+/** Redraws home to put Pip's usual message back, leaving the map where it is. */
+function restorePip() {
+  const view = state.map?.saveView();
+  state.pipQuiet = true; // redrawing the map mustn't make Pip say it again
+  renderHome();
+  if (view) state.map.restoreView(view);
+  state.pipQuiet = false;
+}
+
 function drawMapPanel() {
   const player = state.player;
   if (!player) return;
   const districts = mapDistricts(player);
   const here = districts.find((d) => d.id === state.mapArea);
+  // Pip said something about a locked place: once you move on, his usual message comes back.
+  if (state.pipNote && !here?.locked) {
+    state.pipNote = false;
+    restorePip();
+    return;
+  }
   // Island Home hides this panel, except at Grammar Peaks: it has no lots to tap, so its rounds start from here.
   document.body.classList.toggle("peaks-open", state.mapArea === "peaks");
   if (state.mapArea === "peaks") {
@@ -1680,9 +1695,12 @@ function drawMapPanel() {
     $("map-panel").innerHTML = `<h3 class="map-title">🔒 ${esc(here.name)}</h3>
       <div class="map-hint">${lockedWorldText(world, player).html} <p>${esc(world.blurb)}.</p></div><div class="map-actions">${whole}</div>`;
     // Island Home hides this panel, so Pip says it (only when the Ridge is tapped, never on his own).
-    if (islandOn(player) && player.pipMinOn !== localDate(Date.now())) {
+    if (islandOn(player) && player.pipMinOn !== localDate(Date.now()) && !state.pipQuiet) {
       const text = lockedWorldText(world, player);
-      $("pip-home").innerHTML = pipSays(text.pip, settings().pip);
+      // OK (or the –) puts Pip's usual message back; so does moving to another part of the island.
+      const actions = '<button type="button" class="primary" data-pip-back>OK</button><button type="button" class="pip-min" data-pip-min aria-label="Make Pip\'s message smaller">–</button>';
+      $("pip-home").innerHTML = settings().pip ? pipSays(text.pip, true, actions) : `<p class="next-line">${esc(text.pip)} ${actions}</p>`;
+      state.pipNote = true;
       if (text.explainsGold) savePlayer({ ...state.player, goldExplained: true });
     }
     return;
@@ -2375,6 +2393,10 @@ function wire() {
     };
     if (target.closest("#map-expand, #bp-toggle")) return stay(() => { state.mapOpen = !state.mapOpen; });
     // Shrinking or opening Pip's message leaves the map where it was (it used to zoom back out).
+    if (target.closest("[data-pip-back]")) {
+      state.pipNote = false;
+      return restorePip();
+    }
     if (target.closest("[data-pip-min]")) return stay(() => savePlayer({ ...state.player, pipMinOn: localDate(Date.now()) }), true);
     if (target.closest("[data-pip-expand]")) return stay(() => savePlayer({ ...state.player, pipMinOn: null }), true);
     if (target.closest("#island-build")) {

@@ -1998,10 +1998,17 @@ test("Island Home: tapping locked Revision Ridge, Pip says it opens in grade 6 o
   await expect(page.locator("#pip-home")).toContainText("Revision Ridge opens in grade 6, but you can open its skills sooner!");
   await expect(page.locator("#pip-home")).toContainText("to ⭐ Gold (7 or more out of 8 on level 3, on two different days) to open");
   await expect(page.locator("#pip-home")).not.toContainText(" and Capital"); // skill names joined with +, never "and … and"
+  // OK puts Pip's usual message back.
+  await page.locator("#pip-home [data-pip-back]").click();
+  await expect(page.locator("#pip-home")).not.toContainText("Revision Ridge opens");
+  await expect(page.locator("#pip-home .next-play")).toBeVisible();
   // Gold is explained once; the next time it's just ⭐ Gold.
   await page.locator("#map-fit").click();
   await page.mouse.click(vp.width * 0.5, vp.height * 0.66);
   await expect(page.locator("#pip-home")).toContainText("to ⭐ Gold to open");
+  // Moving on (here: the whole island) brings Pip's usual message back too.
+  await page.locator("#map-fit").click();
+  await expect(page.locator("#pip-home")).not.toContainText("Revision Ridge opens");
   // Parents see why it can open early, under For grown-ups.
   await page.locator("#settings-btn").click();
   await page.locator("#settings-overlay .settings-grown summary").click();
