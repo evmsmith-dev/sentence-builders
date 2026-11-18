@@ -371,3 +371,9 @@ export async function openBoard(page) {
   await openMore(page);
   await page.locator("#extra-list [data-week]").click();
 }
+
+/** Opens Settings → "For grown-ups" (folded closed). */
+export async function openGrownUps(page) {
+  const fold = page.locator("#settings-overlay .settings-grown");
+  if (!(await fold.evaluate((d) => d.open))) await fold.locator("summary").click();
+}

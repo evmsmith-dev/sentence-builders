@@ -1191,9 +1191,34 @@ body.island-home #home #pip-home { bottom: calc(env(safe-area-inset-bottom) + 78
 .trail-top { margin: 0 0 10px; }
 .more-avatars { margin-top: 6px; }
 .more-avatars summary { cursor: pointer; color: var(--primary); font-weight: 600; padding: 6px 0; }
-.settings-group { margin: 14px 0 4px; padding-top: 10px; border-top: 2px solid var(--border); font-size: 1.05rem; }
-.settings-group:first-of-type { border-top: 0; padding-top: 0; margin-top: 4px; }
+
 .prompt-row .rule-btn { margin-left: auto; }
 .start-card { display: flex; flex-direction: column; }
 .start-card .today-title { order: 0; }
 .start-card #week-btn { order: 5; }
+
+/* ---------- Settings: grouped, switches, a ✕ that stays at the top, changes show right away ---------- */
+.settings-sheet { padding-top: 0; }
+.settings-head { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  margin: 0 -4px 6px; padding: 14px 4px 10px; background: var(--card); border-bottom: 1px solid var(--border); }
+.settings-head h2 { margin: 0; }
+.settings-close { min-width: 48px; min-height: 48px; font-size: 1.3rem; }
+.settings-group-box { margin: 10px 0 14px; }
+.settings-group { margin: 0 0 4px; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+.switch-row, .select-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 56px; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 1.05rem; font-weight: 600; cursor: pointer; }
+.switch-text { display: flex; flex-direction: column; min-width: 0; }
+.switch-text small { font-weight: 400; font-size: 0.85rem; color: var(--muted); }
+.select-row select { width: 48%; max-width: 220px; font-size: 1rem; padding: 6px 8px; border-radius: 10px; border: 2px solid var(--border); background: var(--card); color: var(--text); }
+/* A switch drawn from the checkbox itself. */
+.switch-row input[type="checkbox"] { appearance: none; -webkit-appearance: none; flex: none; width: 52px; height: 30px; border-radius: 15px; background: #c9cfdb; position: relative; cursor: pointer; transition: background 0.15s; margin: 0; }
+.switch-row input[type="checkbox"]::after { content: ""; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.3); transition: left 0.15s; }
+.switch-row input[type="checkbox"]:checked { background: var(--primary); }
+.switch-row input[type="checkbox"]:checked::after { left: 25px; }
+.switch-row input[type="checkbox"]:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.settings-grown { margin-top: 16px; }
+.settings-grown > :not(summary) { margin: 0 12px 12px; }
+.settings-grown label[for="set-break"] { display: block; font-weight: 700; margin-top: 10px; }
+.settings-grown .about-link { display: block; margin: 8px 12px 14px; }
+/* The done row's "Next time" line wraps instead of being cut off. */
+.today-card .level-row strong + span { white-space: normal; }
+.settings-grown .switch-row { border-bottom: 0; }

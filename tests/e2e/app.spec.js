@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
-import { answer, currentItem, diagramIt, markUp, miss, openApp, openBoard, openMore, openWorld, player, startLevel } from "./helpers.js";
+import { answer, currentItem, diagramIt, markUp, miss, openApp, openBoard, openGrownUps, openMore, openWorld, player, startLevel } from "./helpers.js";
 import { parseFlow } from "../../src/lib/parse.js";
 import { markupTasks } from "../../src/lib/markup.js";
 import { buildDiagram } from "../../src/lib/diagram.js";
@@ -62,7 +62,7 @@ test("play a whole level right: 3 stars, a building and badges", async ({ page }
   await expect(page.locator("#result-badges")).toContainText("Comma Captain");
   await page.locator("#result-town").click();
   await expect(page.locator(".town")).toHaveAttribute("aria-label", /1 of 57 buildings/);
-  await expect(page.locator("#pip-home")).toContainText("Next up: Commas and colons, level 2");
+  await expect(page.locator("#pip-home")).toContainText("Warm up with the Daily 5, then Commas and colons, level 2");
 
   // Saved on the device: still there after a reload.
   await page.reload();
@@ -206,11 +206,12 @@ test("Progress: open to everyone from the home screen; break reminder and backup
   // The break reminder and backup live in Settings (break reminder is per player).
   await page.locator("#parent-back").click();
   await page.locator("#settings-btn").click();
+  await openGrownUps(page);
   await page.locator("#set-break").selectOption("20");
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("sentenceBuilders_players")));
   expect(saved.find((p) => p.id === "p2").settings.breakMinutes).toBe(20);
   await expect(page.locator("#settings-overlay")).not.toContainText("Switch player");
-  await expect(page.locator("#settings-overlay")).toContainText("Comments and greeting");
+  await expect(page.locator("#settings-overlay")).toContainText("Pip's comments and greeting");
 
   const download = page.waitForEvent("download");
   await page.locator("#backup-save").click();
@@ -786,6 +787,7 @@ test("Edit player: ✏️ on a player card changes name, grade and avatar on Sav
 test("About: from Settings and Who's playing?, Back returns where you were", async ({ page }) => {
   await openApp(page, { players: [player({ grade: 4 })], current: "p1" });
   await page.locator("#settings-btn").click();
+  await openGrownUps(page);
   await page.locator("#settings-overlay [data-about]").click();
   await expect(page.locator("#about")).toBeVisible();
   await expect(page.locator("#about")).toContainText("2020 Minnesota K–12 Academic Standards");
@@ -1168,6 +1170,7 @@ test("Sentence Combining: type the joined sentence; a slip gets a pointed hint",
 test("Settings: names in sentences and reading support @layout", async ({ page }) => {
   await openApp(page, { players: [player({ grade: 5 })], current: "p1" });
   await page.locator("#settings-btn").click();
+  await openGrownUps(page);
   await expect(page.locator("#names-fields")).toBeHidden();
   await page.locator("#set-names-on").check();
   await expect(page.locator("#set-name-0")).toHaveValue("Ava");
@@ -1436,7 +1439,8 @@ test("Blueprint rewards: an APPROVED stamp for a beaten final draft and earned p
 test("Island Home: Daily 5 and Speed are on the island, Play stays at the peaks, and the Daily 5 gives a mystery prize", async ({ page }) => {
   await page.clock.setFixedTime(new Date(2026, 10, 17, 18));
   // The Notice Board was already opened today, so it doesn't open itself over the island.
-  await openApp(page, { players: [{ ...player({ grade: 4, settings: { islandHome: true } }), boardSeenOn: "2026-11-17" }], current: "p1" });
+  // Today's lesson is done, so finishing the Daily 5 completes the day and brings the mystery prize.
+  await openApp(page, { players: [{ ...player({ grade: 4, settings: { islandHome: true } }), boardSeenOn: "2026-11-17", lessonOn: "2026-11-17" }], current: "p1" });
   await expect(page.locator("#island-daily")).toContainText("Daily 5");
   await expect(page.locator(".home-tools [data-speed]")).toBeVisible();
   // Tapping the locked Build or the peaks before any level keeps ▶ Play in Pip's bubble.
@@ -1536,6 +1540,42 @@ test("Daily 5 is a warm-up of passed levels, first on Start here once there's so
     await page.locator("#next-btn").click();
   }
   expect([...skills].every((k) => k === "commas-1" || k === "verbs-1")).toBe(true);
+});
+
+test("One end to the day: warm-up, then the lesson, then That's today ✓ with the prize", async ({ page }) => {
+  test.slow();
+  await page.clock.setFixedTime(new Date(2026, 10, 17, 18));
+  await openApp(page, { players: [{ ...player({ grade: 4, levels: { "commas-1": { stars: 2, best: 7, plays: 1 } } }), days: ["2026-11-16"] }], current: "p1" });
+  await expect(page.locator("#pip-home")).toContainText("Warm up with the Daily 5, then Commas and colons, level 2");
+  await page.locator("#pip-home [data-start]").click();
+  for (let n = 0; n < 5; n++) {
+    await answer(page);
+    await page.locator("#next-btn").click();
+  }
+  await expect(page.locator("#result-pip")).toContainText("Warm-up done! Now: Commas and colons, level 2.");
+  await expect(page.locator("#result-next")).toHaveText("Next: Commas and colons, level 2");
+  await expect(page.locator(".mystery-prize")).toHaveCount(0); // the prize waits for the end of the day
+  await page.locator("#result-next").click();
+  await page.locator("#tip-start").click();
+  for (let n = 0; n < 8; n++) {
+    await answer(page);
+    await page.locator("#next-btn").click();
+  }
+  await expect(page.locator("#result-pip")).toContainText("That's today ✓");
+  await expect(page.locator("#result-next")).toHaveText("🎁 Place my prize");
+  await expect(page.locator("#result-again")).toContainText("or keep going");
+});
+
+test("Settings: grouped, a ✕ instead of Done, and changes show right away", async ({ page }) => {
+  await openApp(page, { players: [player({ grade: 4 })], current: "p1" });
+  await page.locator("#settings-btn").click();
+  await expect(page.locator("#settings-title")).toHaveText("Settings for Ava");
+  await expect(page.locator("#settings-overlay")).not.toContainText("Done");
+  await expect(page.locator("#set-break")).toBeHidden(); // under "For grown-ups", folded
+  await page.locator("#set-size").selectOption("larger");
+  await expect(page.locator("html")).toHaveAttribute("data-text-size", "larger"); // before closing
+  await page.locator("#settings-overlay .settings-close").click();
+  await expect(page.locator("#settings-overlay")).toBeHidden();
 });
 
 test("Sentence of the Week: Today with Pip card, the Notice Board, a day's job, and the week's banner @layout", async ({ page }) => {
@@ -1753,6 +1793,7 @@ test("Challenge Trails (grades 3-5): mastery opens the next level with Pip's new
   // Parents: press and hold to change the setting.
   await page.goBack();
   await page.locator("#settings-btn").click();
+  await openGrownUps(page);
   await expect(page.locator("#set-unlock")).toBeHidden();
   const hold = page.locator("#unlock-hold");
   await hold.hover();

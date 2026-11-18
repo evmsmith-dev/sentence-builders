@@ -334,36 +334,52 @@
   </div>
 
   <div id="settings-overlay" class="overlay" hidden>
-    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="settings-title">
-      <h2 id="settings-title">Settings</h2>
-      <h3 class="settings-group">For you</h3>
-      <label class="toggle"><input type="checkbox" id="set-autoread"> Read every sentence aloud</label>
-      <label class="toggle"><input type="checkbox" id="set-pip"> Comments and greeting</label>
-      <label class="toggle"><input type="checkbox" id="set-sound"> Sounds</label>
-      <label class="toggle" id="island-toggle"><input type="checkbox" id="set-island"> Island Home: the island fills the screen (grades 3–5)</label>
-      <label class="toggle" id="showisland-toggle"><input type="checkbox" id="set-showisland"> Show Grammar Island in color, with decorations and building (instead of the blueprint)</label>
-      <label class="toggle"><input type="checkbox" id="set-calm"> Calm island: decorations stay still</label>
-      <label for="set-theme">Look</label>
-      <select id="set-theme">
-        <option value="auto">Automatic (Studio for grades 6+)</option>
-        <option value="bright">Bright</option>
-        <option value="studio">Studio</option>
-      </select>
-      <label for="set-font">Reading font</label>
-      <select id="set-font">
+    <div class="sheet settings-sheet" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+      <!-- Every change saves and shows right away, so there's no Done: the ✕ stays at the top while scrolling. -->
+      <header class="settings-head">
+        <h2 id="settings-title">Settings</h2>
+        <button type="button" class="icon-btn settings-close" data-close aria-label="Close settings">✕</button>
+      </header>
+      <section class="settings-group-box" aria-labelledby="sg-read">
+        <h3 id="sg-read" class="settings-group">Reading and sound</h3>
+        <label class="switch-row"><span class="switch-text"><span>Read sentences aloud</span></span><input type="checkbox" role="switch" id="set-autoread"></label>
+        <label class="switch-row"><span class="switch-text"><span>Sounds</span></span><input type="checkbox" role="switch" id="set-sound"></label>
+        <label class="select-row" for="set-font"><span>Reading font</span>
+          <select id="set-font">
         <option value="game">Game font</option>
         <option value="clear">Clear (Atkinson Hyperlegible)</option>
         <option value="dyslexic">OpenDyslexic</option>
       </select>
-      <label for="set-size">Text size</label>
-      <select id="set-size">
+        </label>
+        <label class="select-row" for="set-size"><span>Text size</span>
+          <select id="set-size">
         <option value="normal">Normal</option>
         <option value="large">Large</option>
         <option value="larger">Larger</option>
       </select>
-      <label class="toggle"><input type="checkbox" id="set-spacing"> Extra space between letters and lines</label>
-      <label class="toggle"><input type="checkbox" id="set-showwords"> Listen and Write: show the words too (for hearing or listening difficulties)</label>
-      <h3 class="settings-group">Grown-ups</h3>
+        </label>
+        <label class="switch-row"><span class="switch-text"><span>Extra spacing</span><small>More space between letters and lines</small></span><input type="checkbox" role="switch" id="set-spacing"></label>
+        <label class="switch-row"><span class="switch-text"><span>Show the words in Listen and Write</span><small>For hearing or listening difficulties</small></span><input type="checkbox" role="switch" id="set-showwords"></label>
+      </section>
+      <section class="settings-group-box" aria-labelledby="sg-look">
+        <h3 id="sg-look" class="settings-group">Look</h3>
+        <label class="select-row" for="set-theme"><span class="switch-text"><span>Style</span><small>Automatic: Bright, then Studio from grade 6</small></span>
+          <select id="set-theme">
+        <option value="auto">Automatic</option>
+        <option value="bright">Bright</option>
+        <option value="studio">Studio</option>
+      </select>
+        </label>
+        <label class="switch-row" id="island-toggle"><span class="switch-text"><span>Island Home</span><small>The island fills the screen</small></span><input type="checkbox" role="switch" id="set-island"></label>
+        <label class="switch-row" id="showisland-toggle"><span class="switch-text"><span>Colorful island</span><small>Instead of the blueprint plan</small></span><input type="checkbox" role="switch" id="set-showisland"></label>
+        <label class="switch-row"><span class="switch-text"><span>Calm island</span><small>Decorations stay still</small></span><input type="checkbox" role="switch" id="set-calm"></label>
+      </section>
+      <section class="settings-group-box" aria-labelledby="sg-pip">
+        <h3 id="sg-pip" class="settings-group">Pip</h3>
+        <label class="switch-row"><span class="switch-text"><span>Pip's comments and greeting</span></span><input type="checkbox" role="switch" id="set-pip"></label>
+      </section>
+      <details class="settings-grown fold">
+        <summary>For grown-ups</summary>
       <div id="unlock-setting" class="unlock-setting">
         <label for="set-unlock">Levels above my grade <span class="note">(parents: press and hold to change)</span></label>
         <button type="button" id="unlock-hold" class="secondary hold-btn"></button>
@@ -383,7 +399,7 @@
       </select>
       <section class="settings-names" aria-labelledby="names-title">
         <h3 id="names-title">Names in sentences</h3>
-        <label class="toggle"><input type="checkbox" id="set-names-on"> Use our names in some sentences</label>
+        <label class="switch-row"><span class="switch-text"><span>Use our names in some sentences</span></span><input type="checkbox" role="switch" id="set-names-on"></label>
         <div id="names-fields" class="names-fields">
           <p class="note">First names only, letters only. Sentences call each person he or she.</p>
           <div class="name-row"><input id="set-name-0" maxlength="12" autocomplete="off" aria-label="Your name" placeholder="Your name">
@@ -407,13 +423,10 @@
         </div>
         <p id="backup-status" class="note" role="status"></p>
       </section>
-      <div class="sheet-actions">
         <button type="button" class="link about-link" data-about>ℹ️ About this game</button>
-        <button type="button" class="primary" data-close>Done</button>
-      </div>
+      </details>
     </div>
   </div>
-
   <div id="edit-overlay" class="overlay" hidden>
     <form id="edit-form" class="sheet" role="dialog" aria-modal="true" aria-labelledby="edit-title" novalidate>
       <h2 id="edit-title" tabindex="-1">Edit player</h2>

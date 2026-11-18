@@ -96,10 +96,27 @@ const DAILY_TYPES = new Set(["which", "mark", "fix", "sort", "check", "join", "b
  * The Daily 5: quick questions from the levels at the player's grade and the grade before (open ones only),
  * least recently seen first, spread across skills. levelKeys: ["case-2", ...] the caller found open.
  */
-export function pickDailyItems({ items, levelKeys, stats = {}, count = 5, random = Math.random }) {
-  const quick = items.filter((i) => DAILY_TYPES.has(i.type));
-  return pickSummitItems({ items: quick, passedKeys: levelKeys, stats, count, random })
-    .map((item) => ({ item, r: random() })).sort((a, b) => a.r - b.r).map(({ item }) => item);
+export function pickDailyItems({ items, levelKeys, stats = {}, count = 5, perSkill = Infinity, random = Math.random }) {
+  // Round-robin across skills, and within a skill across item types, so five questions aren't all the same kind
+  // (the 4th grader: "all 5 were Tap each space where a comma goes").
+  const keys = new Set(levelKeys);
+  const order = practiceOrder(stats, random);
+  const bySkill = new Map();
+  for (const item of items) {
+    if (!DAILY_TYPES.has(item.type) || !keys.has(`${item.skill}-${item.level}`)) continue;
+    bySkill.set(item.skill, [...(bySkill.get(item.skill) || []), item]);
+  }
+  const queues = [...bySkill.values()].map((list) => {
+    const byType = new Map();
+    for (const item of [...list].sort(byKey(order))) byType.set(item.type, [...(byType.get(item.type) || []), item]);
+    const typeQueues = [...byType.values()];
+    const mixed = [];
+    while (typeQueues.some((q) => q.length)) for (const q of typeQueues) if (q.length) mixed.push(q.shift());
+    return mixed.slice(0, perSkill);
+  }).sort((a, b) => byKey(order)(a[0], b[0]));
+  const out = [];
+  while (out.length < count && queues.some((q) => q.length)) for (const q of queues) if (q.length && out.length < count) out.push(q.shift());
+  return out.map((item) => ({ item, r: random() })).sort((a, b) => a.r - b.r).map(({ item }) => item);
 }
 
 /** A small seeded random number generator, so a Speed Proofread code gives everyone the same questions. */

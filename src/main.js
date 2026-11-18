@@ -170,7 +170,12 @@ const today = () => localDate(Date.now());
 const boardStepShown = (player) => (player.days || []).some((d) => d !== today());
 
 /** Daily 5 first as a warm-up (the grammar teacher) once there's something to review; a new player starts on a level. */
-const warmUpFirst = (player) => passedKeys(player).length > 0 || Object.keys(player.reviewed || {}).length > 0;
+// Decided by what was passed before today, so the order never changes partway through a day (the senior: the
+// list renumbered itself after a new player's first level).
+const warmUpFirst = (player) => Object.values(player.levels || {}).some((l) => l.stars > 0 && (!l.passedOn || l.passedOn < today()))
+  || Object.values(player.reviewed || {}).some((d) => d < today());
+/** Today's steps are both done. */
+const dayDone = (player) => startSteps(player).every((st) => st.done);
 function startSteps(player) {
   const next = nextUp(player);
   const level = next && { id: "level", done: player.lessonOn === today() };
@@ -194,7 +199,7 @@ function levelRowHtml(player) {
   const done = player.lessonOn === today();
   const last = done && player.lessonLast && skillById(player.lessonLast.skill);
   return `<span class="step-num${done ? " done" : ""}" aria-hidden="true">${done ? "✓" : stepNumber(player, "level")}</span>
-    <span><strong>${done ? `Done today${last ? `: ${esc(last.name)}, level ${player.lessonLast.level}` : ""}` : "Your next level"}</strong><span>${done ? `Next time: ${esc(next.skill.name)}, level ${next.level}` : `${esc(next.skill.name)}, level ${next.level}`}</span></span>
+    <span><strong>${done ? `Done today${last ? `: ${esc(last.short || last.name)}, level ${player.lessonLast.level}` : ""}` : "Your next level"}</strong><span>${done ? `Next: ${esc(next.skill.name)}, level ${next.level}` : `${esc(next.skill.name)}, level ${next.level}`}</span></span>
     <span class="today-chev" aria-hidden="true">›</span>`;
 }
 
@@ -304,9 +309,13 @@ function renderHome() {
   }
   const next = nextUp(player);
   const due = island ? reviewDue(player) : 0;
-  let greeting = next
-    ? `Hi ${player.name}! Next up: ${next.skill.name}, level ${next.level}.`
-    : `Every building is up, ${player.name}. Go for Gold: score 7 or more on a level 3, on two different days.`;
+  // Pip says what the big button does (the 4th grader: "Next up: Dialogue" over "▶ Start: Daily 5").
+  const firstStep = startSteps(player).find((st) => !st.done);
+  let greeting = !next
+    ? `Every building is up, ${player.name}. Go for Gold: score 7 or more on a level 3, on two different days.`
+    : island || !firstStep || firstStep.id === "level"
+      ? (firstStep || island ? `Hi ${player.name}! Next up: ${next.skill.name}, level ${next.level}.` : `That's today ✓, ${player.name}! Want more? Next up: ${next.skill.name}, level ${next.level}.`)
+      : `Hi ${player.name}! Warm up with the Daily 5, then ${next.skill.name}, level ${next.level}.`;
   // The next level is one tap away: a Play button in Pip's bubble (or on its own when Pip is off).
   let play = playButton(player);
   if (due) {
@@ -450,7 +459,7 @@ function bossCardHtml(worldId, player) {
   if (!open) return ""; // shown once it opens, so a new player's screens stay short
   const beaten = Boolean(player.bosses?.[worldId]);
   const line = !open ? `Pass ${BOSS_AFTER_LEVELS - passed} more level${BOSS_AFTER_LEVELS - passed === 1 ? "" : "s"} here to unlock it.`
-    : beaten ? "Beaten. Pip has been quiet about it." : "Pip hid six or seven mistakes in it. Catch every one on the first try to beat it.";
+    : beaten ? "Beaten. Pip has been quiet about it." : `Pip hid ${(boss.text.match(/\[/g) || []).length} mistakes in it. Catch every one on the first try to beat it.`;
   return `<section class="boss-card${beaten ? " beaten" : ""}">
     <div><h2>📝 Pip's final draft${beaten ? ' <span class="boss-done">✓ Beaten</span>' : ""}</h2>
     <p class="boss-title">${esc(boss.title)}</p><p class="note">${esc(line)}</p></div>
@@ -547,7 +556,7 @@ function finishTestout() {
   $("result-score").textContent = `${out.right} of ${play.results.length} right on the first try · ${world.name}`;
   showResultBricks({ bricks: 0, player: out.player }, "");
   $("result-pip").innerHTML = pipRemark(passed ? `The grade 3–5 levels in ${world.name} are marked Reviewed. Next up skips them now.`
-    : `${need} of ${play.results.length} needed. Look at the ones below; you can retake it any time.`);
+    : `${need} of ${play.results.length} needed. Look at the missed ones above; you can retake it any time.`);
   $("result-badges").innerHTML = "";
   $("result-review").innerHTML = reviewHtml(play);
   state.resultNext = passed ? { home: true } : { testout: play.world };
@@ -669,7 +678,8 @@ function dailyItems(player) {
   const g = player.grade;
   const known = visibleSkills(player).flatMap((skill) => [1, 2, 3]
     .filter((l) => isPassed(player, skill.id, l) || isReviewed(player, skill, l)).map((l) => `${skill.id}-${l}`));
-  const picked = pickDailyItems({ items: state.content.items, levelKeys: known, stats: player.items, count: DAILY_COUNT });
+  // At most 3 from one skill, so a player who has passed only commas gets some variety too.
+  const picked = pickDailyItems({ items: state.content.items, levelKeys: known, stats: player.items, count: DAILY_COUNT, perSkill: 3 });
   if (picked.length >= DAILY_COUNT) return picked;
   const fill = visibleSkills(player).flatMap((skill) => [1, 2, 3]
     .filter((l) => skill.grades[l - 1] <= g && skill.grades[l - 1] >= g - 1 && isUnlocked(player, skill.id, l) && !known.includes(`${skill.id}-${l}`)).map((l) => `${skill.id}-${l}`));
@@ -739,9 +749,10 @@ function openTip(skillId, level, { review = false, during = false } = {}) {
   $("tip-level").textContent = `${skill.name} · Level ${level} · Grade ${skill.grades[level - 1]}`;
   $("tip-pip").innerHTML = settings().pip ? pipArt(48) : "";
   $("tip-title").textContent = tip.title;
-  // Grades 3–5 (the 4th-grade playtester): the first two sentences, then the rest under "More about this rule".
   const sentences = tip.rule.split(/(?<=[.!?])\s+(?=[A-Z(“"])/);
-  if (!grownPip() && !review && sentences.length > 2) {
+  // Long rules show two sentences and "More about this rule" (grades 3–5 from three sentences, 6–8 from four);
+  // 📘 in the middle of a question always shows the whole rule, so the part the question needs isn't hidden.
+  if (!review && !during && sentences.length > (grownPip() ? 3 : 2)) {
     $("tip-rule").innerHTML = `${esc(sentences.slice(0, 2).join(" "))}<details class="tip-more"><summary>More about this rule</summary>${esc(sentences.slice(2).join(" "))}</details>`;
   } else $("tip-rule").textContent = tip.rule;
   $("tip-example").textContent = tip.example;
@@ -872,8 +883,9 @@ function finishDaily() {
   const now = Date.now();
   const before = streakDays(state.player.days, now);
   const out = recordPractice(state.player, { kind: "daily", results: play.results, now, durationMs: now - play.startedAt });
-  // A mystery prize once a day: a surprise decoration in the Town Square (not on the grades 6–8 blueprint).
-  const prize = blueprintOn(out.player) ? null : mysteryPrize(out.player, now);
+  // The mystery prize comes when the day's steps are both done, so it never pushes the lesson aside.
+  const nextLevel = out.player.lessonOn !== localDate(now) && nextUp(out.player);
+  const prize = !nextLevel && !blueprintOn(out.player) ? mysteryPrize(out.player, now) : null;
   savePlayer(prize ? prize.player : out.player);
   const streak = streakDays(out.player.days, now);
   $("progress-fill").style.width = "100%";
@@ -881,16 +893,18 @@ function finishDaily() {
   $("result-title").textContent = `🔥 ${streak}-day streak`;
   $("result-score").textContent = `Daily 5: ${out.right} of ${play.results.length} right on the first try`;
   showResultBricks(out, `+${out.bricks} 🧱 bricks <span class="note">· ${out.player.bricks} to build with</span>`);
-  const line = streak > before ? (streak === 1 ? "Day one. Come back tomorrow and it's a streak." : `That's ${streak} days. See you tomorrow.`)
-    : "Done for today. The streak already counts today.";
+  const streakLine = streak === 1 ? "Come back tomorrow to make it a streak." : `${streak} days in a row.`;
+  const line = nextLevel ? `Warm-up done! Now: ${nextLevel.skill.name}, level ${nextLevel.level}.` : `That's today ✓ ${streakLine}`;
   $("result-pip").innerHTML = pipRemark(line);
   $("result-badges").innerHTML = prize ? `<p class="mystery-prize"><span class="prize-emoji" aria-hidden="true">🎁</span> Mystery prize: <strong>${prize.item.emoji} ${esc(prize.item.name)}</strong>! It's in the Town Square. Drag it anywhere in Build.</p>` : "";
   $("result-review").innerHTML = reviewHtml(play);
-  // After the warm-up, the day's lesson is next (unless there's a prize to place first).
-  const nextLevel = out.player.lessonOn !== localDate(now) && nextUp(out.player);
-  state.resultNext = prize ? { prize: prize.player.decor.at(-1).uid } : nextLevel ? { skillId: nextLevel.skill.id, level: nextLevel.level } : { home: true };
-  $("result-next").textContent = prize ? "🎁 Place my prize" : nextLevel ? `Next: ${nextLevel.skill.name}, level ${nextLevel.level}` : blueprintOn(out.player) ? "Back to home" : "Back to the island";
-  $("result-again").hidden = true;
+  // After the warm-up, the day's lesson is next; with both done, the day is done (and "keep going" is the small link).
+  const more = !nextLevel && nextUp(out.player);
+  state.resultNext = nextLevel ? { skillId: nextLevel.skill.id, level: nextLevel.level } : prize ? { prize: prize.player.decor.at(-1).uid } : { home: true };
+  state.resultAlt = more ? { skillId: more.skill.id, level: more.level } : null;
+  $("result-next").textContent = nextLevel ? `Next: ${nextLevel.skill.name}, level ${nextLevel.level}` : prize ? "🎁 Place my prize" : "Done for today";
+  $("result-again").hidden = !more;
+  if (more) $("result-again").textContent = `or keep going: ${more.skill.name}, level ${more.level}`;
   $("result-rule").hidden = true;
   openOverlay("result-overlay");
   if (out.right === play.results.length) {
@@ -916,7 +930,7 @@ function finishPractice() {
   const goal = `Get ${PRACTICE_GOAL} right on the first try to ${summit ? "plant a flag at the top" : "float a boat on the lake"}.`;
   const line = out.reached
     ? (summit ? `Flag number ${out.player.summits} is flying on Grammar Peaks. You remembered your rules!` : `Boat number ${out.player.lakeWins} is out on the lake. Great spelling!`)
-    : `${goal} Look at the ones below, then try again.`;
+    : `${goal} Look at the missed ones above, then try again.`;
   $("result-pip").innerHTML = pipRemark(line);
   $("result-badges").innerHTML = newBadges.map((b) => `<p class="new-badge"><span aria-hidden="true">${b.emoji}</span> New badge: <strong>${esc(badgeName(b))}</strong></p>`).join("");
   $("result-review").innerHTML = reviewHtml(play);
@@ -1221,7 +1235,7 @@ function answerHtml(item) {
 const chosenLine = (chosen) => (chosen ? `<p class="chosen-line"><span class="answer-tag">You chose:</span> ${esc(chosen)}</p>` : "");
 /** Grades 6–8: one line on why, after a right answer too, for items whose hint states the rule. */
 const WHY_TYPES = new Set(["which", "mark", "fix", "sort", "check", "join", "build"]);
-const whyLine = (item) => (grownPip() && state.play?.mode !== "speed" && WHY_TYPES.has(item.type) && item.hint ? `<p class="why-line"><span class="answer-tag">Why:</span> ${esc(item.hint)}</p>` : "");
+const whyLine = (item) => (grownPip() && state.play?.mode !== "speed" && state.play?.tries === 1 && WHY_TYPES.has(item.type) && item.hint ? `<p class="why-line"><span class="answer-tag">Why:</span> ${esc(item.hint)}</p>` : "");
 
 function handleAnswer(right) {
   const play = state.play;
@@ -1244,7 +1258,9 @@ function handleAnswer(right) {
     $("feedback").className = "feedback hint";
     // Typed answers can say exactly what slipped (a capital, a comma); otherwise the item's own hint.
     const hintText = play.ctrl.missHint?.() || item.hint;
-    $("feedback").innerHTML = `${pipFace()}<div><p><strong>${esc(pipWords().hint)}</strong> ${esc(hintText)}</p><p class="try-again">Try again.</p></div>`;
+    const picked = play.ctrl.chosen?.(); // the 8th grader: say what I got wrong, not only the rule
+    const pickedLine = picked && item.type === "which" ? `Not “${picked}”. ` : "";
+    $("feedback").innerHTML = `${pipFace()}<div><p><strong>${esc(pipWords().hint)}</strong> ${esc(pickedLine + hintText)}</p><p class="try-again">Try again.</p></div>`;
     updateCheck();
   } else {
     const chosen = play.ctrl.chosen?.() || null;
@@ -1253,7 +1269,8 @@ function handleAnswer(right) {
     play.ctrl.reveal();
     if (play.tries === 1) sound("wrong", s.sound); // a two-choice miss: the answer is shown right away
     $("feedback").className = "feedback shown";
-    $("feedback").innerHTML = `${pipFace()}<div><p><strong>${esc(play.tries === 1 ? pipWords().oneShot : pipWords().shown)}</strong></p>${chosenLine(chosen)}`
+    const shownWords = play.mode === "testout" ? "Here's the answer." : play.tries === 1 ? pipWords().oneShot : pipWords().shown;
+    $("feedback").innerHTML = `${pipFace()}<div><p><strong>${esc(shownWords)}</strong></p>${chosenLine(chosen)}`
       + `<p class="answer-line">${chosen ? '<span class="answer-tag">Correct:</span> ' : ""}${answerHtml(item)}</p><p class="hint-line">${esc(item.hint)}</p></div>`;
   }
 }
@@ -1342,8 +1359,11 @@ function finishLevel() {
   const starsBefore = state.player.levels[`${play.skillId}-${play.level}`]?.stars ?? 0;
   const now = Date.now();
   const out = recordLevel(state.player, { skill: play.skillId, level: play.level, results: play.results, now, durationMs: now - play.startedAt });
+  const completesDay = state.player.lessonOn !== localDate(now) && out.player.dailyOn === localDate(now) && play.mode === undefined;
   out.player.lessonOn = localDate(now); // the Start here card's first step is done for today
   out.player.lessonLast = { skill: play.skillId, level: play.level };
+  const dayPrize = completesDay && !blueprintOn(out.player) ? mysteryPrize(out.player, now) : null;
+  if (dayPrize) out.player = dayPrize.player;
   savePlayer(out.player);
   const s = settings();
   const skill = skillById(play.skillId);
@@ -1386,6 +1406,14 @@ function finishLevel() {
     state.resultNext = { practice: "daily" };
     $("result-next").textContent = "Next: Daily 5";
     $("result-again").textContent = nextLevel ? `or level ${nextLevel}` : "or play again";
+  } else if (out.passed && completesDay) {
+    // Both of today's steps are done: say so, give the prize, and keep "keep going" as the small link.
+    state.resultAlt = state.resultNext;
+    state.resultNext = dayPrize ? { prize: dayPrize.player.decor.at(-1).uid } : { home: true };
+    $("result-next").textContent = dayPrize ? "🎁 Place my prize" : "Done for today";
+    $("result-again").textContent = nextLevel ? `or keep going: level ${nextLevel}` : "or play again";
+    $("result-pip").innerHTML = pipRemark(`That's today ✓ ${pipWords().passed[0]}`);
+    if (dayPrize) $("result-badges").innerHTML += `<p class="mystery-prize"><span class="prize-emoji" aria-hidden="true">🎁</span> Mystery prize: <strong>${dayPrize.item.emoji} ${esc(dayPrize.item.name)}</strong>! It's in the Town Square.</p>`;
   }
   openOverlay("result-overlay");
   if (out.passed) {
@@ -2078,6 +2106,8 @@ function deleteEditPlayer() {
 
 function openSettings() {
   fillSettings();
+  $("settings-title").textContent = `Settings for ${state.player.name}`;
+  document.querySelector("#settings-overlay .settings-grown").open = false;
   $("backup-status").textContent = "";
   openOverlay("settings-overlay");
 }
@@ -2144,6 +2174,7 @@ function changeSetting() {
   };
   $("names-fields").hidden = !player.settings.names.on;
   savePlayer(player);
+  applyTheme(); // the look, font and size change right away (there's no Done button to wait for)
 }
 
 /* ==================== Wiring ==================== */
