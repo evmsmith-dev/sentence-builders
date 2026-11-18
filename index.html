@@ -70,11 +70,13 @@
       <button type="button" id="rules-btn" class="tool-btn"><span class="tool-emoji" aria-hidden="true">📘</span><span>Rule Book</span></button>
       <button type="button" id="badges-btn" class="tool-btn"></button>
       <button type="button" class="tool-btn" data-progress><span class="tool-emoji" aria-hidden="true">📊</span><span>Progress</span></button>
-      <button type="button" class="tool-btn island-only" data-speed><span class="tool-emoji" aria-hidden="true">⏱️</span><span>Speed</span></button>
+      <!-- Island Home: one Backpack holds the Rule Book, Badges and Progress, so the map stays clear (expert panel). -->
+      <button type="button" id="backpack-btn" class="tool-btn island-only backpack-btn"></button>
     </nav>
     <!-- Island Home (Settings, grades 3–5): the island fills the screen, with these two buttons under Pip. -->
     <nav id="island-bar" class="island-bar" aria-label="Daily 5, Notice Board and building" hidden>
       <button type="button" id="island-daily" class="island-btn"></button>
+      <button type="button" id="island-speed" class="island-btn" data-speed><span aria-hidden="true">⏱️</span> Speed</button>
       <button type="button" id="island-board" class="island-btn" data-week></button>
       <button type="button" id="island-build" class="island-btn"></button>
     </nav>
@@ -331,6 +333,17 @@
     </div>
   </div>
 
+  <div id="backpack-overlay" class="overlay" hidden>
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="backpack-title">
+      <h2 id="backpack-title">🎒 Backpack</h2>
+      <div class="backpack-tiles">
+        <button type="button" class="backpack-tile" data-pack="rules"><span class="tool-emoji" aria-hidden="true">📘</span><span>Rule Book</span></button>
+        <button type="button" class="backpack-tile" data-pack="badges"></button>
+        <button type="button" class="backpack-tile" data-pack="progress"><span class="tool-emoji" aria-hidden="true">📊</span><span>Progress</span></button>
+      </div>
+      <div class="sheet-actions"><button type="button" class="secondary" data-close>Close</button></div>
+    </div>
+  </div>
   <div id="week-overlay" class="overlay" hidden>
     <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="week-title">
       <h2 id="week-title">📌 Notice Board</h2>
@@ -385,6 +398,7 @@
       </section>
       <details class="settings-grown fold">
         <summary>For grown-ups</summary>
+      <button type="button" class="secondary see-progress" data-progress>📊 See progress</button>
       <label class="switch-row" id="island-toggle"><span class="switch-text"><span>Island Home</span><small>The island fills the screen</small></span><input type="checkbox" role="switch" id="set-island"></label>
       <div id="unlock-setting" class="unlock-setting">
         <label for="set-unlock">Levels above my grade <span class="note">(parents: press and hold to change)</span></label>

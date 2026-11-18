@@ -388,6 +388,20 @@ function renderHome() {
   const shown = visibleBadgeIds(player);
   const total = shown.size;
   $("badges-btn").innerHTML = `<span class="tool-emoji" aria-hidden="true">🏅</span><span>Badges ${earned}/${total}</span>`;
+  // Island Home's Backpack: a dot when a badge was earned since Badges was last opened.
+  if (player.badgesSeen == null) savePlayer({ ...state.player, badgesSeen: earned });
+  const newBadge = earned > (state.player.badgesSeen ?? earned);
+  $("backpack-btn").innerHTML = `<span class="tool-emoji" aria-hidden="true">🎒</span><span>Backpack</span>${newBadge ? '<span class="island-dot" aria-hidden="true">!</span>' : ""}`;
+  $("backpack-btn").setAttribute("aria-label", `Backpack: Rule Book, badges and progress${newBadge ? ". A new badge!" : ""}`);
+  document.querySelector('[data-pack="badges"]').innerHTML = `<span class="tool-emoji" aria-hidden="true">🏅</span><span>Badges ${earned}/${total}</span>${newBadge ? '<span class="island-dot" aria-label="new">!</span>' : ""}`;
+  state.badgeCount = earned;
+  // The first time on Island Home, a word about the Backpack (once).
+  document.querySelector("#home .backpack-hint")?.remove();
+  if (islandOn(player) && !state.player.backpackTaught) {
+    savePlayer({ ...state.player, backpackTaught: true });
+    $("backpack-btn").insertAdjacentHTML("afterend", '<span class="backpack-hint" role="status">🎒 Your Rule Book, badges and progress are in here!</span>');
+    setTimeout(() => document.querySelector("#home .backpack-hint")?.remove(), 6000);
+  }
   $("build-btn").innerHTML = buildCardHtml(player);
   $("week-btn").innerHTML = weekCardHtml(player);
   $("week-btn").hidden = !boardStepShown(player);
@@ -1888,6 +1902,8 @@ function badgeName(badge) {
 }
 
 function renderBadges() {
+  // Opening Badges clears the Backpack's "new badge" dot.
+  if (state.badgeCount != null && state.player.badgesSeen !== state.badgeCount) savePlayer({ ...state.player, badgesSeen: state.badgeCount });
   const player = state.player;
   const earned = currentBadges(player);
   const skillRows = visibleSkills(player).map((skill) => {
@@ -2514,6 +2530,18 @@ function wire() {
   });
   $("settings-btn").addEventListener("click", openSettings);
   $("badges-btn").addEventListener("click", renderBadges);
+  $("backpack-btn").addEventListener("click", () => openOverlay("backpack-overlay"));
+  $("backpack-overlay").addEventListener("click", (event) => {
+    const tile = event.target.closest("[data-pack]");
+    if (!tile) return;
+    closeOverlay("backpack-overlay");
+    if (tile.dataset.pack === "rules") renderRules(null, "home");
+    else if (tile.dataset.pack === "badges") renderBadges();
+    else {
+      state.progressTab = "me";
+      renderParent();
+    }
+  });
   $("tip-say").addEventListener("click", () => {
     const { tip } = state.tip;
     say(`${tip.title}. ${tip.rule} For example: ${tip.example}`);

@@ -185,7 +185,7 @@ test("Progress: open to everyone from the home screen; break reminder and backup
   ava.days = ["2026-11-14"];
   await openApp(page, { players: [ava, player({ id: "p2", name: "Max", avatar: "🐯", grade: 7 })], current: "p2" });
   await page.locator("#settings-btn").click();
-  await expect(page.locator("#settings-overlay [data-progress]")).toHaveCount(0);
+  await expect(page.locator("#settings-overlay [data-progress]")).toHaveCount(1); // 📊 See progress, under For grown-ups
   await page.locator("#settings-overlay [data-close]").click();
   await page.locator("#home [data-progress]").click();
   await expect(page.locator("#parent .screen-title")).toHaveText("📊 Progress");
@@ -1519,7 +1519,16 @@ test("Island Home: Daily 5 and Speed are on the island, Play stays at the peaks,
   // Today's lesson is done, so finishing the Daily 5 completes the day and brings the mystery prize.
   await openApp(page, { players: [{ ...player({ grade: 4, settings: { islandHome: true } }), boardSeenOn: "2026-11-17", lessonOn: "2026-11-17" }], current: "p1" });
   await expect(page.locator("#island-daily")).toContainText("Daily 5");
-  await expect(page.locator(".home-tools [data-speed]")).toBeVisible();
+  await expect(page.locator("#island-bar [data-speed]")).toBeVisible(); // Speed sits with the other things to play
+  // Rule Book, Badges and Progress are in the Backpack, so the map stays clear.
+  await expect(page.locator("#rules-btn")).toBeHidden();
+  await expect(page.locator("#home .backpack-hint")).toContainText("Rule Book, badges and progress"); // the first time
+  await page.locator("#backpack-btn").click();
+  await expect(page.locator("#backpack-overlay .backpack-tile")).toHaveCount(3);
+  await expect(page.locator('#backpack-overlay [data-pack="badges"]')).toContainText("Badges 0/");
+  await page.locator('#backpack-overlay [data-pack="rules"]').click();
+  await expect(page.locator("#rules")).toBeVisible();
+  await page.locator("#rules-back").click();
   // Tapping the locked Build or the peaks before any level keeps ▶ Play in Pip's bubble.
   await page.locator("#island-build").click();
   await expect(page.locator("#pip-home .next-play")).toBeVisible();
@@ -1948,3 +1957,18 @@ for (const [name, vp] of [["iPad", { width: 1180, height: 820 }], ["phone", { wi
     await expect(page.locator("#map-fit")).toBeDisabled();
   });
 }
+
+test("Island Home: the Backpack shows a dot for a new badge, and opening Badges clears it; Progress is under For grown-ups too", async ({ page }) => {
+  const p = { ...player({ grade: 4, settings: { islandHome: true }, levels: { "commas-1": { stars: 2, best: 7, plays: 1 } } }), days: ["2026-11-17"], badgesSeen: 0, backpackTaught: true };
+  await openApp(page, { players: [p], current: "p1" });
+  await page.evaluate(() => document.querySelectorAll(".overlay").forEach((o) => { o.hidden = true; }));
+  await expect(page.locator("#backpack-btn .island-dot")).toBeVisible();
+  await page.locator("#backpack-btn").click();
+  await page.locator('#backpack-overlay [data-pack="badges"]').click();
+  await expect(page.locator("#badges")).toBeVisible();
+  await page.evaluate(() => document.querySelector('#badges .back')?.click());
+  await expect(page.locator("#backpack-btn .island-dot")).toHaveCount(0);
+  await page.locator("#settings-btn").click();
+  await page.locator("#settings-overlay .settings-grown summary").click();
+  await expect(page.locator("#settings-overlay .see-progress")).toBeVisible();
+});

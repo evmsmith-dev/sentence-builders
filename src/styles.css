@@ -1310,3 +1310,18 @@ body.island-home #home #pip-home { bottom: calc(env(safe-area-inset-bottom) + va
 /* Build: the selected decoration glows, so it's clear which one Small / Medium / Large and Put away will change. */
 .area-view .decor.selected { filter: drop-shadow(0 0 2px #fff) drop-shadow(0 0 3px #f2a900) drop-shadow(0 0 6px #f2a900); }
 .build-size-label { color: var(--muted); font-size: 0.85rem; font-weight: 600; }
+
+/* Island Home: the Backpack replaces the Rule Book, Badges and Progress buttons on the map; Speed is in the bottom bar. */
+#island-speed { display: none; }
+body.island-home #island-speed { display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
+body.island-home #home .home-tools > .tool-btn:not(.island-only) { display: none; }
+body.island-home #home .home-tools .backpack-btn { position: relative; flex-direction: row; gap: 6px; padding: 6px 12px; font-size: 0.95rem; min-height: 44px; }
+body.island-home #home .home-tools .backpack-btn .tool-emoji { font-size: 1.4rem; }
+.backpack-btn .island-dot { position: absolute; top: -6px; right: -6px; margin: 0; }
+.backpack-hint { align-self: center; padding: 6px 10px; border-radius: 12px; background: var(--card); box-shadow: var(--shadow); font-weight: 700; font-size: 0.9rem; pointer-events: auto; }
+.backpack-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 8px 0 4px; }
+.backpack-tile { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 16px 6px; min-height: 96px; border: 2px solid var(--border); border-radius: 16px;
+  background: var(--card); color: var(--text); font: inherit; font-weight: 700; cursor: pointer; }
+.backpack-tile .tool-emoji { font-size: 2rem; }
+.backpack-tile .island-dot { position: absolute; top: 6px; right: 6px; margin: 0; }
+.see-progress { margin: 4px 0 12px; }
