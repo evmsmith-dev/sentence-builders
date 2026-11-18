@@ -1336,3 +1336,9 @@ body.island-home #home .home-tools .backpack-btn .tool-emoji { font-size: 1.4rem
   body.island-home .island-bar .island-dot { position: absolute; top: 2px; right: 4px; margin: 0; width: 16px; height: 16px; font-size: 0.7rem; }
   body.island-home .island-bar .island-btn { position: relative; }
 }
+
+/* Revision Ridge's lock: each skill's path, closest first, ✓ for a skill already at Gold. */
+.ridge-paths { margin: 6px 0; padding-left: 18px; }
+.ridge-paths li { margin: 2px 0; }
+.pre-done { color: #1e7b34; font-weight: 700; }
+.pre-todo { color: var(--muted); }

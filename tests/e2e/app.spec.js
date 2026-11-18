@@ -1996,5 +1996,21 @@ test("Island Home: tapping locked Revision Ridge, Pip says it opens in grade 6 o
   const vp = page.viewportSize();
   await page.mouse.click(vp.width * 0.5, vp.height * 0.66);
   await expect(page.locator("#pip-home")).toContainText("Revision Ridge opens in grade 6, but you can open its skills sooner!");
+  await expect(page.locator("#pip-home")).toContainText("to ⭐ Gold (7 or more out of 8 on level 3, on two different days) to open");
+  await expect(page.locator("#pip-home")).not.toContainText(" and Capital"); // skill names joined with +, never "and … and"
+  // Gold is explained once; the next time it's just ⭐ Gold.
+  await page.locator("#map-fit").click();
+  await page.mouse.click(vp.width * 0.5, vp.height * 0.66);
   await expect(page.locator("#pip-home")).toContainText("to ⭐ Gold to open");
+  // Parents see why it can open early, under For grown-ups.
+  await page.locator("#settings-btn").click();
+  await page.locator("#settings-overlay .settings-grown summary").click();
+  await expect(page.locator("#ridge-note")).toContainText("Revision Ridge (grades 6–8) can open early");
+});
+
+test("Revision Ridge for a 3rd grader: the map just says it opens in grade 6", async ({ page }) => {
+  await openApp(page, { players: [player({ grade: 3 })], current: "p1" });
+  await expect(page.locator(".town")).toContainText("Opens in grade 6");
+  await expect(page.locator(".town")).not.toContainText("or sooner");
+  await expect(page.locator('[data-world="desk"]')).not.toContainText("or early");
 });

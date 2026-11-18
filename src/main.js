@@ -429,7 +429,7 @@ function renderHome() {
     const skills = skillsInWorldFor(world.id, player);
     const built = skills.reduce((n, s) => n + [1, 2, 3].filter((l) => isPassed(player, s.id, l)).length, 0);
     const open = worldOpenFor(world, player);
-    const meta = open ? `${built}/${skills.length * 3} built` : world.ready ? (unlockMode(player) === "mastery" ? `Grade ${world.minGrade}+, or early with ⭐` : `Grade ${world.minGrade}+`) : "Coming soon";
+    const meta = open ? `${built}/${skills.length * 3} built` : world.ready ? (unlockMode(player) === "mastery" && player.grade > 3 ? `Grade ${world.minGrade}+, or early with ⭐` : `Grade ${world.minGrade}+`) : "Coming soon";
     return `<button type="button" class="world-card${open ? "" : " soon"}" data-world="${world.id}" ${open ? "" : "disabled"}>
       <span class="world-emoji" aria-hidden="true">${world.emoji}</span>
       <span class="world-text"><span class="world-name">${esc(world.name)}</span><span class="world-blurb">${esc(world.blurb)}</span></span>
@@ -1678,9 +1678,13 @@ function drawMapPanel() {
   if (here.locked) {
     const world = WORLDS.find((w) => w.id === here.world);
     $("map-panel").innerHTML = `<h3 class="map-title">🔒 ${esc(here.name)}</h3>
-      <p class="map-hint">${esc(lockedWorldText(world, player).long)} ${esc(world.blurb)}.</p><div class="map-actions">${whole}</div>`;
-    // Island Home hides this panel, so Pip says it.
-    if (islandOn(player) && player.pipMinOn !== localDate(Date.now())) $("pip-home").innerHTML = pipSays(lockedWorldText(world, player).pip, settings().pip);
+      <div class="map-hint">${lockedWorldText(world, player).html} <p>${esc(world.blurb)}.</p></div><div class="map-actions">${whole}</div>`;
+    // Island Home hides this panel, so Pip says it (only when the Ridge is tapped, never on his own).
+    if (islandOn(player) && player.pipMinOn !== localDate(Date.now())) {
+      const text = lockedWorldText(world, player);
+      $("pip-home").innerHTML = pipSays(text.pip, settings().pip);
+      if (text.explainsGold) savePlayer({ ...state.player, goldExplained: true });
+    }
     return;
   }
   const skills = districtSkills(here, player);
@@ -1703,25 +1707,25 @@ function lockedWorldText(world, player) {
   const mode = unlockMode(player);
   if (mode !== "mastery") {
     const long = `This part of the island opens in grade ${world.minGrade}.`;
-    return { short: `Opens in grade ${world.minGrade}`, long, pip: long };
+    return { short: `Opens in grade ${world.minGrade}`, long, html: esc(long), pip: long };
   }
-  const paths = skillsInWorld(world.id).filter((sk) => CHALLENGE_PREREQS[sk.id]).map((sk) => {
-    const pre = CHALLENGE_PREREQS[sk.id];
-    const gold = pre.filter((id) => skillTier(player, id) === 3).length;
-    return `${sk.name}: ${pre.map((id) => skillById(id).name).join(" and ")} at Gold${gold ? ` (${gold} of ${pre.length} done)` : ""}`;
-  });
-  // Pip names just the closest one, so a 4th grader isn't handed a paragraph.
-  const closest = skillsInWorld(world.id).filter((sk) => CHALLENGE_PREREQS[sk.id])
+  // A skill name can have "and" in it (Commas and colons), so the prerequisites are joined with "+".
+  const names = (ids) => ids.map((id) => skillById(id).name).join(" + ");
+  const paths = skillsInWorld(world.id).filter((sk) => CHALLENGE_PREREQS[sk.id])
     .map((sk) => ({ sk, pre: CHALLENGE_PREREQS[sk.id], left: CHALLENGE_PREREQS[sk.id].filter((id) => skillTier(player, id) !== 3) }))
-    .sort((a, b) => a.left.length - b.left.length || a.pre.length - b.pre.length)[0];
+    .sort((a, b) => a.left.length - b.left.length || a.pre.length - b.pre.length); // closest first
+  const closest = paths[0];
+  // Gold is explained in kid words the first time Pip brings it up (the 4th grader didn't know it takes two days).
+  const goldWords = player.goldExplained ? "⭐ Gold" : "⭐ Gold (7 or more out of 8 on level 3, on two different days)";
   const pip = closest
-    ? `${world.name || "This place"} opens in grade ${world.minGrade}, but you can open its skills sooner! Closest: get ${closest.left.map((id) => skillById(id).name).join(" and ")} to ⭐ Gold to open ${closest.sk.name}.`
+    ? `${world.name} opens in grade ${world.minGrade}, but you can open its skills sooner! Closest: get ${closest.left.length ? names(closest.left) : names(closest.pre)} to ${goldWords} to open ${closest.sk.name}.`
     : `This part of the island opens in grade ${world.minGrade}.`;
-  return {
-    pip,
-    short: `Opens in grade ${world.minGrade}, or early with ⭐ Gold`,
-    long: `This part of the island opens in grade ${world.minGrade}, or sooner: each skill opens as a ⭐ Challenge Trail once the skills it builds on are Gold. ${paths.join("; ")}.`,
-  };
+  const long = `This part of the island opens in grade ${world.minGrade}, or sooner: each skill opens as a ⭐ Challenge Trail once the skills it builds on are at Gold.`;
+  const html = `${esc(long)}<ul class="ridge-paths">${paths.map(({ sk, pre }) => `<li><strong>${esc(sk.name)}:</strong> ${pre.map((id) => {
+    const done = skillTier(player, id) === 3;
+    return `<span class="${done ? "pre-done" : "pre-todo"}" aria-label="${esc(skillById(id).name)}${done ? ", Gold" : ", not Gold yet"}">${done ? "✓" : "○"} ${esc(skillById(id).name)}</span>`;
+  }).join(" + ")}</li>`).join("")}</ul>`;
+  return { pip, explainsGold: !player.goldExplained, short: `Opens in grade ${world.minGrade}, or early with ⭐ Gold`, long, html };
 }
 
 function openSkillSheet(skillId) {
@@ -2236,6 +2240,7 @@ function fillSettings() {
   $("set-calm").checked = Boolean(s.calm);
   $("set-showisland").checked = Boolean(s.showIsland);
   $("unlock-setting").hidden = state.player.grade > CHALLENGE_UP_TO_GRADE;
+  $("ridge-note").hidden = unlockMode(state.player) !== "mastery";
   $("set-unlock").value = s.unlock || "mastery";
   $("set-unlock").hidden = true;
   $("unlock-hold").hidden = false;

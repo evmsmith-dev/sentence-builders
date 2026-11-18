@@ -296,7 +296,7 @@ function districtSvg(player, district, { fresh, rising, week = null, blueprint =
       <path d="${outline}" fill="none" stroke="#a9b4c6" stroke-width="3" stroke-dasharray="10 8"/>
       <text x="180" y="78" text-anchor="middle" font-size="26" font-weight="700" fill="#5b6b85">🔒 ${esc(district.name)}</text>
       <text x="180" y="134" text-anchor="middle" font-size="16" font-weight="700" fill="#5b6b85">Opens in grade ${world.minGrade}</text>
-      ${unlockMode(player) === "mastery" ? '<text x="180" y="156" text-anchor="middle" font-size="14" fill="#5b6b85">or sooner: ⭐ Gold opens Challenge Trails</text>' : ""}`;
+      ${unlockMode(player) === "mastery" && player.grade > 3 ? '<text x="180" y="156" text-anchor="middle" font-size="14" fill="#5b6b85">or sooner: ⭐ Gold opens Challenge Trails</text>' : ""}`;
   }
   const rows = pathRows(district, player);
   const park = rows ? SCENE.park + rows * ROW_H + 20 : SCENE.park;
