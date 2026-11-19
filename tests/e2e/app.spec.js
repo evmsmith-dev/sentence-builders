@@ -614,10 +614,10 @@ test("Labels reminder shows the level's labels and patterns, and works on Build 
   await expect(page.locator("#labels-list")).toContainText("direct object");
 });
 
-test("Mark it up: wrong marks give a hint, then the answer; right marks finish the flow", async ({ page }) => {
+test("Mark it up (Circle the nouns on): wrong marks give a hint, then the answer; right marks finish the flow", async ({ page }) => {
   const { items } = JSON.parse(readFileSync("data/content.json", "utf8"));
   const seen = Object.fromEntries(items.filter((i) => i.skill === "flow" && i.level === 2 && i.id !== "flow-2-01").map((i) => [i.id, { seen: 1, misses: 0, last: 1 }]));
-  await openApp(page, { players: [player({ grade: 5, items: seen })], current: "p1" });
+  await openApp(page, { players: [player({ grade: 5, items: seen, settings: { circleNouns: true } })], current: "p1" });
   await startLevel(page, "flow", 2, "flow");
   const item = await currentItem(page);
   const parsed = parseFlow(item);
@@ -836,7 +836,7 @@ test("noun table reminders fade once a child knows them; the Rule Book explains 
   }
   await page.locator(`#item [data-kind-pick="${parsed.kind}"]`).click();
   await page.locator(`#item [data-pattern="${parsed.pattern}"]`).click();
-  for (const task of markupTasks(parsed.words.map((w) => w.label), parsed.words.map((w) => w.word))) await markUp(page, task);
+  for (const task of markupTasks(parsed.words.map((w) => w.label), parsed.words.map((w) => w.word)).filter((t) => t.id !== "circle")) await markUp(page, task); // Circle the nouns is off
   await expect(page.locator("#item .flow-count")).toHaveText("Noun table · 1 of 8");
   await expect(page.locator("#item .nt-reminder")).toHaveCount(0);
   // Finish the table; 📘 Nouns still opens the reminder after the sentence is done.
@@ -2064,4 +2064,32 @@ test("Notice Board for a 4th grader: Help wanted, and tutor explained in the she
   await expect(page.locator(".town")).not.toContainText("TUTOR");
   await openBoard(page);
   await expect(page.locator("#week-body")).toContainText("Pip needs a tutor, someone who helps him learn.");
+});
+
+
+test("Circle the nouns: off at first, so Mark it up has 4 steps; the ? explains it; turning it on adds the noun check", async ({ page }) => {
+  const { items } = JSON.parse(readFileSync("data/content.json", "utf8"));
+  const seen = Object.fromEntries(items.filter((i) => i.skill === "flow" && i.level === 2 && i.id !== "flow-2-01").map((i) => [i.id, { seen: 1, misses: 0, last: 1 }]));
+  await openApp(page, { players: [player({ grade: 5, items: seen })], current: "p1" });
+  // Settings → Practice: off, with a ? that opens a short note.
+  await page.locator("#settings-btn").click();
+  await expect(page.locator("#set-circle")).not.toBeChecked();
+  await expect(page.locator("#help-circle")).toBeHidden();
+  await page.locator('[data-help="help-circle"]').click();
+  await expect(page.locator("#help-circle")).toContainText("You already label every noun in the Q&A Flow");
+  await expect(page.locator("#set-circle")).not.toBeChecked(); // the ? doesn't flip the switch
+  await page.locator('[data-help="help-circle"]').click();
+  await expect(page.locator("#help-circle")).toBeHidden();
+  await page.locator("#settings-overlay [data-close]").first().click();
+  await startLevel(page, "flow", 2, "flow");
+  const parsed = parseFlow(await currentItem(page));
+  for (const step of parsed.steps) {
+    const w = page.locator(`#item [data-fw="${step.index}"]`);
+    if (await w.isEnabled()) await w.click();
+    await page.locator(`#item [data-label="${step.label}"]`).click();
+  }
+  await page.locator(`#item [data-kind-pick="${parsed.kind}"]`).click();
+  await page.locator('#item [data-pattern="1"]').click();
+  await expect(page.locator("#item .flow-count")).toHaveText("Mark it up · 1 of 4");
+  await expect(page.locator("#item .flow-q")).not.toContainText("circle every noun");
 });

@@ -1198,7 +1198,8 @@ function showItem() {
   $("feedback").className = "feedback";
   $("next-btn").hidden = true;
   $("item").dataset.itemId = item.id;
-  play.ctrl = renderItem($("item"), item, {
+  // Mark it up's noun check only when Circle the nouns is on (Settings → Practice).
+  play.ctrl = renderItem($("item"), { ...item, circleNouns: Boolean(settings().circleNouns) }, {
     answer: (right) => handleAnswer(right),
     hint: (text) => showStepHint(text),
     showLabels: (labels, patterns) => openLabelHelp(labels, patterns),
@@ -2249,6 +2250,7 @@ function fillSettings() {
   const s = settings();
   $("set-break").value = String(s.breakMinutes || 0);
   $("set-autoread").checked = s.autoRead;
+  $("set-circle").checked = Boolean(s.circleNouns); // off unless turned on (the noun check repeats the flow's labels)
   $("set-pip").checked = s.pip;
   $("set-sound").checked = s.sound;
   $("set-theme").value = s.theme || "auto";
@@ -2304,7 +2306,8 @@ function changeSetting() {
     settings: { ...state.player.settings, autoRead: $("set-autoread").checked, pip: $("set-pip").checked, sound: $("set-sound").checked,
       theme: $("set-theme").value, breakMinutes: Number($("set-break").value),
       font: $("set-font").value, textSize: $("set-size").value, spacing: $("set-spacing").checked, names: readNames(),
-      showWords: $("set-showwords").checked, islandHome: $("set-island").checked, calm: $("set-calm").checked, showIsland: $("set-showisland").checked, unlock: $("set-unlock").value },
+      showWords: $("set-showwords").checked, islandHome: $("set-island").checked, calm: $("set-calm").checked, showIsland: $("set-showisland").checked, unlock: $("set-unlock").value,
+      circleNouns: $("set-circle").checked },
   };
   $("names-fields").hidden = !player.settings.names.on;
   savePlayer(player);
@@ -2591,6 +2594,15 @@ function wire() {
   $("settings-btn").addEventListener("click", openSettings);
   $("badges-btn").addEventListener("click", renderBadges);
   $("backpack-btn").addEventListener("click", () => openOverlay("backpack-overlay"));
+  // Settings: a ? beside a setting opens a short note on what it does; tap again to close it.
+  document.addEventListener("click", (event) => {
+    const q = event.target.closest(".help-q");
+    if (!q) return;
+    event.preventDefault();
+    const note = $(q.dataset.help);
+    note.hidden = !note.hidden;
+    q.setAttribute("aria-expanded", String(!note.hidden));
+  });
   $("backpack-overlay").addEventListener("click", (event) => {
     const tile = event.target.closest("[data-pack]");
     if (!tile) return;
@@ -2724,7 +2736,7 @@ function wire() {
     closeOverlay("result-overlay");
     renderHome();
   });
-  for (const id of ["set-autoread", "set-pip", "set-sound", "set-theme", "set-break", "set-font", "set-size", "set-spacing", "set-showwords", "set-island", "set-calm", "set-showisland", "set-unlock", "set-names-on", "set-pet",
+  for (const id of ["set-circle", "set-autoread", "set-pip", "set-sound", "set-theme", "set-break", "set-font", "set-size", "set-spacing", "set-showwords", "set-island", "set-calm", "set-showisland", "set-unlock", "set-names-on", "set-pet",
     ...Array.from({ length: MAX_PEOPLE }, (_, i) => [`set-name-${i}`, `set-pron-${i}`]).flat()]) $(id).addEventListener("change", changeSetting);
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {

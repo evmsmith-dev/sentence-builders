@@ -521,7 +521,10 @@ function renderFlow(root, item, { hint, complete, onChange, onTap, showLabels, n
   let revealed = false;
   let done = false;
   // Mark it up (Shurley Skill Check) runs after the last question.
-  const tasks = item.noMarkup ? [] : markupTasks(parsed.words.map((w) => w.label), parsed.words.map((w) => w.word));
+  // The noun check (circle every noun) only when the player turned on Circle the nouns: the flow just labeled them.
+  const tasks = item.noMarkup ? [] : markupTasks(parsed.words.map((w) => w.label), parsed.words.map((w) => w.word))
+    .filter((t) => t.id !== "circle" || item.circleNouns);
+  root.dataset.circle = item.circleNouns ? "1" : "0";
   let markAt = -1;
   let picked = new Set();
   const marks = {}; // word index → Set of marks drawn

@@ -1346,3 +1346,9 @@ body.island-home #home .home-tools .backpack-btn .tool-emoji { font-size: 1.4rem
 .flow-why { margin-top: 8px; }
 .flow-why .why-btn { font-weight: 700; }
 .flow-why .why-text { margin: 6px 0 0; padding: 8px 10px; border-radius: 10px; background: #eef3ff; }
+
+/* Settings: a small ? beside a setting that needs explaining, opening a short note under it. */
+.help-q { display: inline-grid; place-items: center; width: 26px; height: 26px; margin-left: 6px; padding: 0; border-radius: 50%; border: 2px solid var(--primary);
+  background: var(--card); color: var(--primary); font: inherit; font-size: 0.85rem; font-weight: 800; line-height: 1; cursor: pointer; vertical-align: middle; position: relative; }
+.help-q::after { content: ""; position: absolute; inset: -9px; } /* a 44px tap target */
+.help-pop { margin: -2px 0 10px; padding: 10px 12px; border-radius: 12px; background: #eef3ff; font-size: 0.92rem; }

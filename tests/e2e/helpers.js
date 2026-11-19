@@ -1,6 +1,12 @@
 import { expect } from "@playwright/test";
 import { readFileSync } from "node:fs";
-import { markupTasks } from "../../src/lib/markup.js";
+import { markupTasks as allMarkupTasks } from "../../src/lib/markup.js";
+
+/** The Mark it up tasks the app is showing: no noun check unless Circle the nouns is on. */
+async function shownTasks(page, labels, words) {
+  const circle = await page.evaluate(() => document.querySelector("#item[data-circle], #item [data-circle]")?.dataset.circle === "1");
+  return allMarkupTasks(labels, words).filter((t) => t.id !== "circle" || circle);
+}
 import { nounTableQuestions } from "../../src/lib/nountable.js";
 import { buildDiagram, guideOrder } from "../../src/lib/diagram.js";
 import { weekDayItems } from "../../src/lib/week.js";
@@ -266,7 +272,7 @@ export async function answer(page, { swapCompounds = false } = {}) {
         const q = nounTableQuestions(parsed.words.map((w) => w.label), parsed.words.map((w) => w.word), parsed.labels)[Number(at.slice(6))];
         await page.locator(`#item [data-nt="${q.answer}"]`).click();
       } else if (typeof at === "string" && at.startsWith("markup-")) {
-        await markUp(page, markupTasks(parsed.words.map((w) => w.label), parsed.words.map((w) => w.word))[Number(at.slice(7))]);
+        await markUp(page, (await shownTasks(page, parsed.words.map((w) => w.label), parsed.words.map((w) => w.word)))[Number(at.slice(7))]);
       } else {
         const step = steps[at];
         const pair = swapCompounds && step.question && pairs.find((p) => p.includes(step.index));
@@ -352,7 +358,7 @@ export async function diagramIt(page, item, { markupOnly = false } = {}) {
   // Skip the mark-up if it's already done (the diagram is showing).
   if (!(await page.locator("#item .dg-stage").isVisible())) {
     const words = item.tags.trim().split(/ +/).map((t) => t.split("|")[0]);
-    for (const task of markupTasks(labels, words)) await markUp(page, task);
+    for (const task of await shownTasks(page, labels, words)) await markUp(page, task);
   }
   if (markupOnly) return;
   const diagram = buildDiagram(item);
