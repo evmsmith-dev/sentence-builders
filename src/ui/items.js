@@ -16,8 +16,13 @@ import {
 } from "../lib/parse.js";
 import { FLOW_LABELS, LABELS, PATTERNS, SENTENCE_KINDS, trickyAdverb } from "../config.js";
 
-const LABELS_BUTTON = '<button type="button" class="labels-help" data-labels-help>📘 Labels</button>';
-const NOUNS_BUTTON = '<button type="button" class="labels-help" data-nouns-help>📘 Nouns</button>';
+const LABELS_BUTTON = '<button type="button" class="labels-help" data-labels-help>🏷️ Labels</button>';
+// Q&A Flow and Diagramming put their instruction in the card, so the rule and read-aloud buttons sit beside it
+// (the top prompt, which repeated it, is hidden for these).
+const CARD_TOOLS = '<span class="card-tools"><button type="button" class="say-btn small" data-card-rule aria-label="See the rule for this question">📘</button><button type="button" class="say-btn small" data-card-say aria-label="Read the question aloud">🔊</button></span>';
+// "Tap the word, then tap Done…" shows on the first Mark it up step of a session, then only after a mistake.
+let markupHowShown = false;
+const NOUNS_BUTTON = '<button type="button" class="labels-help" data-nouns-help>🏷️ Nouns</button>';
 import { shuffle } from "../lib/select.js";
 import { esc } from "./dom.js";
 import { canSay, sayParts } from "./feel.js";
@@ -544,7 +549,7 @@ function renderFlow(root, item, { hint, complete, onChange, onTap, showLabels, n
     <div class="flow-sentence">${parsed.words.map((w, i) =>
       `<button type="button" class="flow-word" data-fw="${i}"><span class="fw-label" aria-hidden="true"></span><span class="fw-text">${esc(w.word)}</span></button>`).join("")}</div>
     <div class="noun-table-wrap" hidden></div>
-    <div class="flow-ask"><div class="flow-ask-head"><p class="flow-count"></p>${LABELS_BUTTON}</div><p class="flow-q"></p><div class="flow-choices"></div><div class="flow-why" hidden></div></div>
+    <div class="flow-ask"><div class="flow-ask-head"><p class="flow-count"></p>${LABELS_BUTTON}${CARD_TOOLS}</div><p class="flow-q" aria-live="polite"></p><div class="flow-choices"></div><div class="flow-why" hidden></div></div>
   </div>`;
   const stage = () => stages[at];
   // Two words answering the same question as parts of one compound (Mia and Leo; he and I; apples and grapes).
@@ -645,8 +650,10 @@ function renderFlow(root, item, { hint, complete, onChange, onTap, showLabels, n
     const how = task.mode === "multi"
       ? "Tap the words, then tap Done. Tap a word again to undo."
       : "Tap the word, then tap Done. Tap another word to move the slash.";
+    const showHow = !markupHowShown || taskMisses > 0;
+    markupHowShown = true;
     root.querySelector(".flow-choices").innerHTML =
-      `<p class="palette-label">${how}</p><button type="button" class="btn primary markup-done" data-markup-done>Done</button>`;
+      `${showHow ? `<p class="palette-label">${how}</p>` : ""}<button type="button" class="btn primary markup-done" data-markup-done>Done</button>`;
   }
 
   function finishTask(showAnswer) {
@@ -1089,7 +1096,8 @@ function renderDiagram(root, item, hooks) {
   root.innerHTML = `<div class="diagram-item" data-type="diagram">
     <div class="dg-markup"></div>
     <div class="dg-stage" hidden>
-      <p class="flow-count">Diagram it</p>
+      <div class="flow-ask-head"><p class="flow-count">Diagram it</p>${CARD_TOOLS}</div>
+      <p class="flow-q dg-q">${guided ? "Let's diagram it together, one word at a time." : "Put each word on its line in the diagram."}</p>
       <div class="dg-wrap"><svg class="dg-svg" viewBox="0 0 ${layout.width} ${layout.height}" style="max-width:${Math.round(layout.width * 1.25)}px" role="group" aria-label="Sentence diagram"></svg></div>
       <div class="dg-guide" aria-live="polite" hidden></div>
       <p class="palette-label dg-help">Tap a word, then tap its line on the diagram.</p>

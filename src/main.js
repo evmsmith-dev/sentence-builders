@@ -1224,6 +1224,11 @@ function showItem() {
   $("say-btn").hidden = !canSay();
   // 📘 The rule for this question, without leaving the level (the senior: the Rule Book was a trip home).
   $("rule-btn").hidden = !state.content.tips[`${item.skill}-${item.level}`];
+  // Q&A Flow and Diagramming show their instruction in the card, so the top one (which repeated it) is hidden and
+  // its 📘 and 🔊 sit in the card instead (the expert panel).
+  $("play").classList.toggle("card-prompt", item.type === "flow" || item.type === "diagram");
+  $("item").querySelectorAll("[data-card-say]").forEach((b) => { b.hidden = !canSay(); });
+  $("item").querySelectorAll("[data-card-rule]").forEach((b) => { b.hidden = $("rule-btn").hidden; });
   updateCheck();
   if (settings().autoRead && item.type !== "dictate") readItem(); // a dictation plays its own sentence
 }
@@ -1505,7 +1510,7 @@ function labelGlossary(skill, level) {
     ${patterns.length > 1 ? `<ul class="pattern-list">${patterns.map((n) => `<li>${esc(PATTERNS[n])}</li>`).join("")}</ul>` : ""}</details>`;
 }
 
-/** Common/proper and singular/plural nouns: folding cards in the Rule Book, or open in the 📘 Nouns sheet. */
+/** Common/proper and singular/plural nouns: folding cards in the Rule Book, or open in the 🏷️ Nouns sheet. */
 function nounKindsHtml(open = false) {
   return NOUN_KINDS.map((k) => {
     const body = `<p class="tip-rule">${esc(k.rule)}</p><table class="noun-kinds"><thead><tr><th scope="col">${esc(k.head[0])}</th><th scope="col">${esc(k.head[1])}</th></tr></thead>
@@ -2678,6 +2683,11 @@ function wire() {
     }
   });
   $("say-btn").addEventListener("click", readItem);
+  // (On the document: #item is replaced with a fresh element for every question.)
+  document.addEventListener("click", (event) => {
+    if (event.target.closest("#item [data-card-say]")) readItem();
+    else if (event.target.closest("#item [data-card-rule]")) $("rule-btn").click();
+  });
   $("week-body").addEventListener("click", (event) => {
     const btn = event.target.closest("[data-week-day]");
     if (btn) startWeekDay(Number(btn.dataset.weekDay));

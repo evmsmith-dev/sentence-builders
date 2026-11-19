@@ -420,7 +420,7 @@ export const PIP_GROWN = {
 /** From this grade, Pip is a small line drawing with drier words, and doesn't greet on the home page. */
 export const GROWN_PIP_FROM_GRADE = 6;
 
-/** Kinds of nouns, for the noun table: shown in the Rule Book (Flow Factory and Word lists) and from 📘 Nouns. */
+/** Kinds of nouns, for the noun table: shown in the Rule Book (Flow Factory and Word lists) and from 🏷️ Nouns. */
 export const NOUN_KINDS = [
   {
     id: "common-proper", title: "Common and proper nouns", head: ["Common", "Proper"],

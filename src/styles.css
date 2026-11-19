@@ -1369,3 +1369,18 @@ body.island-home #home .home-tools .backpack-btn .tool-emoji { font-size: 1.4rem
   color: inherit; font-size: 1rem; line-height: 1; cursor: pointer; }
 .feedback-close::after { content: ""; position: absolute; inset: -4px; }
 #play #feedback { position: relative; }
+
+/* Q&A Flow and Diagramming: the instruction lives in the card; the top prompt row (a repeat) is hidden. */
+#play.card-prompt .prompt-row { display: none; }
+.card-tools { display: inline-flex; gap: 6px; margin-left: auto; }
+.flow-ask-head .labels-help { margin-left: auto; }
+.flow-ask-head .labels-help + .card-tools { margin-left: 0; }
+.card-tools .say-btn.small { min-width: 44px; min-height: 44px; font-size: 1.15rem; }
+.dg-stage .flow-ask-head { display: flex; align-items: center; gap: 8px; }
+.flow-ask-head .flow-count { white-space: nowrap; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.flow-ask-head { flex-wrap: nowrap; }
+@media (max-width: 420px) {
+  .card-tools .say-btn.small { min-width: 42px; min-height: 42px; font-size: 1.05rem; }
+  .flow-ask-head .labels-help { padding-left: 10px; padding-right: 10px; }
+  .flow-ask-head .flow-count { font-size: 0.78rem; }
+}

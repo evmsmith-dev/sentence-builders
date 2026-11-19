@@ -574,7 +574,7 @@ test("Back on a rule card opened from the results returns to the results", async
   await expect(page.locator("#result-overlay")).toBeVisible();
 });
 
-test("Flow Factory: the 📘 Labels reminder opens mid-question, costs nothing, and closes back to the sentence", async ({ page }) => {
+test("Flow Factory: the 🏷️ Labels reminder opens mid-question, costs nothing, and closes back to the sentence", async ({ page }) => {
   await openApp(page, { players: [player({ grade: 5 })], current: "p1" });
   await startLevel(page, "flow", 1, "flow");
   const before = await page.locator("#item .flow-q").textContent();
@@ -658,7 +658,7 @@ test("Mark it up (Circle the nouns on): wrong marks give a hint, then the answer
   await expect(page.locator("#item .flow-count")).toHaveText("Noun table · 1 of 8");
   await expect(page.locator("#item .flow-q")).toHaveText("What job does puppies do?");
   await expect(page.locator("#item .nt-reminder")).toHaveText("Its label from the Q&A Flow is its job.");
-  // 📘 Nouns explains common/proper and singular/plural without leaving the sentence.
+  // 🏷️ Nouns explains common/proper and singular/plural without leaving the sentence.
   await page.locator("#item [data-nouns-help]").click();
   await expect(page.locator("#nouns-overlay")).toBeVisible();
   await expect(page.locator("#nouns-overlay")).toContainText("Duluth");
@@ -839,7 +839,7 @@ test("noun table reminders fade once a child knows them; the Rule Book explains 
   for (const task of markupTasks(parsed.words.map((w) => w.label), parsed.words.map((w) => w.word)).filter((t) => t.id !== "circle")) await markUp(page, task); // Circle the nouns is off
   await expect(page.locator("#item .flow-count")).toHaveText("Noun table · 1 of 8");
   await expect(page.locator("#item .nt-reminder")).toHaveCount(0);
-  // Finish the table; 📘 Nouns still opens the reminder after the sentence is done.
+  // Finish the table; 🏷️ Nouns still opens the reminder after the sentence is done.
   await answer(page);
   await expect(page.locator("#next-btn")).toBeVisible();
   await page.locator("#item [data-nouns-help]").click();
@@ -2092,6 +2092,17 @@ test("Circle the nouns: off at first, so Mark it up has 4 steps; the ? explains 
   await page.locator('#item [data-pattern="1"]').click();
   await expect(page.locator("#item .flow-count")).toHaveText("Mark it up · 1 of 4");
   await expect(page.locator("#item .flow-q")).not.toContainText("circle every noun");
+  // The instruction is only in the card (the top prompt repeated it); 📘 and 🔊 sit beside it.
+  await expect(page.locator("#play .prompt-row")).toBeHidden();
+  await expect(page.locator("#item [data-card-rule]")).toBeVisible();
+  // "Tap the words, then tap Done…" on the first Mark it up step; after that, only after a mistake.
+  await expect(page.locator("#item .flow-choices .palette-label")).toBeVisible();
+  const tasks = markupTasks(parsed.words.map((w) => w.label), parsed.words.map((w) => w.word)).filter((t) => t.id !== "circle");
+  await markUp(page, tasks[0]);
+  await expect(page.locator("#item .flow-count")).toHaveText("Mark it up · 2 of 4");
+  await expect(page.locator("#item .flow-choices .palette-label")).toHaveCount(0);
+  await page.locator("#item [data-card-rule]").click();
+  await expect(page.locator("#tip-overlay")).toBeVisible();
 });
 
 test("Q&A Flow on a phone: the sentence stays in view while a long list of labels scrolls @layout", async ({ page }) => {
