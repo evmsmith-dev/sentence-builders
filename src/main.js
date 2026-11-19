@@ -388,9 +388,11 @@ function renderHome() {
   const shown = visibleBadgeIds(player);
   const total = shown.size;
   $("badges-btn").innerHTML = `<span class="tool-emoji" aria-hidden="true">🏅</span><span>Badges ${earned}/${total}</span>`;
-  // Island Home's Backpack: a dot when a badge was earned since Badges was last opened.
-  if (player.badgesSeen == null) savePlayer({ ...state.player, badgesSeen: earned });
-  const newBadge = earned > (state.player.badgesSeen ?? earned);
+  // A dot on 🏅 Badges (and Island Home's 🎒) when a badge, or a higher tier, was earned since Badges was last opened.
+  if (!player.badgesKnown) savePlayer({ ...state.player, badgesKnown: currentBadges(player) });
+  const newBadge = newBadgeIds(state.player).length > 0;
+  if (newBadge) $("badges-btn").insertAdjacentHTML("beforeend", '<span class="island-dot" aria-hidden="true">!</span>');
+  $("badges-btn").setAttribute("aria-label", `Badges: ${earned} of ${total}${newBadge ? ". A new badge!" : ""}`);
   $("backpack-btn").innerHTML = `<span class="tool-emoji" aria-hidden="true">🎒</span><span>Backpack</span>${newBadge ? '<span class="island-dot" aria-hidden="true">!</span>' : ""}`;
   $("backpack-btn").setAttribute("aria-label", `Backpack: Rule Book, badges and progress${newBadge ? ". A new badge!" : ""}`);
   document.querySelector('[data-pack="badges"]').innerHTML = `<span class="tool-emoji" aria-hidden="true">🏅</span><span>Badges ${earned}/${total}</span>${newBadge ? '<span class="island-dot" aria-label="new">!</span>' : ""}`;
@@ -533,7 +535,7 @@ function finishBoss() {
   $("result-next").textContent = beaten ? `Back to ${WORLDS.find((w) => w.id === play.world).name}` : "Rematch";
   $("result-again").hidden = true;
   $("result-rule").hidden = true;
-  openOverlay("result-overlay");
+  openResult();
   if (beaten) {
     sound("done", settings().sound);
     cheer(3);
@@ -594,7 +596,7 @@ function finishTestout() {
   $("result-next").textContent = passed ? "Back to home" : "Retake";
   $("result-again").hidden = true;
   $("result-rule").hidden = true;
-  openOverlay("result-overlay");
+  openResult();
   if (passed) sound("done", settings().sound);
   state.play = null;
 }
@@ -690,7 +692,7 @@ function finishSpeed() {
   $("result-again").hidden = false;
   $("result-again").textContent = `Rematch ${code}`;
   $("result-rule").hidden = true;
-  openOverlay("result-overlay");
+  openResult();
   if (best) {
     sound("done", settings().sound);
     cheer(3);
@@ -951,7 +953,7 @@ function finishDaily() {
   $("result-again").hidden = !more;
   if (more) $("result-again").textContent = `or keep going: ${more.skill.name}, level ${more.level}`;
   $("result-rule").hidden = true;
-  openOverlay("result-overlay");
+  openResult();
   if (out.right === play.results.length) {
     sound("done", settings().sound);
     cheer(3);
@@ -963,10 +965,8 @@ function finishPractice() {
   const play = state.play;
   const now = Date.now();
   const summit = play.mode === "summit";
-  const badgesBefore = currentBadges(state.player);
   const out = recordPractice(state.player, { kind: play.mode, results: play.results, now, durationMs: now - play.startedAt });
   savePlayer(out.player);
-  const newBadges = HABIT_BADGES.filter((b) => currentBadges(out.player)[b.id] && !badgesBefore[b.id]);
   $("progress-fill").style.width = "100%";
   $("result-stars").innerHTML = "";
   $("result-title").textContent = summit ? (out.reached ? "You reached the summit!" : "Almost to the top") : (out.reached ? "A new boat on the lake!" : "Nice paddling");
@@ -977,14 +977,14 @@ function finishPractice() {
     ? (summit ? `Flag number ${out.player.summits} is flying on Grammar Peaks. You remembered your rules!` : `Boat number ${out.player.lakeWins} is out on the lake. Great spelling!`)
     : `${goal} Look at the missed ones above, then try again.`;
   $("result-pip").innerHTML = pipRemark(line);
-  $("result-badges").innerHTML = newBadges.map((b) => `<p class="new-badge"><span aria-hidden="true">${b.emoji}</span> New badge: <strong>${esc(badgeName(b))}</strong></p>`).join("");
+  $("result-badges").innerHTML = ""; // new badges are shown as cards when the results open
   $("result-review").innerHTML = reviewHtml(play);
   state.resultNext = { practice: play.mode };
   $("result-next").textContent = summit ? "Climb again" : "Another round";
   $("result-again").hidden = true;
   $("result-rule").hidden = true;
   state.mapArea = "peaks"; // back on the island, the map shows the new flag or boat
-  openOverlay("result-overlay");
+  openResult();
   if (out.reached) {
     sound("done", settings().sound);
     cheer(out.right === play.results.length ? 3 : 2);
@@ -1021,7 +1021,7 @@ function finishHomework() {
   $("result-next").textContent = "Check more homework";
   $("result-again").hidden = true;
   $("result-rule").hidden = true;
-  openOverlay("result-overlay");
+  openResult();
   if (out.grade === "A+" || out.grade === "A") {
     sound("done", settings().sound);
     cheer(out.grade === "A+" ? 3 : 2);
@@ -1147,7 +1147,7 @@ function finishWeekDay() {
   $("result-again").hidden = true;
   $("result-rule").hidden = true;
   state.mapArea = "square"; // back on the island, the map shows the Notice Board (and a new banner)
-  openOverlay("result-overlay");
+  openResult();
   if (out.weekDone) {
     sound("done", settings().sound);
     cheer(3);
@@ -1226,6 +1226,7 @@ function showItem() {
   $("say-btn").hidden = !canSay();
   // 📘 The rule for this question, without leaving the level (the senior: the Rule Book was a trip home).
   $("rule-btn").hidden = !state.content.tips[`${item.skill}-${item.level}`];
+  if (state.play && !state.play.badgesBefore) state.play.badgesBefore = currentBadges(state.player); // for the new-badge cards
   // Q&A Flow and Diagramming show their instruction in the card, so the top one (which repeated it) is hidden and
   // its 📘 and 🔊 sit in the card instead (the expert panel).
   $("play").classList.toggle("card-prompt", item.type === "flow" || item.type === "diagram");
@@ -1442,11 +1443,7 @@ function finishLevel() {
     state.sessionStart = null;
   }
   $("result-pip").innerHTML = pipRemark(pipLine);
-  $("result-badges").innerHTML = out.newBadges.map(({ id, tier }) => {
-    const badge = SKILLS.find((sk) => sk.badge.id === id)?.badge || [...WORLD_BADGES, ...HABIT_BADGES].find((b) => b.id === id);
-    const tierName = SKILLS.some((sk) => sk.badge.id === id) ? ` · ${TIER_NAMES[tier - 1]}` : "";
-    return `<p class="new-badge"><span aria-hidden="true">${badge.emoji}</span> New badge: <strong>${esc(badgeName(badge))}</strong>${tierName}</p>`;
-  }).join("");
+  $("result-badges").innerHTML = ""; // new badges are shown as cards when the results open
   state.lastPlayed = { skillId: play.skillId, level: play.level };
   $("result-review").innerHTML = reviewHtml(play);
   const nextLevel = out.passed && play.level < 3 ? play.level + 1 : null;
@@ -1474,7 +1471,7 @@ function finishLevel() {
     $("result-rule").hidden = true;
     if (dayPrize) $("result-badges").innerHTML += `<p class="mystery-prize"><span class="prize-emoji" aria-hidden="true">🎁</span> Mystery prize: <strong>${dayPrize.item.emoji} ${esc(dayPrize.item.name)}</strong>! It's in the Town Square.</p>`;
   }
-  openOverlay("result-overlay");
+  openResult();
   if (out.passed) {
     sound("done", s.sound);
     cheer(out.stars);
@@ -1964,25 +1961,92 @@ function badgeName(badge) {
   return world ? `${world.name}: all Silver` : badge.name;
 }
 
+/** Badges earned (or moved up a tier) since the Badges screen was last opened. */
+function newBadgeIds(player) {
+  const known = player.badgesKnown || {};
+  const now = currentBadges(player);
+  const shown = visibleBadgeIds(player);
+  return Object.keys(now).filter((id) => shown.has(id) && (now[id] || 0) > (known[id] || 0));
+}
+
 function renderBadges() {
-  // Opening Badges clears the Backpack's "new badge" dot.
-  if (state.badgeCount != null && state.player.badgesSeen !== state.badgeCount) savePlayer({ ...state.player, badgesSeen: state.badgeCount });
   const player = state.player;
   const earned = currentBadges(player);
+  // NEW on each badge earned since last time; seeing this screen clears them (and the dots on home) next time.
+  const fresh = new Set(newBadgeIds(player));
+  savePlayer({ ...player, badgesKnown: earned });
+  const newTag = (id) => (fresh.has(id) ? '<span class="new-tag">NEW</span>' : "");
   const skillRows = visibleSkills(player).map((skill) => {
     const tier = earned[skill.badge.id];
-    return `<li class="badge${tier ? " earned" : ""}"><span class="badge-emoji" aria-hidden="true">${skill.badge.emoji}</span>
-      <span><strong>${esc(badgeName(skill.badge))}</strong> ${tier ? `<span class="tier-tag t${tier}">${TIER_NAMES[tier - 1]}</span>` : ""}
+    return `<li class="badge${tier ? " earned" : ""}${fresh.has(skill.badge.id) ? " is-new" : ""}"><span class="badge-emoji" aria-hidden="true">${skill.badge.emoji}</span>
+      <span><strong>${esc(badgeName(skill.badge))}</strong> ${tier ? `<span class="tier-tag t${tier}">${TIER_NAMES[tier - 1]}</span>` : ""}${newTag(skill.badge.id)}
       <span class="badge-how">${esc(skill.name)}: Bronze = pass level 1, Silver = pass level 2, Gold = 7 or more out of 8 on level 3 on two different days.</span></span></li>`;
   }).join("");
   const other = [...WORLD_BADGES.filter((b) => worldOpenFor(WORLDS.find((w) => w.id === b.world), player)), ...HABIT_BADGES].map((badge) => {
     const got = earned[badge.id];
     const progress = badge.measure ? ` (${Math.min(habitValue(player, badge.measure), badge.goal)}/${badge.goal})` : "";
-    return `<li class="badge${got ? " earned" : ""}"><span class="badge-emoji" aria-hidden="true">${badge.emoji}</span>
-      <span><strong>${esc(badgeName(badge))}</strong><span class="badge-how">${esc(badge.how)}${got ? "" : progress}</span></span></li>`;
+    return `<li class="badge${got ? " earned" : ""}${fresh.has(badge.id) ? " is-new" : ""}"><span class="badge-emoji" aria-hidden="true">${badge.emoji}</span>
+      <span><strong>${esc(badgeName(badge))}</strong>${newTag(badge.id)}<span class="badge-how">${esc(badge.how)}${got ? "" : progress}</span></span></li>`;
   }).join("");
   $("badge-list").innerHTML = `<h2 class="section-title">Skills</h2><ul>${skillRows}</ul><h2 class="section-title">More badges</h2><ul>${other}</ul>`;
   showScreen("badges");
+  // Open at the first new one.
+  const first = $("badge-list").querySelector(".is-new");
+  if (first) requestAnimationFrame(() => first.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }));
+}
+
+/** What a badge is, for the card on the results screen. */
+function badgeInfo(id) {
+  const skill = SKILLS.find((sk) => sk.badge.id === id);
+  return { skill, badge: skill?.badge || [...WORLD_BADGES, ...HABIT_BADGES].find((b) => b.id === id) };
+}
+
+/**
+ * New badges at the end of a round: a card each, right under the title, saying which badge, what it was for and
+ * what's next (expert panel). Grades 3–5 get a little pop; 6–8 a calm "Badge earned"; Gold a shimmer for everyone.
+ */
+function showNewBadges() {
+  const before = state.play?.badgesBefore;
+  if (!before) return;
+  const now = currentBadges(state.player);
+  const fresh = Object.keys(now).filter((id) => (now[id] || 0) > (before[id] || 0) && visibleBadgeIds(state.player).has(id))
+    .map((id) => ({ id, tier: now[id], ...badgeInfo(id) })).filter((b) => b.badge);
+  const box = $("result-badges");
+  box.querySelectorAll(".new-badge").forEach((el) => el.remove());
+  if (!fresh.length) return;
+  // The best first: Gold, then skill tiers, then the others.
+  fresh.sort((a, b) => (b.skill ? b.tier : 0) - (a.skill ? a.tier : 0));
+  const young = !grownPip();
+  const MEDALS = ["🥉", "🥈", "🥇"];
+  const card = ({ badge, skill, tier }, full) => {
+    const tierName = skill ? TIER_NAMES[tier - 1] : "";
+    const gold = skill && tier === 3;
+    const forLine = skill
+      ? (tier === 1 ? `For passing ${skill.name}, level 1.` : tier === 2 ? `For passing ${skill.name}, level 2.` : `For 7 or more out of 8 on ${skill.name}, level 3, on two different days.`)
+      : `${badge.how}.`.replace(/\.\.$/, ".");
+    const next = skill ? (tier === 1 ? "Next: pass level 2 for Silver." : tier === 2 ? "Next: 7 or more out of 8 on level 3, on two different days, for Gold." : "Top tier!") : "";
+    if (!full) return `<span class="badge-chip">${skill ? MEDALS[tier - 1] : badge.emoji} ${esc(badgeName(badge))}${tierName ? ` · ${tierName}` : ""}</span>`;
+    return `<div class="badge-card${gold ? " gold" : ""}${young ? " pop" : ""}" role="status">
+      <span class="badge-card-medal" aria-hidden="true">${skill ? MEDALS[tier - 1] : badge.emoji}</span>
+      <div><p class="badge-card-title">${young ? "New badge!" : "Badge earned"}</p>
+      <p class="badge-card-name"><span aria-hidden="true">${badge.emoji}</span> <strong>${esc(badgeName(badge))}</strong>${tierName ? ` · ${tierName}` : ""}</p>
+      <p class="badge-card-for">${esc(forLine)}${next ? ` <span class="badge-card-next">${esc(next)}</span>` : ""}</p></div></div>`;
+  };
+  const html = fresh.length <= 2 ? fresh.map((b) => card(b, true)).join("")
+    : `${card(fresh[0], true)}<p class="badge-chips">${fresh.slice(1).map((b) => card(b, false)).join("")}</p>`;
+  box.insertAdjacentHTML("afterbegin", html);
+  // Pip names it.
+  const top = fresh[0];
+  const name = `${badgeName(top.badge)}${top.skill ? `, ${TIER_NAMES[top.tier - 1]}` : ""}`;
+  const say = top.skill && top.tier === 3 ? `${name}. That's mastery. 🥇` : young ? `You earned ${name}! ${top.skill ? MEDALS[top.tier - 1] : top.badge.emoji}` : `${name}. Nice work.`;
+  const old = $("result-pip").textContent.trim();
+  $("result-pip").innerHTML = pipRemark(`${say} ${old}`);
+}
+
+/** Opens the results, with any new badges shown first. */
+function openResult() {
+  showNewBadges();
+  openOverlay("result-overlay");
 }
 
 /* ==================== Progress (open to everyone) ==================== */
@@ -2640,7 +2704,7 @@ function wire() {
     if (state.tip.during) return closeOverlay("tip-overlay"); // the 📘 button mid-question: straight back to it
     if (state.tip.review) {
       closeOverlay("tip-overlay");
-      openOverlay("result-overlay");
+      openResult();
     } else {
       startLevel(state.tip.skillId, state.tip.level);
     }
@@ -2767,7 +2831,7 @@ function wire() {
       if (open && open.id !== "result-overlay") {
         closeOverlay(open.id);
         if (open.id === "settings-overlay") renderHome();
-        if (open.id === "tip-overlay" && state.tip?.review) openOverlay("result-overlay");
+        if (open.id === "tip-overlay" && state.tip?.review) openResult();
       }
     }
   });
@@ -2789,7 +2853,7 @@ function handleBack() {
     closeOverlay(open.id);
     if (open.id === "result-overlay") renderHome();
     else if (open.id === "settings-overlay" && state.player) renderHome();
-    else if (open.id === "tip-overlay" && state.tip?.review) openOverlay("result-overlay");
+    else if (open.id === "tip-overlay" && state.tip?.review) openResult();
     return;
   }
   const screen = document.body.dataset.screen;

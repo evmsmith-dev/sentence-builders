@@ -60,7 +60,20 @@ test("play a whole level right: 3 stars, a building and badges", async ({ page }
   await expect(page.locator("#result-score")).toContainText("8 of 8 points");
   await expect(page.locator("#result-badges")).toContainText("First Brick");
   await expect(page.locator("#result-badges")).toContainText("Comma Captain");
+  // New badges are cards: which badge, the tier, what it was for, what's next; and Pip names it.
+  const card = page.locator("#result-badges .badge-card", { hasText: "Comma Captain" });
+  await expect(card).toContainText("New badge!");
+  await expect(card).toContainText("Bronze");
+  await expect(card).toContainText("For passing Commas and colons, level 1.");
+  await expect(card).toContainText("Next: pass level 2 for Silver.");
+  await expect(page.locator("#result-pip")).toContainText("You earned Comma Captain, Bronze!");
   await page.locator("#result-town").click();
+  // Home: a dot on Badges; Badges shows NEW on what was earned; after that, the dot is gone.
+  await expect(page.locator("#badges-btn .island-dot")).toBeVisible();
+  await page.locator("#badges-btn").click();
+  await expect(page.locator("#badge-list .badge.is-new", { hasText: "Comma Captain" }).locator(".new-tag")).toHaveText("NEW");
+  await page.locator("#badges .back").click();
+  await expect(page.locator("#badges-btn .island-dot")).toHaveCount(0);
   await expect(page.locator(".town")).toHaveAttribute("aria-label", /1 of 57 buildings/);
   await expect(page.locator("#pip-home")).toContainText("Warm up with the Daily 5, then Commas and colons, level 2");
 
@@ -1977,7 +1990,7 @@ for (const [name, vp] of [["iPad", { width: 1180, height: 820 }], ["phone", { wi
 }
 
 test("Island Home: the Backpack shows a dot for a new badge, and opening Badges clears it; Progress is under For grown-ups too", async ({ page }) => {
-  const p = { ...player({ grade: 4, settings: { islandHome: true }, levels: { "commas-1": { stars: 2, best: 7, plays: 1 } } }), days: ["2026-11-17"], badgesSeen: 0, backpackTaught: true, boardSeenOn: new Date().toLocaleDateString("en-CA") }; // the Notice Board was seen today
+  const p = { ...player({ grade: 4, settings: { islandHome: true }, levels: { "commas-1": { stars: 2, best: 7, plays: 1 } } }), days: ["2026-11-17"], badgesKnown: {}, backpackTaught: true, boardSeenOn: new Date().toLocaleDateString("en-CA") }; // the Notice Board was seen today
   await openApp(page, { players: [p], current: "p1" });
   await page.evaluate(() => document.querySelectorAll(".overlay").forEach((o) => { o.hidden = true; }));
   await expect(page.locator("#backpack-btn .island-dot")).toBeVisible();

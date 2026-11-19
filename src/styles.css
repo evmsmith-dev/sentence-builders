@@ -1408,3 +1408,26 @@ body.island-home #home .home-tools .backpack-btn .tool-emoji { font-size: 1.4rem
   .proofread .fix-bar .choice { min-height: 44px; padding: 4px 14px; }
   .flow-word { min-height: 54px; font-size: 1.15rem; }
 }
+
+/* New badge cards on the results screen. */
+.badge-card { display: flex; align-items: center; gap: 12px; margin: 8px 0; padding: 12px 14px; border-radius: 16px; text-align: left;
+  background: linear-gradient(135deg, #fff8e6, #ffffff); border: 2px solid #e6c46a; }
+.badge-card-medal { font-size: 2.6rem; line-height: 1; flex: none; }
+.badge-card p { margin: 0; }
+.badge-card-title { font-size: 0.8rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: #9a6b00; }
+.badge-card-name { font-size: 1.1rem; }
+.badge-card-for { font-size: 0.9rem; color: var(--muted); margin-top: 2px; }
+.badge-card-next { display: block; color: var(--text); font-weight: 600; }
+.badge-card.gold { border-color: #d4a017; background: linear-gradient(120deg, #fff4c2 0%, #ffffff 40%, #fff4c2 60%, #ffe58a 100%); background-size: 250% 100%; animation: gold-shimmer 2.4s ease-in-out 1; }
+.badge-card.pop { animation: badge-pop 0.45s cubic-bezier(.2, 1.4, .4, 1) 1; }
+.badge-card.gold.pop { animation: badge-pop 0.45s cubic-bezier(.2, 1.4, .4, 1) 1, gold-shimmer 2.4s ease-in-out 1; }
+@keyframes badge-pop { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+@keyframes gold-shimmer { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
+@media (prefers-reduced-motion: reduce) { .badge-card, .badge-card.pop, .badge-card.gold, .badge-card.gold.pop { animation: none; } }
+.badge-chips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 4px 0 8px; }
+.badge-chip { padding: 4px 10px; border-radius: 999px; background: #fff8e6; border: 1px solid #e6c46a; font-size: 0.9rem; font-weight: 600; }
+/* Badges screen: NEW on what was just earned. */
+.new-tag { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 999px; background: #c62828; color: #fff; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.05em; vertical-align: middle; }
+.badge.is-new { box-shadow: 0 0 0 3px #f2b705; }
+#badges-btn { position: relative; }
+#badges-btn .island-dot { position: absolute; top: -6px; right: -6px; margin: 0; }
