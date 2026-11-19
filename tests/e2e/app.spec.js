@@ -2093,3 +2093,29 @@ test("Circle the nouns: off at first, so Mark it up has 4 steps; the ? explains 
   await expect(page.locator("#item .flow-count")).toHaveText("Mark it up · 1 of 4");
   await expect(page.locator("#item .flow-q")).not.toContainText("circle every noun");
 });
+
+test("Q&A Flow on a phone: the sentence stays in view while a long list of labels scrolls @layout", async ({ page }) => {
+  await page.setViewportSize({ width: 384, height: 832 });
+  const { items } = JSON.parse(readFileSync("data/content.json", "utf8"));
+  const seen = Object.fromEntries(items.filter((i) => i.skill === "cflow" && i.level === 3 && i.id !== "cflow-3-11").map((i) => [i.id, { seen: 1, misses: 0, last: 1 }]));
+  const lv = { stars: 3, best: 8, plays: 1, passedOn: "2026-11-10" };
+  await openApp(page, { players: [player({ grade: 7, items: seen, settings: { textSize: "larger" }, levels: { "cflow-1": lv, "cflow-2": lv } })], current: "p1" });
+  await startLevel(page, "cflow", 3, "flow");
+  // Answer the question steps (tap words) until a label-only step shows the long list of labels.
+  for (let k = 0; k < 12 && !(await page.locator("#item .label-chip").count()); k++) {
+    await page.locator("#item .flow-word:not([disabled])").first().click();
+  }
+  await page.locator("#item .label-chip").last().scrollIntoViewIfNeeded();
+  await expect(page.locator("#item .flow-sentence")).toBeInViewport();
+  // A wrong label: Pip's hint shows at the bottom of the screen, not below the list.
+  await page.locator("#item .label-chip:not([disabled])").first().scrollIntoViewIfNeeded();
+  const step = parseFlow(await currentItem(page)).steps.find((s) => !s.question);
+  const wrong = page.locator(`#item .label-chip:not([data-label="${step?.label}"]):not([disabled])`).first();
+  await wrong.click();
+  await expect(page.locator("#feedback")).not.toBeEmpty();
+  await expect(page.locator("#feedback")).toBeInViewport();
+  await expect(page.locator("#item .flow-sentence")).toBeInViewport();
+  // …and ✕ closes it to win back the room.
+  await page.locator("#feedback .feedback-close").click();
+  await expect(page.locator("#feedback")).toBeEmpty();
+});

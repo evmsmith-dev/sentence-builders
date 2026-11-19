@@ -1352,3 +1352,20 @@ body.island-home #home .home-tools .backpack-btn .tool-emoji { font-size: 1.4rem
   background: var(--card); color: var(--primary); font: inherit; font-size: 0.85rem; font-weight: 800; line-height: 1; cursor: pointer; vertical-align: middle; position: relative; }
 .help-q::after { content: ""; position: absolute; inset: -9px; } /* a 44px tap target */
 .help-pop { margin: -2px 0 10px; padding: 10px 12px; border-radius: 12px; background: #eef3ff; font-size: 0.92rem; }
+
+/* Q&A Flow: the sentence stays in view while a long list of labels scrolls under it (on a Galaxy S26 it scrolled away). */
+.flow-sentence { position: sticky; top: 0; z-index: 3; margin: -4px -4px 0; padding: 4px; background: var(--card); box-shadow: 0 6px 8px -8px rgba(0, 0, 0, 0.35); }
+/* Phones: the label buttons share the row evenly and are a little more compact, so the list is shorter. */
+@media (max-width: 560px) {
+  .flow-choices:has(.label-chip) { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 6px; }
+  .flow-choices .label-chip { min-width: 0; min-height: 52px; padding: 3px 4px; }
+  .flow-choices .label-chip strong { font-size: 1.05rem; }
+  .flow-choices .label-chip small { max-width: none; font-size: 0.66rem; }
+}
+/* Pip's hint stays in view at the bottom of the screen, even below a long list of labels (Galaxy S26). */
+#play #feedback:not(:empty) { position: sticky; bottom: calc(env(safe-area-inset-bottom) + 8px); z-index: 4; box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.12); }
+#play #feedback:not(:empty) { padding-right: 44px; }
+.feedback-close { position: absolute; top: 6px; right: 6px; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 50%; background: rgba(0, 0, 0, 0.06);
+  color: inherit; font-size: 1rem; line-height: 1; cursor: pointer; }
+.feedback-close::after { content: ""; position: absolute; inset: -4px; }
+#play #feedback { position: relative; }

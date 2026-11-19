@@ -2594,6 +2594,17 @@ function wire() {
   $("settings-btn").addEventListener("click", openSettings);
   $("badges-btn").addEventListener("click", renderBadges);
   $("backpack-btn").addEventListener("click", () => openOverlay("backpack-overlay"));
+  // Pip's message during a question can be closed (✕) to win back room on a small screen; it sticks to the bottom
+  // of the screen while it shows, so it isn't hidden below a long list of labels.
+  const feedback = $("feedback");
+  new MutationObserver(() => {
+    if (feedback.childElementCount && !feedback.querySelector(".feedback-close")) {
+      feedback.insertAdjacentHTML("beforeend", '<button type="button" class="feedback-close" aria-label="Close Pip\'s message">✕</button>');
+    }
+  }).observe(feedback, { childList: true });
+  feedback.addEventListener("click", (event) => {
+    if (event.target.closest(".feedback-close")) feedback.innerHTML = "";
+  });
   // Settings: a ? beside a setting opens a short note on what it does; tap again to close it.
   document.addEventListener("click", (event) => {
     const q = event.target.closest(".help-q");
