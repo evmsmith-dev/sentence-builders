@@ -1198,6 +1198,8 @@ function showItem() {
   $("feedback").className = "feedback";
   $("next-btn").hidden = true;
   $("item").dataset.itemId = item.id;
+  document.documentElement.style.setProperty("--fix-bar-h", "0px");
+  $("play").style.paddingBottom = ""; // scroll room a proofreading paragraph may have added
   // Mark it up's noun check only when Circle the nouns is on (Settings → Practice).
   play.ctrl = renderItem($("item"), { ...item, circleNouns: Boolean(settings().circleNouns) }, {
     answer: (right) => handleAnswer(right),

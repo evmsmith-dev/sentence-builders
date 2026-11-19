@@ -982,8 +982,11 @@ function renderProofread(root, item, { hint, complete, onChange, onTap }) {
   const choicesFor = {};
   for (const e of parsed.errors) choicesFor[e.index] = shuffle(e.choices);
 
+  // The fixes sit in a bar pinned to the bottom of the screen, so a long paragraph never pushes them (or the tapped
+  // word) out of view on a phone (expert panel, after a Galaxy S26 report).
   root.innerHTML = `<div class="proofread" data-type="proofread"><p class="proof-count"></p><p class="proof-text"></p>
-    <div class="choices" hidden><p class="palette-label"></p><div class="choice-row"></div></div></div>`;
+    <div class="choices fix-bar" role="group" hidden><div class="fix-bar-head"><p class="palette-label"></p>
+    <button type="button" class="fix-bar-close" data-pclose aria-label="Close the fixes">✕</button></div><div class="choice-row"></div></div></div>`;
   const left = () => parsed.errors.filter((e) => !fixed[e.index]).length;
 
   function draw() {
@@ -998,10 +1001,58 @@ function renderProofread(root, item, { hint, complete, onChange, onTap }) {
     if (open !== null) {
       const e = errorAt(open);
       box.querySelector(".palette-label").textContent = `Change "${parsed.words[open]}" to:`;
+      box.setAttribute("aria-label", `Change ${parsed.words[open]} to: ${choicesFor[open].length} options`);
       box.querySelector(".choice-row").innerHTML = choicesFor[open].map((c) =>
         `<button type="button" class="choice" data-pfix="${esc(c)}">${esc(e.prefix + c + e.suffix)}</button>`).join("");
     }
+    if (box.hidden) { const play = document.getElementById("play"); if (play) play.style.paddingBottom = ""; }
+    placeHint();
   }
+  // Pip's hint sits just above the bar instead of on top of it, wherever the bar is (pinned to the bottom of the
+  // screen, or resting under a short paragraph).
+  function placeHint() {
+    if (!root.isConnected) return;
+    const box = root.querySelector(".choices");
+    // The bar is pinned to the bottom of the screen, as wide as the question card.
+    if (box && !box.hidden) {
+      const card = root.getBoundingClientRect();
+      box.style.left = `${Math.round(card.left)}px`;
+      box.style.width = `${Math.round(card.width)}px`;
+    }
+    const top = box && !box.hidden ? box.getBoundingClientRect().top : innerHeight;
+    document.documentElement.style.setProperty("--fix-bar-h", `${Math.max(0, Math.round(innerHeight - top))}px`);
+  }
+  const onScroll = () => {
+    if (!root.isConnected) { window.removeEventListener("scroll", onScroll); window.removeEventListener("resize", onScroll); return; }
+    placeHint();
+  };
+  window.addEventListener("scroll", onScroll, { passive: true });
+  window.addEventListener("resize", onScroll, { passive: true });
+  /** Keeps the tapped word in view, just above the bar (or below the top of the screen). */
+  function showWord(i) {
+    const w = root.querySelector(`[data-pw="${i}"]`);
+    const box = root.querySelector(".choices");
+    if (!w || box.hidden) return;
+    // Room to scroll, even under a short paragraph, so the word can always move above the bar and the hint.
+    const play = document.getElementById("play");
+    if (play) play.style.paddingBottom = `${Math.round(innerHeight * 0.6)}px`;
+    placeHint();
+    const r = w.getBoundingClientRect();
+    // Above the bar, and above Pip's hint when it's showing too.
+    const fb = document.getElementById("feedback");
+    const fbTop = fb && fb.childElementCount ? fb.getBoundingClientRect().top : innerHeight;
+    const barTop = Math.min(box.getBoundingClientRect().top, fbTop);
+    if (r.bottom > barTop - 12) window.scrollBy({ top: r.bottom - barTop + 48 });
+    else if (r.top < 70) window.scrollBy({ top: r.top - 90 });
+    box.querySelector(".choice")?.focus({ preventScroll: true });
+  }
+  root.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape" || open === null) return;
+    const at = open;
+    open = null;
+    draw();
+    root.querySelector(`[data-pw="${at}"]`)?.focus();
+  });
   function finishIfDone() {
     if (left()) return;
     done = true;
@@ -1013,10 +1064,17 @@ function renderProofread(root, item, { hint, complete, onChange, onTap }) {
     if (done) return;
     const word = event.target.closest("[data-pw]");
     const fix = event.target.closest("[data-pfix]");
+    if (event.target.closest("[data-pclose]")) {
+      open = null;
+      draw();
+      return;
+    }
     if (word) {
       onTap();
       const i = Number(word.dataset.pw);
-      if (errorAt(i)) {
+      if (open === i) {
+        open = null; // the same word again closes the bar
+      } else if (errorAt(i)) {
         open = i;
         hint(null);
       } else {
@@ -1031,6 +1089,7 @@ function renderProofread(root, item, { hint, complete, onChange, onTap }) {
         }
       }
       draw();
+      if (open !== null) showWord(open);
     } else if (fix && open !== null) {
       onTap();
       const e = errorAt(open);
@@ -1055,6 +1114,8 @@ function renderProofread(root, item, { hint, complete, onChange, onTap }) {
         } else {
           fix.disabled = true;
           hint(`Not that one. ${mistakeKind(e.shown, e.correct)}`);
+          const at = open;
+          requestAnimationFrame(() => showWord(at)); // keep the word in view above the hint
         }
       }
     }

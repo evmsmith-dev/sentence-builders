@@ -181,6 +181,8 @@ export async function miss(page) {
     for (const e of parsed.errors) {
       const word = page.locator(`#item [data-pw="${e.index}"]`);
       if (!(await word.count())) continue;
+      // Tapping the word that's already open closes its fixes: close it first, then open it fresh.
+      if (await word.evaluate((el) => el.classList.contains("selected"))) await word.click();
       await word.click();
       const wrong = page.locator(`#item [data-pfix]:not([data-pfix="${e.correct}"]):not([disabled])`).first();
       if (!(await wrong.count())) return false;
@@ -291,7 +293,7 @@ export async function answer(page, { swapCompounds = false } = {}) {
     for (const e of parsed.errors) {
       const word = page.locator(`#item [data-pw="${e.index}"]`);
       if (!(await word.count())) continue; // already fixed or shown
-      await word.click();
+      if (!(await word.evaluate((el) => el.classList.contains("selected")))) await word.click();
       await page.locator(`#item [data-pfix="${e.correct}"]`).click();
     }
   } else if (item.type === "labels") {

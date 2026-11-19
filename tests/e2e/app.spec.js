@@ -2105,8 +2105,8 @@ test("Circle the nouns: off at first, so Mark it up has 4 steps; the ? explains 
   await expect(page.locator("#tip-overlay")).toBeVisible();
 });
 
-test("Q&A Flow on a phone: the sentence stays in view while a long list of labels scrolls @layout", async ({ page }) => {
-  await page.setViewportSize({ width: 384, height: 832 });
+for (const [shape, vp] of [["upright", { width: 384, height: 832 }], ["sideways", { width: 915, height: 412 }]]) test(`Q&A Flow on a phone (${shape}): the sentence stays in view while a long list of labels scrolls @layout`, async ({ page }) => {
+  await page.setViewportSize(vp);
   const { items } = JSON.parse(readFileSync("data/content.json", "utf8"));
   const seen = Object.fromEntries(items.filter((i) => i.skill === "cflow" && i.level === 3 && i.id !== "cflow-3-11").map((i) => [i.id, { seen: 1, misses: 0, last: 1 }]));
   const lv = { stars: 3, best: 8, plays: 1, passedOn: "2026-11-10" };
@@ -2129,4 +2129,36 @@ test("Q&A Flow on a phone: the sentence stays in view while a long list of label
   // …and ✕ closes it to win back the room.
   await page.locator("#feedback .feedback-close").click();
   await expect(page.locator("#feedback")).toBeEmpty();
+});
+
+for (const [shape, vp] of [["upright", { width: 384, height: 700 }], ["sideways", { width: 915, height: 412 }], ["iPad sideways", { width: 1180, height: 820 }]]) test(`Proofreading (${shape}): the fixes are a bar at the bottom of the screen, the tapped word stays in view above Pip's hint @layout`, async ({ page }) => {
+  await page.setViewportSize(vp);
+  await openApp(page, { players: [player({ grade: 8, settings: { textSize: "larger" } })], current: "p1" });
+  await startLevel(page, "proofread", 3, "desk");
+  const item = await currentItem(page);
+  const { errors } = (await import("../../src/lib/parse.js")).parseProofread(item);
+  const e = errors[errors.length - 1];
+  const word = page.locator(`#item [data-pw="${e.index}"]`);
+  await word.click();
+  const bar = page.locator("#item .fix-bar");
+  await expect(bar).toBeInViewport();
+  await expect(word).toBeInViewport();
+  await expect(page.locator("#item .proof-count")).toBeInViewport();
+  // A wrong fix: Pip's hint shows above the bar, both in view.
+  const wrong = e.choices.find((c) => c !== e.correct);
+  await page.locator(`#item [data-pfix="${wrong}"]`).click();
+  await expect(page.locator("#feedback")).toBeInViewport();
+  const fb = await page.locator("#feedback").boundingBox();
+  const bb = await bar.boundingBox();
+  expect(fb.y + fb.height).toBeLessThanOrEqual(bb.y + 1);
+  // The tapped word is still in view, above the hint.
+  await page.waitForTimeout(200);
+  const wb = await word.boundingBox();
+  expect(wb.y + wb.height).toBeLessThanOrEqual(fb.y + 2);
+  expect(wb.y).toBeGreaterThanOrEqual(0);
+  // ✕ closes the bar; tapping the word again opens it.
+  await page.locator("#item [data-pclose]").click();
+  await expect(bar).toBeHidden();
+  await word.click();
+  await expect(bar).toBeVisible();
 });

@@ -1363,7 +1363,7 @@ body.island-home #home .home-tools .backpack-btn .tool-emoji { font-size: 1.4rem
   .flow-choices .label-chip small { max-width: none; font-size: 0.66rem; }
 }
 /* Pip's hint stays in view at the bottom of the screen, even below a long list of labels (Galaxy S26). */
-#play #feedback:not(:empty) { position: sticky; bottom: calc(env(safe-area-inset-bottom) + 8px); z-index: 4; box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.12); }
+#play #feedback:not(:empty) { position: sticky; bottom: calc(env(safe-area-inset-bottom) + 8px + var(--fix-bar-h, 0px)); z-index: 4; box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.12); }
 #play #feedback:not(:empty) { padding-right: 44px; }
 .feedback-close { position: absolute; top: 6px; right: 6px; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 50%; background: rgba(0, 0, 0, 0.06);
   color: inherit; font-size: 1rem; line-height: 1; cursor: pointer; }
@@ -1383,4 +1383,28 @@ body.island-home #home .home-tools .backpack-btn .tool-emoji { font-size: 1.4rem
   .card-tools .say-btn.small { min-width: 42px; min-height: 42px; font-size: 1.05rem; }
   .flow-ask-head .labels-help { padding-left: 10px; padding-right: 10px; }
   .flow-ask-head .flow-count { font-size: 0.78rem; }
+}
+
+/* Proofreading: the fixes are a bar pinned to the bottom of the screen; the counter stays at the top. */
+.proofread .fix-bar:not([hidden]) { position: fixed; bottom: calc(env(safe-area-inset-bottom) + 8px); z-index: 5; margin: 0; padding: 8px 10px 10px; box-sizing: border-box;
+  border-radius: 14px; background: var(--card); border: 2px solid var(--primary); box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.15); }
+.fix-bar-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.fix-bar-head .palette-label { margin: 0; }
+.fix-bar-close { flex: none; width: 40px; height: 40px; padding: 0; border: 0; border-radius: 50%; background: rgba(0, 0, 0, 0.06); color: inherit; font-size: 1rem; cursor: pointer; }
+.proofread .fix-bar .choice-row { margin-top: 6px; }
+.proofread .proof-count { position: sticky; top: 0; z-index: 4; margin: -4px -4px 4px; padding: 6px 4px; background: var(--card); }
+.proofread .proof-word.selected { box-shadow: 0 0 0 3px var(--accent); background: #fff4d6; }
+
+/* Short screens (phones turned sideways): Pip's hint and the fix bar are compact, and the bar is one row. */
+@media (max-height: 520px) {
+  #play #feedback:not(:empty) { font-size: 0.9rem; padding-top: 2px; padding-bottom: 2px; }
+  #play #feedback p { margin: 4px 0; }
+  #play #feedback .feedback-pip svg { width: 26px; height: 26px; }
+  .proofread .fix-bar:not([hidden]) { display: flex; align-items: center; gap: 8px; padding: 6px 8px; }
+  .proofread .fix-bar .fix-bar-head { display: contents; }
+  .proofread .fix-bar .palette-label { order: 1; flex: none; }
+  .proofread .fix-bar .choice-row { order: 2; flex: 1; margin-top: 0; }
+  .proofread .fix-bar .fix-bar-close { order: 3; }
+  .proofread .fix-bar .choice { min-height: 44px; padding: 4px 14px; }
+  .flow-word { min-height: 54px; font-size: 1.15rem; }
 }
