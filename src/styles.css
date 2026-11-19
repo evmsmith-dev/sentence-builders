@@ -1431,3 +1431,16 @@ body.island-home #home .home-tools .backpack-btn .tool-emoji { font-size: 1.4rem
 .badge.is-new { box-shadow: 0 0 0 3px #f2b705; }
 #badges-btn { position: relative; }
 #badges-btn .island-dot { position: absolute; top: -6px; right: -6px; margin: 0; }
+/* Results on short screens (phones turned sideways): the buttons sit in one compact row, so the badge cards and
+   Pip have room above them. */
+@media (max-height: 520px) {
+  .sheet.result .result-stars { font-size: 1.6rem; margin: 0; }
+  .sheet.result h2 { margin: 2px 0; font-size: 1.3rem; }
+  .sheet.result .result-score { margin: 0 0 4px; }
+  .sheet.result .sheet-actions.pinned { flex-direction: row; flex-wrap: wrap; align-items: center; padding-top: 8px; padding-bottom: calc(8px + env(safe-area-inset-bottom)); gap: 6px 10px; }
+  .sheet.result .sheet-actions.pinned .primary.big { flex: 1 1 auto; min-height: 46px; font-size: 1rem; }
+  .sheet.result .sheet-actions.pinned .secondary { flex: 0 1 auto; min-height: 46px; }
+  .sheet.result .sheet-actions.pinned .link-row { flex: 1 1 100%; margin: 0; }
+  .badge-card { padding: 8px 12px; margin: 6px 0; }
+  .badge-card-medal { font-size: 2rem; }
+}

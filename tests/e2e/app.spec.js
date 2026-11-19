@@ -2175,3 +2175,15 @@ for (const [shape, vp] of [["upright", { width: 384, height: 700 }], ["sideways"
   await word.click();
   await expect(bar).toBeVisible();
 });
+
+for (const [shape, vp] of [["upright", { width: 384, height: 832 }], ["sideways", { width: 844, height: 390 }], ["iPad sideways", { width: 1180, height: 820 }]]) test(`New badge card (${shape}): fully on screen above the buttons @layout`, async ({ page }) => {
+  await page.setViewportSize(vp);
+  await openApp(page, { players: [player({ grade: 4 })], current: "p1" });
+  await startLevel(page, "commas", 1);
+  for (let k = 0; k < 8; k++) { await answer(page); await page.locator("#next-btn").click(); }
+  const card = page.locator("#result-badges .badge-card").first();
+  await expect(card).toBeInViewport({ ratio: 1 });
+  const c = await card.boundingBox();
+  const a = await page.locator("#result-overlay .sheet-actions").boundingBox();
+  expect(c.y + c.height).toBeLessThanOrEqual(a.y + 1);
+});
