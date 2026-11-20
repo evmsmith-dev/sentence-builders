@@ -2215,3 +2215,13 @@ test("Flow Factory's final draft: beaten on the first try", async ({ page }) => 
   await page.locator("#next-btn").click();
   await expect(page.locator("#result-title")).toHaveText("You beat Pip's final draft");
 });
+
+test("Island Home: tapping a locked Build, Pip's message has the – to shrink him", async ({ page }) => {
+  const p = { ...player({ grade: 4, settings: { islandHome: true } }), backpackTaught: true, boardSeenOn: new Date().toLocaleDateString("en-CA") };
+  await openApp(page, { players: [p], current: "p1" });
+  await page.locator("#island-build").click();
+  await expect(page.locator("#pip-home")).toContainText("Build opens after your first lesson today");
+  await page.locator("#pip-home [data-pip-min]").click();
+  await expect(page.locator("#pip-home")).not.toContainText("Build opens");
+  await expect(page.locator("#pip-home .pip-mini")).toBeVisible();
+});

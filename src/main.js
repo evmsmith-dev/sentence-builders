@@ -1650,6 +1650,16 @@ function renderRules(focusWorld, back) {
 
 /** Under the map: the districts to jump to, or (zoomed in) that district's skills and its decorating. */
 /** Redraws home to put Pip's usual message back, leaving the map where it is. */
+/**
+ * Pip says something because of a tap (Build is locked, the Peaks aren't open yet…). It has the same – as his other
+ * messages, and moving to another part of the island brings his usual message back.
+ */
+function pipNote(text, action = "") {
+  const min = '<button type="button" class="pip-min" data-pip-min aria-label="Make Pip\'s message smaller">–</button>';
+  $("pip-home").innerHTML = settings().pip ? pipSays(text, true, action + min) : `<p class="next-line">${esc(text)} ${action}${min}</p>`;
+  state.pipNote = true;
+}
+
 function restorePip() {
   const view = state.map?.saveView();
   state.pipQuiet = true; // redrawing the map mustn't make Pip say it again
@@ -2479,7 +2489,7 @@ function wire() {
     if (target.closest("[data-pip-expand]")) return stay(() => savePlayer({ ...state.player, pipMinOn: null }), true);
     if (target.closest("#island-build")) {
       if (!playedToday(state.player)) {
-        $("pip-home").innerHTML = pipSays("Build opens after your first lesson today. Do one, then spend your bricks!", true, playButton(state.player));
+        pipNote("Build opens after your first lesson today. Do one, then spend your bricks!", playButton(state.player));
         return;
       }
       state.buildArea = buildAreaFor(state.player, state.mapArea);
@@ -2635,7 +2645,7 @@ function wire() {
     },
     onPeak: (kind) => {
       if (kind === "summit" && !summitItems(state.player).length) {
-        $("pip-home").innerHTML = pipSays("Pass a level anywhere on the island first, then climb up here to review it.", settings().pip, playButton(state.player));
+        pipNote("Pass a level anywhere on the island first, then climb up here to review it.", playButton(state.player));
         return;
       }
       startPractice(kind);
