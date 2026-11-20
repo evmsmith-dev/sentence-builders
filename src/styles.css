@@ -1444,3 +1444,9 @@ body.island-home #home .home-tools .backpack-btn .tool-emoji { font-size: 1.4rem
   .badge-card { padding: 8px 12px; margin: 6px 0; }
   .badge-card-medal { font-size: 2rem; }
 }
+/* Flow Factory's final draft: Pip's sentences as tiles, his label above each word. */
+.proof-text.label-mode { display: flex; flex-wrap: wrap; gap: 8px 6px; line-height: 1.2; }
+.proof-text.label-mode .proof-word { display: inline-flex; flex-direction: column; align-items: center; min-width: 48px; min-height: 60px; padding: 4px 8px; border-radius: 10px; }
+.proof-text.label-mode .lf-label { font-size: 0.78rem; font-weight: 800; color: var(--primary); }
+.proof-text.label-mode .proof-word.right .lf-label { color: #1e7b34; }
+.label-choice small { display: block; font-size: 0.72rem; color: var(--muted); font-weight: 600; }

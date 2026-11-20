@@ -2187,3 +2187,31 @@ for (const [shape, vp] of [["upright", { width: 384, height: 832 }], ["sideways"
   const a = await page.locator("#result-overlay .sheet-actions").boundingBox();
   expect(c.y + c.height).toBeLessThanOrEqual(a.y + 1);
 });
+
+test("Flow Factory's final draft: Pip labeled his sentences; find each wrong label and relabel it", async ({ page }) => {
+  const passed = { stars: 2, best: 7, plays: 1 };
+  await openApp(page, { players: [player({ grade: 7, levels: { "flow2-1": passed, "flow2-2": passed } })], current: "p1" });
+  await openWorld(page, "flow");
+  await expect(page.locator(".boss-card")).toContainText("Pip's labeled baking story");
+  await expect(page.locator(".boss-card")).toContainText("wrong labels");
+  await page.locator('[data-boss="flow"]').click();
+  await expect(page.locator("#play-skill")).toContainText("Pip's final draft");
+  // Words show with Pip's labels; a right label says so; a wrong one opens label choices.
+  await expect(page.locator("#item .proof-text.label-mode .proof-word").first()).toContainText("PPA");
+  await page.locator('#item .proof-word', { hasText: "grandmother" }).click();
+  await expect(page.locator("#feedback")).toContainText("That label is right.");
+  await page.locator('#item .proof-word', { hasText: "us" }).first().click();
+  await expect(page.locator("#item .fix-bar")).toContainText('Relabel "us" (Pip says DO)');
+  await page.locator('#item [data-pfix="IO"]').click();
+  await expect(page.locator("#item .proof-count")).toContainText("1 of 6");
+});
+
+test("Flow Factory's final draft: beaten on the first try", async ({ page }) => {
+  const passed = { stars: 2, best: 7, plays: 1 };
+  await openApp(page, { players: [player({ grade: 7, levels: { "flow2-1": passed, "flow2-2": passed } })], current: "p1" });
+  await openWorld(page, "flow");
+  await page.locator('[data-boss="flow"]').click();
+  await answer(page);
+  await page.locator("#next-btn").click();
+  await expect(page.locator("#result-title")).toHaveText("You beat Pip's final draft");
+});

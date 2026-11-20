@@ -175,7 +175,7 @@ export async function miss(page) {
       }
     }
     return true;
-  } else if (item.type === "proofread") {
+  } else if (item.type === "proofread" || item.type === "labelfix") {
     // Pick a wrong fix for the first mistake still open.
     const parsed = parseProofread(item);
     for (const e of parsed.errors) {
@@ -288,7 +288,7 @@ export async function answer(page, { swapCompounds = false } = {}) {
     }
   } else if (item.type === "diagram") {
     await diagramIt(page, item);
-  } else if (item.type === "proofread") {
+  } else if (item.type === "proofread" || item.type === "labelfix") {
     const parsed = parseProofread(item);
     for (const e of parsed.errors) {
       const word = page.locator(`#item [data-pw="${e.index}"]`);

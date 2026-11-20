@@ -492,7 +492,7 @@ function bossCardHtml(worldId, player) {
   if (!open) return ""; // shown once it opens, so a new player's screens stay short
   const beaten = Boolean(player.bosses?.[worldId]);
   const line = !open ? `Pass ${BOSS_AFTER_LEVELS - passed} more level${BOSS_AFTER_LEVELS - passed === 1 ? "" : "s"} here to unlock it.`
-    : beaten ? "Beaten. Pip has been quiet about it." : `Pip hid ${(boss.text.match(/\[/g) || []).length} mistakes in it. Catch every one on the first try to beat it.`;
+    : beaten ? "Beaten. Pip has been quiet about it." : `Pip hid ${(boss.text.match(/\[/g) || []).length} ${boss.type === "labelfix" ? "wrong labels" : "mistakes"} in it. Catch every one on the first try to beat it.`;
   return `<section class="boss-card${beaten ? " beaten" : ""}">
     <div><h2>📝 Pip's final draft${beaten ? ' <span class="boss-done">✓ Beaten</span>' : ""}</h2>
     <p class="boss-title">${esc(boss.title)}</p><p class="note">${esc(line)}</p></div>
@@ -504,7 +504,9 @@ function startBoss(worldId) {
   const boss = bossFor(worldId);
   if (!boss) return;
   closeOverlay("result-overlay");
-  state.play = { mode: "boss", world: worldId, skillId: "proofread", level: 1, items: withNames([{ ...boss, skill: "proofread", level: 1, type: "proofread" }]),
+  // Flow Factory's final draft checks labels (Pip labeled his own sentences); the others are proofreading paragraphs.
+  const skill = boss.type === "labelfix" ? "flow2" : "proofread";
+  state.play = { mode: "boss", world: worldId, skillId: skill, level: 1, items: withNames([{ ...boss, skill, level: boss.type === "labelfix" ? 3 : 1, type: boss.type || "proofread" }]),
     index: 0, tries: 0, results: [], ctrl: null, done: false, startedAt: Date.now() };
   if (!state.sessionStart) state.sessionStart = Date.now();
   showScreen("play");

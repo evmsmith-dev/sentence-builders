@@ -969,6 +969,13 @@ function renderLabels(root, item, { onChange, onTap, showLabels }) {
  */
 function renderProofread(root, item, { hint, complete, onChange, onTap }) {
   const parsed = parseProofread(item);
+  // Label mode (Flow Factory's final draft): each word is "word^LABEL", and a mistake is a wrong label,
+  // "word^[SHOWN|RIGHT|OTHER]". The words show as tiles with Pip's label above; the fixes are labels.
+  const labelMode = item.type === "labelfix";
+  const wordOf = (t) => (labelMode ? t.split("^")[0] : t);
+  const labelOf = (t) => (labelMode ? t.split("^")[1] || "" : "");
+  const tile = (t) => (labelMode ? `<span class="lf-label">${esc(labelOf(t))}</span><span class="lf-word">${esc(wordOf(t))}</span>` : esc(t));
+  const why = (e) => (labelMode ? `${e.correct} = ${LABELS[e.correct]?.name || e.correct}. ${LABELS[e.correct]?.hint || ""}`.trim() : mistakeKind(e.shown, e.correct));
   const fixed = {}; // word index → "right" or "shown"
   const fixMisses = {};
   let open = null; // index of the mistake being fixed
@@ -990,20 +997,25 @@ function renderProofread(root, item, { hint, complete, onChange, onTap }) {
   const left = () => parsed.errors.filter((e) => !fixed[e.index]).length;
 
   function draw() {
-    root.querySelector(".proof-count").textContent = done ? "All mistakes fixed" : `Mistakes fixed: ${parsed.errors.length - left()} of ${parsed.errors.length}`;
+    root.querySelector(".proof-count").textContent = done ? (labelMode ? "All labels fixed" : "All mistakes fixed")
+      : `${labelMode ? "Wrong labels fixed" : "Mistakes fixed"}: ${parsed.errors.length - left()} of ${parsed.errors.length}`;
     root.querySelector(".proof-text").innerHTML = parsed.words.map((word, i) => {
       const e = errorAt(i);
-      if (e && fixed[i]) return `<span class="proof-word ${fixed[i]}">${esc(e.fixed)}</span>`;
-      return `<button type="button" class="proof-word${open === i ? " selected" : ""}${pointed === i ? " pointed" : ""}" data-pw="${i}" ${done ? "disabled" : ""}>${esc(word)}</button>`;
+      if (e && fixed[i]) return `<span class="proof-word ${fixed[i]}">${tile(e.fixed)}</span>`;
+      return `<button type="button" class="proof-word${open === i ? " selected" : ""}${pointed === i ? " pointed" : ""}" data-pw="${i}" ${done ? "disabled" : ""}
+        ${labelMode ? `aria-label="${esc(wordOf(word))}, labeled ${esc(labelOf(word))}"` : ""}>${tile(word)}</button>`;
     }).join(" ");
+    root.querySelector(".proof-text").classList.toggle("label-mode", labelMode);
     const box = root.querySelector(".choices");
     box.hidden = open === null || done;
     if (open !== null) {
       const e = errorAt(open);
-      box.querySelector(".palette-label").textContent = `Change "${parsed.words[open]}" to:`;
-      box.setAttribute("aria-label", `Change ${parsed.words[open]} to: ${choicesFor[open].length} options`);
-      box.querySelector(".choice-row").innerHTML = choicesFor[open].map((c) =>
-        `<button type="button" class="choice" data-pfix="${esc(c)}">${esc(e.prefix + c + e.suffix)}</button>`).join("");
+      const w = parsed.words[open];
+      box.querySelector(".palette-label").textContent = labelMode ? `Relabel "${wordOf(w).replace(/[.,!?;:]+$/, "")}" (Pip says ${labelOf(w)}):` : `Change "${w}" to:`;
+      box.setAttribute("aria-label", `${labelMode ? `Relabel ${wordOf(w)}` : `Change ${w} to`}: ${choicesFor[open].length} options`);
+      box.querySelector(".choice-row").innerHTML = choicesFor[open].map((c) => labelMode
+        ? `<button type="button" class="choice label-choice" data-pfix="${esc(c)}"><strong>${esc(c)}</strong> <small>${esc(LABELS[c]?.name || "")}</small></button>`
+        : `<button type="button" class="choice" data-pfix="${esc(c)}">${esc(e.prefix + c + e.suffix)}</button>`).join("");
     }
     if (box.hidden) { const play = document.getElementById("play"); if (play) play.style.paddingBottom = ""; }
     placeHint();
@@ -1085,7 +1097,7 @@ function renderProofread(root, item, { hint, complete, onChange, onTap }) {
           pointed = parsed.errors.find((e) => !fixed[e.index]).index;
           hint("Look at the highlighted word.");
         } else {
-          hint(`That word is fine. ${left()} ${left() === 1 ? "mistake" : "mistakes"} left. ${item.hint}`);
+          hint(`${labelMode ? "That label is right." : "That word is fine."} ${left()} ${left() === 1 ? "mistake" : "mistakes"} left. ${item.hint}`);
         }
       }
       draw();
@@ -1103,17 +1115,17 @@ function renderProofread(root, item, { hint, complete, onChange, onTap }) {
       } else {
         misses += 1;
         fixMisses[open] = (fixMisses[open] || 0) + 1;
-        picks.push(`"${e.prefix + fix.dataset.pfix + e.suffix}" instead of "${e.fixed}"`);
+        picks.push(labelMode ? `${fix.dataset.pfix} instead of ${e.correct} for "${wordOf(e.fixed)}"` : `"${e.prefix + fix.dataset.pfix + e.suffix}" instead of "${e.fixed}"`);
         if (fixMisses[open] >= 2) {
           revealed = true;
           fixed[open] = "shown";
-          hint(`Here's that one: "${e.fixed}". ${mistakeKind(e.shown, e.correct)}`);
+          hint(labelMode ? `Here's that one: "${wordOf(e.fixed)}" is ${why(e)}` : `Here's that one: "${e.fixed}". ${mistakeKind(e.shown, e.correct)}`);
           open = null;
           draw();
           finishIfDone();
         } else {
           fix.disabled = true;
-          hint(`Not that one. ${mistakeKind(e.shown, e.correct)}`);
+          hint(`Not that one. ${labelMode ? `Ask the question for "${wordOf(e.fixed)}" again. ${LABELS[fix.dataset.pfix]?.name ? `It isn't the ${LABELS[fix.dataset.pfix].name}.` : ""}` : mistakeKind(e.shown, e.correct)}`);
           const at = open;
           requestAnimationFrame(() => showWord(at)); // keep the word in view above the hint
         }
@@ -1124,7 +1136,7 @@ function renderProofread(root, item, { hint, complete, onChange, onTap }) {
   draw();
   return {
     get prompt() {
-      return done ? "All fixed!" : "Find each mistake. Tap it, then pick the fix.";
+      return done ? "All fixed!" : labelMode ? "Pip labeled his sentences. Find each wrong label, tap the word, then pick the right label." : "Find each mistake. Tap it, then pick the fix.";
     },
     usesCheck: false,
     chosen: () => (picks.length ? [...new Set(picks)].join("; ") : null),
@@ -1447,7 +1459,7 @@ const DIAGRAM_HINT = "The subject and verb go on the long line. Words that descr
 export function renderItem(root, item, hooks) {
   const render = {
     mark: renderMark, fix: renderFix, which: renderWhich, build: renderBuild, sort: renderSort, check: renderCheck, join: renderJoin,
-    flow: renderFlow, labels: renderLabels, proofread: renderProofread, diagram: renderDiagram, combine: renderCombine, dictate: renderDictate,
+    flow: renderFlow, labels: renderLabels, proofread: renderProofread, labelfix: renderProofread, diagram: renderDiagram, combine: renderCombine, dictate: renderDictate,
   }[item.type];
   if (!render) throw new Error(`Unknown item type: ${item.type}`);
   // A fresh box for each question: the last question's click and key listeners go with the old one (otherwise

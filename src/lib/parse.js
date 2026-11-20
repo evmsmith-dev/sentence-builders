@@ -1,6 +1,6 @@
 // Turns an item from data/content.json into what the screen shows and what counts as right.
 // Pure functions, unit-tested. The formats are described in data/README.md.
-import { FLOW_LABELS, FLOW_PATTERNS, MARK_ORDER, PALETTES, PATTERNS, SENTENCE_KINDS } from "../config.js";
+import { FLOW_LABELS, FLOW_PATTERNS, LABELS, MARK_ORDER, PALETTES, PATTERNS, SENTENCE_KINDS } from "../config.js";
 import { buildDiagram } from "./diagram.js";
 import { NAMES, isPronoun, nounInfo } from "./nouns.js";
 
@@ -280,6 +280,7 @@ export function spokenText(item) {
   if (item.type === "flow" || item.type === "diagram") return parseFlow({ ...item, steps: [] }).words.map((w) => w.word).join(" ");
   if (item.type === "labels") return parseLabels(item).line.join(", ");
   if (item.type === "proofread") return parseProofread(item).words.join(" ");
+  if (item.type === "labelfix") return parseProofread(item).words.map((w) => w.split("^")[0]).join(" ");
   if (item.type === "combine") return item.parts.join(" ");
   if (item.type === "dictate") return item.text;
   return "";
@@ -485,12 +486,13 @@ export function answerText(item) {
   if (item.type === "diagram") return diagramText(item);
   if (item.type === "labels") return parseLabels(item).answerText;
   if (item.type === "proofread") return parseProofread(item).answerText;
+  if (item.type === "labelfix") return parseProofread(item).answerText.split(" ").map((t) => t.replace("^", "/")).join(" ");
   if (item.type === "combine") return parseCombine(item).answerText;
   if (item.type === "dictate") return item.text;
   throw new Error(`Unknown item type: ${item.type}`);
 }
 
-export const ITEM_TYPES = ["mark", "fix", "which", "build", "sort", "check", "join", "flow", "labels", "proofread", "diagram", "combine", "dictate"];
+export const ITEM_TYPES = ["mark", "fix", "which", "build", "sort", "check", "join", "flow", "labels", "proofread", "diagram", "combine", "dictate", "labelfix"];
 
 /** A diagram in words, for the results review: the baseline, then what hangs under each word. */
 export function diagramText(item) {
@@ -598,6 +600,19 @@ export function validateItem(item) {
     for (const e of parsed.errors) {
       if (e.choices.length < 2 || new Set(e.choices).size !== e.choices.length) throw new Error(`${item.id}: "${e.shown}" needs 2+ different choices`);
       if (e.shown === e.correct || !e.shown) throw new Error(`${item.id}: "${e.shown}" isn't a mistake`);
+    }
+  }
+  // Flow Factory's final draft: every word carries a known label ("word^LABEL"), and each mistake offers real labels.
+  if (item.type === "labelfix") {
+    const parsed = parseProofread(item);
+    if (parsed.errors.length < 2) throw new Error(`${item.id}: needs 2+ wrong labels`);
+    const known = (l) => Object.prototype.hasOwnProperty.call(LABELS, l);
+    for (const [i, w] of parsed.words.entries()) {
+      const e = parsed.errors.find((x) => x.index === i);
+      const labels = e ? [e.shown, ...e.choices] : [w.split("^")[1]];
+      if (!w.includes("^")) throw new Error(`${item.id}: "${w}" has no label`);
+      for (const l of labels) if (!known(l)) throw new Error(`${item.id}: "${l}" isn't a label`);
+      if (e && (e.shown === e.correct || new Set(e.choices).size !== e.choices.length || e.choices.includes(e.shown))) throw new Error(`${item.id}: "${w}" needs a wrong label and different choices`);
     }
   }
   if (item.type === "labels") {
