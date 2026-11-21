@@ -1450,3 +1450,29 @@ body.island-home #home .home-tools .backpack-btn .tool-emoji { font-size: 1.4rem
 .proof-text.label-mode .lf-label { font-size: 0.78rem; font-weight: 800; color: var(--primary); }
 .proof-text.label-mode .proof-word.right .lf-label { color: #1e7b34; }
 .label-choice small { display: block; font-size: 0.72rem; color: var(--muted); font-weight: 600; }
+
+/* Sentence Workshop: the goal and the sentence being built stay pinned at the top while the tiles scroll under them. */
+.ws-top { position: sticky; top: 0; z-index: 3; margin: -4px -4px 0; padding: 4px; background: var(--card); box-shadow: 0 6px 8px -8px rgba(0, 0, 0, 0.35); }
+.ws-goal { margin: 0 0 6px; font-size: 0.95rem; }
+.ws-tag { display: inline-block; padding: 1px 8px; border-radius: 999px; background: #f4e3d3; color: #7a3e0c; font-size: 0.78rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; }
+.ws-slots { min-height: 60px; }
+.ws-end { font-size: 1.5rem; font-weight: 800; align-self: flex-end; margin-left: -4px; }
+.ws-bank { margin-top: 12px; }
+.ws-tools { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.ws-built-note { margin: 0 0 8px; }
+.ws-save { margin-top: 12px; text-align: center; }
+.ws-save-btn { font-weight: 800; padding: 10px 16px; border-radius: 12px; border: 2px solid #b5651d; background: #fff7ef; color: #7a3e0c; }
+.ws-saved { margin: 0; font-weight: 700; color: #1e7b34; }
+.notebook-list { list-style: none; padding: 0; margin: 6px 0; display: grid; gap: 6px; }
+.notebook-list li { display: flex; flex-direction: column; padding: 8px 10px; border-radius: 10px; background: #fff7ef; border: 1px solid #f0d9c2; }
+.nb-text { font-weight: 700; }
+.nb-meta { font-size: 0.82rem; color: var(--muted); }
+@media (max-height: 520px) {
+  .ws-slots { min-height: 52px; padding: 4px 6px; }
+  .ws-goal { margin-bottom: 2px; }
+  .ws-bank { margin-top: 8px; }
+  .ws-bank .tile, .ws-slots .tile { min-height: 44px; font-size: 1.1rem; }
+}
+.ws-head { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
+.ws-ask { margin: 0; font-weight: 700; font-size: 1.05rem; flex: 1; }
+.ws-goal strong { word-spacing: 0.25em; }

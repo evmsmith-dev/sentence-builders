@@ -13,6 +13,7 @@ export const PLURAL_NOUNS = new Set([
   "children", "cookies", "crows", "geese", "girls", "hands", "judges", "kids", "kittens", "parents", "puppies",
   "runners", "scissors", "trees", "voters", "apples", "boys", "cats", "dogs", "players", "students", "birds",
   "people", "mice", "feet", "teeth", "men", "women", "ducks", "dishes", "friends", "flowers", "books", "games", "horses", "blocks", "trucks", "papers", "grapes", "snacks", "cousins", "helpers", "aunts", "fans", "teachers", "coaches", "cards", "photos", "pancakes", "captains", "carrots", "cheeks", "grandparents", "hikers", "fireworks", "partners", "sandwiches", "tomatoes", "nachos", "neighbors", "skaters", "tacos", "bleachers", "defenders", "coaches",
+  "bees", "cows",
 ]);
 
 export const SINGULAR_NOUNS = new Set([
@@ -30,7 +31,9 @@ export const SINGULAR_NOUNS = new Set([
   "june", "october", "bike", "blanket", "cake", "day", "drawing", "grass", "house", "ice", "mitten", "party", "principal",
   "roof", "squirrel", "time", "garden",
   "catcher", "concert", "crowd", "drone", "drummer", "field", "goalie", "lifeguard", "line", "locker", "mascot", "pass", "phone",
-  "playlist", "quiz", "reminder", "ride", "robot", "slice", "ticket", "garage", "blizzard", "bolt", "laptop", "band", "static", "lab", "stage", "website"
+  "playlist", "quiz", "reminder", "ride", "robot", "slice", "ticket", "garage", "blizzard", "bolt", "laptop", "band", "static", "lab", "stage", "website",
+  "apple", "artist", "baker", "bone", "box", "chef", "cousin", "dolphin", "friend", "girl", "hero", "kitten", "moon", "runner",
+  "star", "meadow", "kitchen", "oven", "champion", "leader",
 ]);
 
 const clean = (word) => word.replace(/[.?!,]+$/, "");

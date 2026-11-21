@@ -143,6 +143,14 @@ export const SKILLS = [
     badge: { id: "part-spotter", name: "Part Spotter", emoji: "🔎" },
   },
   {
+    // Sentence Workshop: build your own sentence from word tiles to fit a pattern (the structure is checked, not
+    // the words), then label it with the Q&A Flow. Saved sentences go in the notebook in Progress.
+    id: "workshop", world: "flow", name: "Sentence Workshop", short: "Workshop", color: "#b5651d",
+    grades: [3, 4, 5], benchmarks: "MN 3.2.1.1, 4.2.1.1, 5.2.1.1 (produce complete sentences); Shurley English sentence patterns 1–5",
+    badge: { id: "sentence-smith", name: "Sentence Smith", emoji: "🛠️" },
+    levelPlan: [{ type: "workshop", count: 4 }],
+  },
+  {
     id: "flow2", world: "flow", name: "Advanced Q&A Flow", short: "Adv. Flow", color: "#4527a0", minGrade: 6,
     grades: [6, 7, 8], benchmarks: "Shurley English Levels 6–8: questions, commands, patterns 6 and 7",
     badge: { id: "pattern-pro", name: "Pattern Pro", emoji: "🧠" },

@@ -15,6 +15,7 @@ import {
   parseJoin, parseCombine, checkCombine, checkDictation, dictationPhrases, dictationWords, parseLabels, parseMark, parseProofread, parseSort, parseWhich, mistakeKind,
 } from "../lib/parse.js";
 import { FLOW_LABELS, LABELS, PATTERNS, SENTENCE_KINDS, trickyAdverb } from "../config.js";
+import { WORKSHOP_PATTERNS, checkWorkshop, parseWorkshop, workshopExample, workshopFlowItem, workshopGoal, workshopText } from "../lib/workshop.js";
 
 const LABELS_BUTTON = '<button type="button" class="labels-help" data-labels-help>🏷️ Labels</button>';
 // Q&A Flow and Diagramming put their instruction in the card, so the rule and read-aloud buttons sit beside it
@@ -1454,12 +1455,121 @@ function renderDictate(root, item, { onChange, showWords }) {
   };
 }
 
+/**
+ * Sentence Workshop: build your own sentence from the tiles to fit the goal (a pattern, plus an adjective, adverb
+ * or prepositional phrase), checked for its structure rather than its words. Then label it with the Q&A Flow,
+ * and save it to the notebook. The sentence being built stays pinned at the top while the tiles scroll.
+ */
+function renderWorkshop(root, item, hooks) {
+  const { hint, complete, onChange, onTap } = hooks;
+  const { tiles } = parseWorkshop(item);
+  let bank = shuffle(tiles);
+  let placed = [];
+  let phase = "build"; // "build", then "label" (the Q&A Flow), then "done"
+  let misses = 0;
+  let usedExample = false;
+  let flow = null;
+  let built = "";
+  const goalLine = `${WORKSHOP_PATTERNS[item.pattern].line}${(item.need || []).length ? ` + ${item.need.map((n) => ({ Adj: "Adj", Adv: "Adv", PP: "P OP", PPA: "PPA" })[n]).join(" + ")}` : ""}`;
+  // One instruction, in the card (as in Q&A Flow): the goal in words, with 📘 and 🔊 beside it; the short form of
+  // the goal stays pinned with the sentence.
+  root.innerHTML = `<div class="workshop" data-type="workshop">
+    <div class="ws-head"><p class="ws-ask">${esc(workshopGoal(item))}</p>${CARD_TOOLS}</div>
+    <div class="ws-top"><p class="ws-goal"><span class="ws-tag">Goal</span> <strong>${esc(goalLine)}</strong></p>
+      <div class="build-slots ws-slots" aria-label="Your sentence"></div></div>
+    <div class="build-bank ws-bank" aria-label="Word tiles"></div>
+    <div class="ws-tools"><button type="button" class="secondary ws-tool" data-ws-clear>↺ Start over</button><button type="button" class="secondary ws-tool" data-ws-example hidden>Use Pip's sentence</button></div>
+    <div class="ws-label"></div>
+    <div class="ws-save" hidden></div>
+  </div>`;
+  const slots = root.querySelector(".ws-slots");
+  const bankEl = root.querySelector(".ws-bank");
+  const tile = (t, where) => `<button type="button" class="tile" data-wt="${t.id}" data-where="${where}" ${phase !== "build" ? "disabled" : ""}>${esc(t.word)}</button>`;
+  function draw() {
+    const shown = placed.map((t, n) => (n === 0 ? { ...t, word: t.word[0].toUpperCase() + t.word.slice(1) } : t));
+    slots.innerHTML = placed.length ? shown.map((t) => tile(t, "slot")).join("") + '<span class="ws-end" aria-hidden="true">.</span>'
+      : '<span class="slots-empty">Tap tiles to build your sentence. You won\'t need them all.</span>';
+    bankEl.innerHTML = bank.map((t) => tile(t, "bank")).join("");
+  }
+  function startLabeling() {
+    phase = "label";
+    const result = checkWorkshop(item, placed);
+    built = workshopText(placed);
+    root.querySelector(".ws-top").hidden = true;
+    root.querySelector(".ws-head").remove(); // the flow card has its own instruction and 📘 🔊
+    bankEl.hidden = true;
+    root.querySelector(".ws-tools").hidden = true;
+    const box = root.querySelector(".ws-label");
+    box.innerHTML = `<p class="ws-built-note">${usedExample ? "Now label Pip's sentence." : "✓ Good sentence! Now label it."}</p><div class="ws-flow"></div>`;
+    flow = renderFlow(box.querySelector(".ws-flow"), { ...workshopFlowItem(item, placed, result.roles), circleNouns: item.circleNouns }, {
+      ...hooks, nounTable: false,
+      complete: (r) => {
+        phase = "done";
+        complete({ tries: Math.max(misses ? 2 : 1, r.tries), correct: r.correct && !usedExample });
+        if (!usedExample && hooks.saveSentence) {
+          const save = root.querySelector(".ws-save");
+          save.hidden = false;
+          save.innerHTML = '<button type="button" class="ws-save-btn" data-ws-save>📓 Save to my notebook</button>';
+        }
+      },
+    });
+    hooks.cardPrompt?.(true);
+    onChange();
+  }
+  root.addEventListener("click", (event) => {
+    if (event.target.closest("[data-ws-save]")) {
+      hooks.saveSentence({ text: built, pattern: Number(item.pattern) });
+      root.querySelector(".ws-save").innerHTML = '<p class="ws-saved">📓 Saved! Find it in Progress → My notebook.</p>';
+      return;
+    }
+    if (phase !== "build") return;
+    if (event.target.closest("[data-ws-clear]")) {
+      bank = [...bank, ...placed];
+      placed = [];
+      onTap(); draw(); onChange();
+      return;
+    }
+    if (event.target.closest("[data-ws-example]")) {
+      usedExample = true;
+      placed = workshopExample(item);
+      hint(null);
+      startLabeling();
+      return;
+    }
+    const el = event.target.closest("[data-wt]");
+    if (!el) return;
+    const id = Number(el.dataset.wt);
+    const [from, to] = el.dataset.where === "bank" ? [bank, placed] : [placed, bank];
+    to.push(from.splice(from.findIndex((t) => t.id === id), 1)[0]);
+    onTap(); draw(); onChange();
+  });
+  draw();
+  return {
+    get prompt() { return phase === "build" ? workshopGoal(item) : flow?.prompt || ""; },
+    get usesCheck() { return phase === "build"; },
+    canCheck: () => placed.length >= 2,
+    // The Check button doesn't end the item: a right build goes on to labeling; a wrong one says what to fix.
+    onCheck: () => {
+      const result = checkWorkshop(item, placed);
+      if (result.right) { hint(null); startLabeling(); return; }
+      misses += 1;
+      hint(`${result.why}${misses >= 2 ? " Or use Pip's sentence to go on." : ""}`);
+      if (misses >= 2) root.querySelector("[data-ws-example]").hidden = false;
+    },
+    check: () => false,
+    retry: () => {},
+    reveal: () => {},
+    lock: () => { flow?.lock(); },
+    built: () => built,
+  };
+}
+
 const DIAGRAM_HINT = "The subject and verb go on the long line. Words that describe go on slanted lines under the word they describe.";
 
 export function renderItem(root, item, hooks) {
   const render = {
     mark: renderMark, fix: renderFix, which: renderWhich, build: renderBuild, sort: renderSort, check: renderCheck, join: renderJoin,
-    flow: renderFlow, labels: renderLabels, proofread: renderProofread, labelfix: renderProofread, diagram: renderDiagram, combine: renderCombine, dictate: renderDictate,
+    flow: renderFlow, labels: renderLabels, proofread: renderProofread, labelfix: renderProofread, diagram: renderDiagram, combine: renderCombine, dictate: renderDictate, workshop: renderWorkshop,
   }[item.type];
   if (!render) throw new Error(`Unknown item type: ${item.type}`);
   // A fresh box for each question: the last question's click and key listeners go with the old one (otherwise

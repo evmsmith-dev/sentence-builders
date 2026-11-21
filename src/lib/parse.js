@@ -3,6 +3,7 @@
 import { FLOW_LABELS, FLOW_PATTERNS, LABELS, MARK_ORDER, PALETTES, PATTERNS, SENTENCE_KINDS } from "../config.js";
 import { buildDiagram } from "./diagram.js";
 import { NAMES, isPronoun, nounInfo } from "./nouns.js";
+import { WORKSHOP_KINDS, WORKSHOP_NEEDS, adverbQuestion, checkWorkshop, parseWorkshop, workshopExample, workshopFlowItem, workshopText } from "./workshop.js";
 
 const flowLabels = (item) => (FLOW_LABELS[item.skill] || FLOW_LABELS.flow)[item.level - 1];
 const flowPatterns = (item) => (FLOW_PATTERNS[item.skill] || FLOW_PATTERNS.flow)[item.level - 1];
@@ -283,6 +284,7 @@ export function spokenText(item) {
   if (item.type === "labelfix") return parseProofread(item).words.map((w) => w.split("^")[0]).join(" ");
   if (item.type === "combine") return item.parts.join(" ");
   if (item.type === "dictate") return item.text;
+  if (item.type === "workshop") return parseWorkshop(item).tiles.map((t) => t.word).join(", ");
   return "";
 }
 
@@ -489,10 +491,11 @@ export function answerText(item) {
   if (item.type === "labelfix") return parseProofread(item).answerText.split(" ").map((t) => t.replace("^", "/")).join(" ");
   if (item.type === "combine") return parseCombine(item).answerText;
   if (item.type === "dictate") return item.text;
+  if (item.type === "workshop") return `${workshopText(workshopExample(item))} (one sentence that works)`;
   throw new Error(`Unknown item type: ${item.type}`);
 }
 
-export const ITEM_TYPES = ["mark", "fix", "which", "build", "sort", "check", "join", "flow", "labels", "proofread", "diagram", "combine", "dictate", "labelfix"];
+export const ITEM_TYPES = ["mark", "fix", "which", "build", "sort", "check", "join", "flow", "labels", "proofread", "diagram", "combine", "dictate", "labelfix", "workshop"];
 
 /** A diagram in words, for the results review: the baseline, then what hangs under each word. */
 export function diagramText(item) {
@@ -636,6 +639,25 @@ export function validateItem(item) {
       if (parsed.use && !new RegExp(`\\b${parsed.use}\\b`, "i").test(answer)) throw new Error(`${item.id}: "${answer}" doesn't use ${parsed.use}`);
     }
     if (checkCombine(parsed, parsed.parts.join(" ")).right) throw new Error(`${item.id}: the two sentences as they are count as right`);
+  }
+  if (item.type === "workshop") {
+    const { tiles, pattern, need } = parseWorkshop(item);
+    if (![1, 2, 3, 4, 5].includes(pattern)) throw new Error(`${item.id}: pattern must be 1 to 5`);
+    const allowed = { 1: ["A", "Adj", "N", "Np", "V", "Adv"], 2: ["A", "Adj", "N", "Np", "V", "Adv", "P", "PPA"] }[item.level] || WORKSHOP_KINDS;
+    for (const t of tiles) {
+      if (!WORKSHOP_KINDS.includes(t.kind)) throw new Error(`${item.id}: "${t.word}" has an unknown kind ${t.kind}`);
+      if (!allowed.includes(t.kind)) throw new Error(`${item.id}: ${t.kind} tiles aren't used at level ${item.level}`);
+      if (/[A-Z.,!?]/.test(t.word)) throw new Error(`${item.id}: tiles are lowercase words without marks ("${t.word}")`);
+      if ((t.kind === "N" || t.kind === "Np") && !nounInfo(t.word).number) throw new Error(`${item.id}: add "${t.word}" to the singular or plural noun list in src/lib/nouns.js`);
+      if (t.kind === "Adv" && !adverbQuestion(t.word)) throw new Error(`${item.id}: say whether "${t.word}" answers how, when or where (adverbQuestion in src/lib/workshop.js)`);
+    }
+    for (const n of need) if (!WORKSHOP_NEEDS[n]) throw new Error(`${item.id}: unknown need ${n}`);
+    if (new Set(tiles.map((t) => t.word)).size !== tiles.length) throw new Error(`${item.id}: repeated tiles`);
+    if (tiles.length < 7) throw new Error(`${item.id}: needs 7+ tiles, with a few that don't fit`);
+    const example = workshopExample(item);
+    const result = checkWorkshop(item, example);
+    if (!result.right) throw new Error(`${item.id}: its own example isn't accepted: ${result.why}`);
+    validateItem(workshopFlowItem(item, example, result.roles));
   }
   return true;
 }

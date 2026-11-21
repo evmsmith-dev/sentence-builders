@@ -10,6 +10,7 @@ async function shownTasks(page, labels, words) {
 import { nounTableQuestions } from "../../src/lib/nountable.js";
 import { buildDiagram, guideOrder } from "../../src/lib/diagram.js";
 import { weekDayItems } from "../../src/lib/week.js";
+import { checkWorkshop, parseWorkshop, workshopExample, workshopFlowItem } from "../../src/lib/workshop.js";
 import {
   CHECK_KINDS, compoundPairs, paletteFor, parseBuild, parseCheck, parseFix, parseFlow, parseJoin, parseLabels, parseMark, parseMarkText,
   parseProofread, parseSort, parseWhich,
@@ -93,6 +94,16 @@ const exact = (text) => new RegExp(`^${text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&
 /** One wrong try at the item on screen. Returns false when no wrong choice is left. */
 export async function miss(page) {
   const item = await currentItem(page);
+  if (item.type === "workshop") {
+    // The verb first: no subject.
+    while (await page.locator("#item .ws-slots .tile").count()) await page.locator("#item .ws-slots .tile").first().click();
+    const { tiles } = parseWorkshop(item);
+    for (const t of [tiles.find((x) => ["V", "Vt", "LV"].includes(x.kind)), tiles.find((x) => x.kind === "N" || x.kind === "Np")]) {
+      await page.locator(`#item .ws-bank [data-wt="${t.id}"]`).click();
+    }
+    await page.locator("#check-btn").click();
+    return true;
+  }
   if (item.type === "dictate") {
     await page.locator("#item textarea").fill(item.text.toLowerCase().replace(/[^a-z' ]/g, ""));
     await page.locator("#check-btn").click();
@@ -260,32 +271,15 @@ export async function answer(page, { swapCompounds = false } = {}) {
   } else if (item.type === "which") {
     const parsed = parseWhich(item);
     await page.locator("#item [data-choice]").filter({ hasText: exact(parsed.correct) }).first().click();
+  } else if (item.type === "workshop") {
+    // Build the item's own example, check it, then label it with its Q&A Flow.
+    const placed = workshopExample(item);
+    while (await page.locator("#item .ws-slots .tile").count()) await page.locator("#item .ws-slots .tile").first().click();
+    for (const t of placed) await page.locator(`#item .ws-bank [data-wt="${t.id}"]`).click();
+    await page.locator("#check-btn").click();
+    await answerFlow(page, workshopFlowItem(item, placed, checkWorkshop(item, placed).roles));
   } else if (item.type === "flow") {
-    const parsed = parseFlow(item);
-    const steps = parsed.steps.map((s) => ({ ...s }));
-    const pairs = compoundPairs(parsed.words.map((w) => w.label));
-    for (let guard = 0; guard < 40 && !(await page.locator("#next-btn").isVisible()); guard++) {
-      const at = await flowStage(page);
-      if (at === "kind") {
-        await page.locator(`#item [data-kind-pick="${parsed.kind}"]`).click();
-      } else if (at === "pattern") {
-        await page.locator(`#item [data-pattern="${parsed.pattern}"]`).click();
-      } else if (typeof at === "string" && at.startsWith("table-")) {
-        const q = nounTableQuestions(parsed.words.map((w) => w.label), parsed.words.map((w) => w.word), parsed.labels)[Number(at.slice(6))];
-        await page.locator(`#item [data-nt="${q.answer}"]`).click();
-      } else if (typeof at === "string" && at.startsWith("markup-")) {
-        await markUp(page, (await shownTasks(page, parsed.words.map((w) => w.label), parsed.words.map((w) => w.word)))[Number(at.slice(7))]);
-      } else {
-        const step = steps[at];
-        const pair = swapCompounds && step.question && pairs.find((p) => p.includes(step.index));
-        const other = pair && pair.find((i) => i !== step.index);
-        const later = pair ? steps.findIndex((s, k) => k > at && s.index === other) : -1;
-        if (later >= 0) [step.index, step.label, steps[later].index, steps[later].label] = [other, steps[later].label, step.index, step.label];
-        const word = page.locator(`#item [data-fw="${step.index}"]`);
-        if (await word.isEnabled()) await word.click();
-        await page.locator(`#item [data-label="${step.label}"]`).click();
-      }
-    }
+    await answerFlow(page, item, { swapCompounds });
   } else if (item.type === "diagram") {
     await diagramIt(page, item);
   } else if (item.type === "proofread" || item.type === "labelfix") {
@@ -344,6 +338,35 @@ export async function answer(page, { swapCompounds = false } = {}) {
       await page.locator("#item .build-bank .tile").filter({ hasText: exact(text) }).first().click();
     }
     await page.locator("#check-btn").click();
+  }
+}
+
+/** Answers a Q&A Flow on screen, step by step (also the flow for a Sentence Workshop sentence). */
+async function answerFlow(page, item, { swapCompounds = false } = {}) {
+  const parsed = parseFlow(item);
+  const steps = parsed.steps.map((s) => ({ ...s }));
+  const pairs = compoundPairs(parsed.words.map((w) => w.label));
+  for (let guard = 0; guard < 40 && !(await page.locator("#next-btn").isVisible()); guard++) {
+    const at = await flowStage(page);
+    if (at === "kind") {
+      await page.locator(`#item [data-kind-pick="${parsed.kind}"]`).click();
+    } else if (at === "pattern") {
+      await page.locator(`#item [data-pattern="${parsed.pattern}"]`).click();
+    } else if (typeof at === "string" && at.startsWith("table-")) {
+      const q = nounTableQuestions(parsed.words.map((w) => w.label), parsed.words.map((w) => w.word), parsed.labels)[Number(at.slice(6))];
+      await page.locator(`#item [data-nt="${q.answer}"]`).click();
+    } else if (typeof at === "string" && at.startsWith("markup-")) {
+      await markUp(page, (await shownTasks(page, parsed.words.map((w) => w.label), parsed.words.map((w) => w.word)))[Number(at.slice(7))]);
+    } else {
+      const step = steps[at];
+      const pair = swapCompounds && step.question && pairs.find((p) => p.includes(step.index));
+      const other = pair && pair.find((i) => i !== step.index);
+      const later = pair ? steps.findIndex((s, k) => k > at && s.index === other) : -1;
+      if (later >= 0) [step.index, step.label, steps[later].index, steps[later].label] = [other, steps[later].label, step.index, step.label];
+      const word = page.locator(`#item [data-fw="${step.index}"]`);
+      if (await word.isEnabled()) await word.click();
+      await page.locator(`#item [data-label="${step.label}"]`).click();
+    }
   }
 }
 

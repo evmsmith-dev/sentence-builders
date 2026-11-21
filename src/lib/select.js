@@ -36,7 +36,7 @@ export function pickLevelItems({ items, skill, level, stats = {}, passedKeys = [
   }
   const own = rankItems(items.filter((item) => item.skill === skill && item.level === level), stats, random);
   const reviewPool = rankItems(
-    items.filter((item) => passedKeys.includes(`${item.skill}-${item.level}`) && `${item.skill}-${item.level}` !== key),
+    items.filter((item) => passedKeys.includes(`${item.skill}-${item.level}`) && `${item.skill}-${item.level}` !== key && item.type !== "workshop"),
     stats,
     random,
   );
@@ -71,7 +71,7 @@ const byKey = (key) => (a, b) => {
  */
 export function pickSummitItems({ items, passedKeys, stats = {}, count = 8, random = Math.random }) {
   const order = practiceOrder(stats, random);
-  const pool = items.filter((i) => passedKeys.includes(`${i.skill}-${i.level}`) && !["flow", "labels", "diagram"].includes(i.type));
+  const pool = items.filter((i) => passedKeys.includes(`${i.skill}-${i.level}`) && !["flow", "labels", "diagram", "workshop"].includes(i.type));
   const groups = new Map();
   for (const item of pool) groups.set(item.skill, [...(groups.get(item.skill) || []), item]);
   const queues = [...groups.values()].map((g) => [...g].sort(byKey(order))).sort((a, b) => byKey(order)(a[0], b[0]));

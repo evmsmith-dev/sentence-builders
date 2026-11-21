@@ -166,6 +166,8 @@ function playButton(player) {
 // under "More to do" and "All worlds", which start closed.
 
 const today = () => localDate(Date.now());
+/** Sentences kept in the notebook (Sentence Workshop), newest first. */
+const NOTEBOOK_MAX = 100;
 /** The Notice Board step shows once the player has played on a day before today (not on day one). */
 const boardStepShown = (player) => (player.days || []).some((d) => d !== today());
 
@@ -1216,6 +1218,17 @@ function showItem() {
     nounReminders: (state.player.nounTableRight || 0) < NOUN_REMINDERS_UNTIL,
     onNounTable: (right) => savePlayer({ ...state.player, nounTableRight: (state.player.nounTableRight || 0) + right }),
     complete: (result) => completeItem(result),
+    // Sentence Workshop: the Q&A Flow for the child's own sentence puts its instruction in the card, like any flow.
+    cardPrompt: (on) => {
+      $("play").classList.toggle("card-prompt", on);
+      $("item").querySelectorAll("[data-card-say]").forEach((b) => { b.hidden = !canSay(); });
+      $("item").querySelectorAll("[data-card-rule]").forEach((b) => { b.hidden = $("rule-btn").hidden; });
+    },
+    // 📓 The notebook (Progress → Me): the sentences a child chose to keep, newest first.
+    saveSentence: ({ text, pattern }) => {
+      const kept = (state.player.notebook || []).filter((n) => n.text !== text);
+      savePlayer({ ...state.player, notebook: [{ text, pattern, on: localDate(Date.now()) }, ...kept].slice(0, NOTEBOOK_MAX) });
+    },
     onChange: updateCheck,
     onTap: () => sound("tap", settings().sound),
     showWords: Boolean(settings().showWords), // Listen and Write: read the words instead of hearing them
@@ -1231,7 +1244,7 @@ function showItem() {
   if (state.play && !state.play.badgesBefore) state.play.badgesBefore = currentBadges(state.player); // for the new-badge cards
   // Q&A Flow and Diagramming show their instruction in the card, so the top one (which repeated it) is hidden and
   // its 📘 and 🔊 sit in the card instead (the expert panel).
-  $("play").classList.toggle("card-prompt", item.type === "flow" || item.type === "diagram");
+  $("play").classList.toggle("card-prompt", item.type === "flow" || item.type === "diagram" || item.type === "workshop");
   $("item").querySelectorAll("[data-card-say]").forEach((b) => { b.hidden = !canSay(); });
   $("item").querySelectorAll("[data-card-rule]").forEach((b) => { b.hidden = $("rule-btn").hidden; });
   updateCheck();
@@ -2098,6 +2111,9 @@ function playerDetailHtml(p, now) {
     ${worlds}
     <h4>Sentences missed most</h4>
     ${missed ? `<ol class="missed-list">${missed}</ol>` : '<p class="note">None yet.</p>'}
+    <h4 class="notebook-title">📓 My notebook</h4>
+    ${(p.notebook || []).length ? `<ul class="notebook-list">${p.notebook.map((n) => `<li><span class="nb-text">${esc(n.text)}</span><span class="nb-meta">Pattern ${n.pattern} · ${esc(n.on)}</span></li>`).join("")}</ul>`
+      : '<p class="note">Sentences built in Sentence Workshop (Flow Factory) can be saved here.</p>'}
     <div class="sheet-actions start"><button type="button" class="secondary" data-teacher-report="${esc(p.id)}">📄 Teacher report</button></div>
   </section>`;
 }
@@ -2772,7 +2788,9 @@ function wire() {
   });
   $("check-btn").addEventListener("click", () => {
     const ctrl = state.play?.ctrl;
-    if (ctrl?.usesCheck && ctrl.canCheck() && !state.play.done) handleAnswer(ctrl.check());
+    if (!ctrl?.usesCheck || !ctrl.canCheck() || state.play.done) return;
+    // Sentence Workshop checks its own build and goes on to labeling, so Check doesn't end the item there.
+    if (ctrl.onCheck) { ctrl.onCheck(); updateCheck(); } else handleAnswer(ctrl.check());
   });
   $("next-btn").addEventListener("click", nextItem);
   $("quit-btn").addEventListener("click", () => openOverlay("quit-overlay"));
