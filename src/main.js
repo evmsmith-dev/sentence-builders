@@ -116,10 +116,10 @@ function choosePlayer(id) {
 /** Skills this player can play: in an open world and not waiting for a higher grade. */
 const visibleSkills = (player) => SKILLS.filter((sk) => worldOpenFor(WORLDS.find((w) => w.id === sk.world), player) && skillOpenFor(sk, player));
 
-/** Grades 6–8 see their own work first: Revision Ridge and Flow Factory lead the list, Advanced Q&A Flow first in it. */
+/** Grades 6–8 see their own work first: Revision Ridge, Verb Valley and Flow Factory lead the list, their grade 6–8 skills first in them. */
 const OLDER_FROM_GRADE = 6;
-const LEAD_WORLDS = ["desk", "flow"];
-const LEAD_SKILLS = ["flow2"];
+const LEAD_WORLDS = ["desk", "valley", "flow"];
+const LEAD_SKILLS = ["flow2", "verbals", "parallel"];
 const worldsFor = (player) => (player.grade < OLDER_FROM_GRADE ? WORLDS
   : [...LEAD_WORLDS.map((id) => WORLDS.find((w) => w.id === id)), ...WORLDS.filter((w) => !LEAD_WORLDS.includes(w.id))]);
 const skillsInWorldOrdered = (worldId, player) => {

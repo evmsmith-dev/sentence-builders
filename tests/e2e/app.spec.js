@@ -74,12 +74,12 @@ test("play a whole level right: 3 stars, a building and badges", async ({ page }
   await expect(page.locator("#badge-list .badge.is-new", { hasText: "Comma Captain" }).locator(".new-tag")).toHaveText("NEW");
   await page.locator("#badges .back").click();
   await expect(page.locator("#badges-btn .island-dot")).toHaveCount(0);
-  await expect(page.locator(".town")).toHaveAttribute("aria-label", /1 of 57 buildings/);
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /1 of 66 buildings/);
   await expect(page.locator("#pip-home")).toContainText("Warm up with the Daily 5, then Commas and colons, level 2");
 
   // Saved on the device: still there after a reload.
   await page.reload();
-  await expect(page.locator(".town")).toHaveAttribute("aria-label", /1 of 57 buildings/);
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /1 of 66 buildings/);
 });
 
 test("a miss gives a hint and a second try; a second miss shows the answer", async ({ page }) => {
@@ -168,7 +168,30 @@ test("Word Works: play a level with every item type it uses, including Sort it",
     await expect(page.locator("#result-title")).toHaveText(/^Perfect (build!|score)$/);
     await page.locator("#result-town").click();
   }
-  await expect(page.locator(".town")).toHaveAttribute("aria-label", /3 of 57 buildings/);
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /3 of 66 buildings/);
+});
+
+test("Verb Valley: a 4th grader plays Helping verbs, Perfect tenses and Tricky verbs; a 7th grader gets Verbals and Parallel structure", async ({ page }) => {
+  await openApp(page, { players: [player(), player({ id: "p2", name: "Max", avatar: "🐯", grade: 7 })], current: "p1" });
+  for (const [skill, level] of [["helpers", 1], ["perfect", 1], ["tricky", 1]]) {
+    await startLevel(page, skill, level, "valley");
+    for (let n = 0; n < 8; n++) {
+      await answer(page);
+      await expect(page.locator("#feedback.good")).toBeVisible();
+      await page.locator("#next-btn").click();
+    }
+    await expect(page.locator("#result-title")).toHaveText(/^Perfect (build!|score)$/);
+    await page.locator("#result-town").click();
+  }
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /3 of 66 buildings/);
+  await openWorld(page, "valley");
+  await expect(page.locator('.level-btn[data-skill="verbals"]')).toHaveCount(0); // grade 6+ only
+  await page.locator("#world .back").click();
+  await page.locator("#who-btn").click();
+  await page.locator('[data-player="p2"]').click();
+  await startLevel(page, "verbals", 1, "valley");
+  for (let n = 0; n < 8; n++) { await answer(page); await page.locator("#next-btn").click(); }
+  await expect(page.locator("#result-overlay")).toBeVisible();
 });
 
 test("Sort it: a wrong sort gives a hint, then the answer", async ({ page }) => {
@@ -209,7 +232,7 @@ test("Progress: open to everyone from the home screen; break reminder and backup
   await page.locator('[data-progress-tab="everyone"]').click();
   await expect(page.locator("[data-parent-player]")).toHaveCount(0);
   await expect(page.locator("[data-summary-player]").first()).toContainText("Max (you)");
-  await expect(page.locator('[data-summary-player="p1"]')).toContainText("1 of 57 buildings");
+  await expect(page.locator('[data-summary-player="p1"]')).toContainText("1 of 66 buildings");
   await expect(page.locator(".missed-list")).toHaveCount(0);
   await page.locator('[data-progress-tab="me"]').click();
   await expect(page.locator('[data-parent-player="p2"] .progress-table').first()).toBeVisible();
@@ -257,7 +280,7 @@ test("Sentence Studio: every level of all three skills, with Sentence check and 
       await page.locator("#result-town").click();
     }
   }
-  await expect(page.locator(".town")).toHaveAttribute("aria-label", /9 of 78 buildings/);
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /9 of 93 buildings/);
 });
 
 test("Sentence check and Join it: a miss gives a hint, two show the answer", async ({ page }) => {
@@ -305,7 +328,7 @@ test("Flow Factory: all three levels, 3 Q&A Flows then 2 Build from labels", asy
     await expect(page.locator("#result-score")).toContainText("5 of 5 points");
     await page.locator("#result-town").click();
   }
-  await expect(page.locator(".town")).toHaveAttribute("aria-label", /3 of 78 buildings/);
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /3 of 93 buildings/);
 });
 
 test("Q&A Flow: a miss gives a step hint; a second miss shows that step and moves on", async ({ page }) => {
@@ -333,10 +356,10 @@ test("Revision Ridge: closed below grade 6, open for a 7th grader with grades 6-
   await expect(page.locator('[data-world="desk"]')).toContainText("Grade 6+, or early with ⭐");
   // The lock says how its skills can open early as Challenge Trails (grades 3–5), not just "grade 6".
   await expect(page.locator(".town")).toContainText("or sooner: ⭐ Gold opens Challenge Trails");
-  await expect(page.locator(".town")).toHaveAttribute("aria-label", /of 57 buildings/);
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /of 66 buildings/);
   await page.locator("#who-btn").click();
   await page.locator('[data-player="p2"]').click();
-  await expect(page.locator(".town")).toHaveAttribute("aria-label", /of 78 buildings/);
+  await expect(page.locator(".town")).toHaveAttribute("aria-label", /of 93 buildings/);
   await openWorld(page, "desk");
   await expect(page.locator('.level-btn[data-skill="case"][data-level="2"]')).toBeEnabled();
   await expect(page.locator('.level-btn[data-skill="case"][data-level="3"]')).toBeDisabled();
@@ -1398,7 +1421,7 @@ test("Grades 6–8: Next up starts at middle-school work, Revision Ridge leads, 
 test("Grades 6–8: Next up skips grade 3–5 levels until the middle-school ones are passed", async ({ page }) => {
   const passed = { stars: 2, best: 7, plays: 1 };
   const levels = {};
-  for (const id of ["case", "proofread", "aside", "types", "modifiers", "flow2"]) for (const l of [1, 2]) levels[`${id}-${l}`] = passed;
+  for (const id of ["case", "proofread", "aside", "types", "modifiers", "flow2", "verbals", "parallel"]) for (const l of [1, 2]) levels[`${id}-${l}`] = passed;
   levels["diagram-2"] = passed; levels["diagram-3"] = passed;
   await openApp(page, { players: [player({ grade: 7, levels })], current: "p1" });
   await expect(page.locator("#level-btn")).toContainText("level 3"); // a grade 8 level comes before grade 3 commas
@@ -1803,7 +1826,7 @@ test("Grades 6-8: the island as a blueprint, Worlds first, no brick shop; Settin
   await openApp(page, { players: [p], current: "p1" });
   await expect(page.locator("body")).toHaveClass(/blueprint-home/);
   await expect(page.locator("#town-title")).toHaveText("📐 Island plan");
-  await expect(page.locator("#bp-summary")).toContainText("1 of 78 levels built · 1 skill under 75%");
+  await expect(page.locator("#bp-summary")).toContainText("1 of 93 levels built · 1 skill under 75%");
   await expect(page.locator(".start-card")).not.toContainText("brick");
   await expect(page.locator("#build-btn")).toBeHidden();
   // The Worlds list comes before the plan.
@@ -2009,8 +2032,8 @@ test("Island Home: tapping locked Revision Ridge, Pip says it opens in grade 6 o
   await openApp(page, { players: [p], current: "p1" });
   await expect(page.locator(".town")).toContainText("or sooner: ⭐ Gold opens Challenge Trails");
   await page.locator("#map-fit").click();
-  const vp = page.viewportSize();
-  await page.mouse.click(vp.width * 0.5, vp.height * 0.66);
+  const ridgeAt = async () => { const b = await page.locator('.town g.district[data-area="desk"]').boundingBox(); return [b.x + b.width / 2, b.y + b.height / 2]; };
+  await page.mouse.click(...(await ridgeAt()));
   await expect(page.locator("#pip-home")).toContainText("Revision Ridge opens in grade 6, but you can open its skills sooner!");
   await expect(page.locator("#pip-home")).toContainText("to ⭐ Gold (7 or more out of 8 on level 3, on two different days) to open");
   await expect(page.locator("#pip-home")).not.toContainText(" and Capital"); // skill names joined with +, never "and … and"
@@ -2019,14 +2042,14 @@ test("Island Home: tapping locked Revision Ridge, Pip says it opens in grade 6 o
   await expect(page.locator("#pip-home [data-pip-min]")).toBeVisible();
   // Gold is explained once; the next time it's just ⭐ Gold.
   await page.locator("#map-fit").click();
-  await page.mouse.click(vp.width * 0.5, vp.height * 0.66);
+  await page.mouse.click(...(await ridgeAt()));
   await expect(page.locator("#pip-home")).toContainText("to ⭐ Gold to open");
   // Moving on (here: the whole island) brings Pip's usual message back.
   await page.locator("#map-fit").click();
   await expect(page.locator("#pip-home")).not.toContainText("Revision Ridge opens");
   await expect(page.locator("#pip-home .next-play")).toBeVisible();
   // The – shrinks Pip to his face, with nothing else showing.
-  await page.mouse.click(vp.width * 0.5, vp.height * 0.66);
+  await page.mouse.click(...(await ridgeAt()));
   await page.locator("#pip-home [data-pip-min]").click();
   await expect(page.locator("#pip-home")).not.toContainText("Revision Ridge opens");
   await expect(page.locator("#pip-home .pip-mini")).toBeVisible();

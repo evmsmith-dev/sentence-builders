@@ -465,7 +465,7 @@ test("town districts: themed decorations stay in their district; old saves move 
   assert.equal(buyDecor(p, "oak", "desk").player.decor[0].area, "desk"); // everyday decorations go anywhere
   assert.equal(buyDecor(p, "oak").player.decor[0].area, "square");
   assert.ok(decorFor("port").some((d) => d.id === "anchor") && !decorFor("works").some((d) => d.id === "anchor"));
-  for (const area of ["port", "works", "studio", "flow", "desk"]) assert.ok(DECOR.filter((d) => d.area === area).length >= 6, area);
+  for (const area of ["port", "works", "studio", "flow", "desk", "valley"]) assert.ok(DECOR.filter((d) => d.area === area).length >= 6, area);
   const old = normalizePlayer({ ...p, decor: [{ uid: "d1", id: "oak", x: 30, y: 100 }] });
   assert.equal(old.decor[0].area, "square");
   assert.equal(old.decor[0].x, 30); // exactly where it was

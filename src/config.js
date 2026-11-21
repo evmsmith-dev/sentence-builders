@@ -26,6 +26,7 @@ export const WORLDS = [
   { id: "works", tab: "Word Works", name: "Word Works", emoji: "⚙️", ready: true, blurb: "Verb tenses, agreement, pronouns, word parts and word choice" },
   { id: "studio", tab: "Sentences", name: "Sentence Studio", emoji: "🎨", ready: true, blurb: "Fragments, run-ons, compound and complex sentences, figurative language, revising and sentence combining" },
   { id: "flow", tab: "Q&A Flow", name: "Flow Factory", emoji: "🏭", ready: true, blurb: "Label every word with the Q&A Flow and the parts of speech, mark it up and diagram it" },
+  { id: "valley", tab: "Verbs", name: "Verb Valley", emoji: "🌾", ready: true, blurb: "Helping verbs, perfect tenses, tricky verbs, verbals and parallel structure" },
   {
     id: "desk", tab: "Revision", name: "Revision Ridge", emoji: "📝", ready: true, minGrade: 6,
     blurb: "Pronouns, punctuation, sentence types, modifiers and proofreading",
@@ -153,6 +154,33 @@ export const SKILLS = [
     grades: [5, 6, 7], benchmarks: "Shurley English Skill Check and sentence diagramming, grades 5–7",
     badge: { id: "diagram-pro", name: "Diagram Pro", emoji: "📐" },
     levelPlan: [{ type: "diagram", count: 5 }],
+  },
+  // Verb Valley: helping and modal verbs, perfect tenses and verbs that get mixed up (grades 3–6), then verbals and
+  // parallel structure (grades 6–8).
+  {
+    id: "helpers", world: "valley", name: "Helping verbs", short: "Helpers", color: "#7b8b2a",
+    grades: [3, 4, 5], benchmarks: "MN 3.2.1.3, 4.2.1.3 (helping and modal verbs), 5.2.1.3; Shurley's helping verb (HV)",
+    badge: { id: "helping-hand", name: "Helping Hand", emoji: "🤝" },
+  },
+  {
+    id: "perfect", world: "valley", name: "Perfect tenses", short: "Perfect", color: "#c0702a",
+    grades: [4, 5, 5], benchmarks: "MN 4.2.1.3 (verb forms), 5.2.1.3 (perfect verb tenses)",
+    badge: { id: "perfect-timer", name: "Perfect Timer", emoji: "⏱️" },
+  },
+  {
+    id: "tricky", world: "valley", name: "Tricky verbs", short: "Tricky verbs", color: "#a0522d",
+    grades: [4, 5, 6], benchmarks: "MN 4.2.1.3, 5.2.1.3, 6.2.1.1 (frequently confused verbs: sit/set, rise/raise, lie/lay)",
+    badge: { id: "verb-tamer", name: "Verb Tamer", emoji: "🐎" },
+  },
+  {
+    id: "verbals", world: "valley", name: "Verbals", short: "Verbals", color: "#2f7d6d", minGrade: 6,
+    grades: [6, 7, 8], benchmarks: "MN 8.2.1.1 (gerunds, participles and infinitives), 7.2.1.1 (misplaced and dangling modifiers)",
+    badge: { id: "verbal-virtuoso", name: "Verbal Virtuoso", emoji: "🎼" },
+  },
+  {
+    id: "parallel", world: "valley", name: "Parallel structure", short: "Parallel", color: "#5a5fb0", minGrade: 6,
+    grades: [6, 7, 8], benchmarks: "MN 6.2.1.1, 7.2.1.1, 8.2.1.1 (sentence structure: parallel lists, pairs and clauses)",
+    badge: { id: "balance-keeper", name: "Balance Keeper", emoji: "⚖️" },
   },
   {
     id: "case", world: "desk", name: "Pronoun case and clarity", short: "Pronoun case", color: "#00695c",
@@ -506,6 +534,14 @@ export const DECOR = [
   { id: "radio", area: "desk", name: "Radio", emoji: "📻", cost: 30, zone: "square", row: "front", x: 230 },
   { id: "laptop", area: "desk", name: "Laptop", emoji: "💻", cost: 45, zone: "square", row: "back", x: 300 },
   { id: "library", area: "desk", name: "Library", emoji: "🏛️", cost: 120, zone: "square", row: "back", x: 180 },
+  // Verb Valley: farm and time (verb tenses tell time).
+  { id: "wheat", area: "valley", name: "Wheat", emoji: "🌾", cost: 8, zone: "square", row: "front", x: 40 },
+  { id: "hourglass", area: "valley", name: "Hourglass", emoji: "⏳", cost: 12, zone: "square", row: "front", x: 120 },
+  { id: "sheep", area: "valley", name: "Sheep", emoji: "🐑", cost: 20, zone: "square", row: "front", x: 230, move: "walk" },
+  { id: "alarmclock", area: "valley", name: "Alarm clock", emoji: "⏰", cost: 25, zone: "square", row: "front", x: 300 },
+  { id: "cow", area: "valley", name: "Cow", emoji: "🐄", cost: 45, zone: "square", row: "front", x: 170, move: "walk" },
+  { id: "clock", area: "valley", name: "Grandfather clock", emoji: "🕰️", cost: 60, zone: "square", row: "back", x: 300 },
+  { id: "farmhouse", area: "valley", name: "Farmhouse", emoji: "🏡", cost: 120, zone: "square", row: "back", x: 180 },
 ];
 
 /**
@@ -519,6 +555,7 @@ export const DISTRICTS = [
   { id: "studio", world: "studio", ground: "#f2cfdc", street: "#e9b8cb", water: "#86b9e6" },
   { id: "flow", world: "flow", ground: "#d6cdea", street: "#c3b6e0", water: "#7aa9dd" },
   { id: "desk", world: "desk", ground: "#e3d7bd", street: "#d4c49f", water: "#6fa7cf" },
+  { id: "valley", world: "valley", ground: "#d8e6b0", street: "#c6d995", water: "#78b4dd" },
 ].map((d) => {
   const world = WORLDS.find((w) => w.id === d.world);
   return world ? { ...d, name: world.name, emoji: world.emoji } : d;

@@ -110,6 +110,28 @@ const STYLES = {
     return `${groundShadow(left, left + w + 12, ground, h)}${stack}${box(left, top, w, ground, "#d9dce8", "#aab0c2", "#eef0f6")}${silo}
       ${windowRows(left, w, top, Math.min(level, 2), "#bfe3ff")}${door(left + w / 2, ground, "#4b4f63")}`;
   },
+  // Verb Valley: red barns with a white cross on the door; a windmill on the biggest (verbs tell time, farms keep it).
+  valley(cx, ground, level, color) {
+    if (level === 3) {
+      const hub = ground - 50;
+      const blades = [0, 90, 180, 270].map((a) => `<rect x="${cx - 2.5}" y="${hub - 24}" width="5" height="24" rx="1.5" fill="#fffaf0" stroke="#8a6b4a" stroke-width="1" transform="rotate(${a + 20} ${cx} ${hub})"/>`).join("");
+      return `${groundShadow(cx - 11, cx + 11, ground, 54)}<path d="M${cx + 10} ${ground}l${D} ${-DY}L${cx + 6 + D} ${hub + 2 - DY}L${cx + 6} ${hub + 2}z" fill="#c9b79a"/>
+        <path d="M${cx - 11} ${ground}L${cx - 6} ${hub + 2}h12L${cx + 10} ${ground}z" fill="#efe3c8"/>
+        <path d="M${cx - 8} ${hub + 4}l8-9 8 9z" fill="${color}"/>
+        <g class="mill-blades">${blades}</g><circle cx="${cx}" cy="${hub}" r="3" fill="${shade(color, 0.7)}"/>
+        ${door(cx, ground, "#7a4a2a")}`;
+    }
+    const [w, h] = [[24, 18], [30, 26]][level - 1];
+    const left = cx - w / 2;
+    const top = ground - h;
+    const peak = level === 1 ? 9 : 12;
+    const loft = level === 2 ? `<rect x="${cx - 3}" y="${top - 6}" width="6" height="5" fill="#fff8d6" stroke="#fff" stroke-width="1"/>` : "";
+    return `${groundShadow(left, left + w, ground, h + peak)}${box(left, top, w, ground, "#c8452f", "#93301f")}
+      <path d="M${left + w + 2} ${top}l${D} ${-DY}l${-w / 2 - 2} ${-peak}l${-D} ${DY}z" fill="${shade(color, 0.6)}"/>
+      <path d="M${left - 2} ${top}L${cx} ${top - peak}L${left + w + 2} ${top}z" fill="#f4efe4"/>
+      <path d="M${left - 2} ${top}L${cx} ${top - peak}L${left + w + 2} ${top}" fill="none" stroke="#fff" stroke-width="1.5"/>${loft}
+      <rect x="${cx - 5}" y="${ground - 12}" width="10" height="12" fill="#fff"/><path d="M${cx - 4} ${ground - 11}l8 10M${cx + 4} ${ground - 11}l-8 10" stroke="#c8452f" stroke-width="1.6"/>`;
+  },
   // Revision Ridge: libraries with columns and a pediment; a clock tower on the biggest.
   desk(cx, ground, level, color) {
     const [w, h] = [[24, 20], [28, 28], [32, 34]][level - 1];
@@ -128,7 +150,7 @@ const STYLES = {
 /** A level's building on its pad, with its stars; a gold pennant once the skill is mastered. */
 function building(area, cx, ground, skill, level, stars, gold) {
   const drawn = (STYLES[area] || STYLES.port)(cx, ground, level, skill.color);
-  const tops = { port: [37, 51, 84], works: [26, 38, 70], studio: [36, 52, 74], flow: [32, 42, 70], desk: [34, 42, 74] }[area] || [40, 54, 84];
+  const tops = { port: [37, 51, 84], works: [26, 38, 70], studio: [36, 52, 74], flow: [32, 42, 70], desk: [34, 42, 74], valley: [30, 41, 78] }[area] || [40, 54, 84];
   const top = ground - tops[level - 1];
   const pennant = gold ? `<path d="M${cx + 12} ${top + 4}v-14" stroke="#7a5a1a" stroke-width="1.5"/><path d="M${cx + 12} ${top - 10}l10 3.5-10 3.5z" fill="#f2c200"/>` : "";
   return `<g>${drawn}${pennant}<text x="${cx}" y="${top - 2}" text-anchor="middle" font-size="9" fill="#f2a900" stroke="#fff" stroke-width="2" paint-order="stroke">${"★".repeat(stars)}</text></g>`;
@@ -150,6 +172,7 @@ const THEMES = {
   studio: { top: "#f6d3e0", cliff: "#9a6276", path: "#fff8fb", edge: "#d79ab3" },
   flow: { top: "#d3c9ec", cliff: "#6d5f94", path: "#b3b8cc", edge: "#6f7690" },
   desk: { top: "#e4d6b0", cliff: "#8a6f45", path: "#efd2b0", edge: "#b0835a" },
+  valley: { top: "#dcebb4", cliff: "#7c8a4a", path: "#f3ead0", edge: "#a99a62" },
 };
 // Where the road from the Town Square meets each area's path, and which way the rows go.
 const ENTRY = {
@@ -158,6 +181,7 @@ const ENTRY = {
   studio: { side: "top", x: 320 },
   flow: { side: "top", x: 40 },
   desk: { side: "top", x: 320 },
+  valley: { side: "left" }, // the road comes down between Sentence Studio and Revision Ridge
 };
 
 /** Placed decorations in one district with their catalog entry, drawn back to front (lower is nearer). */
@@ -422,20 +446,23 @@ function bannersSvg(banners) {
 /* ==================== Grammar Island ==================== */
 
 const MAP_W = 1300;
-const MAP_H = 1450;
+const MAP_H = 2040; // Verb Valley runs along the bottom
 const SLOT_H = SCENE.park + 3 * ROW_H + 20 + PARK + BAND; // the tallest area (three rows of path)
+const VALLEY_TOP = 1420; // where Verb Valley's fields begin
 // Where each area's plateau sits (top left), and the region around it: corners, clockwise.
 const REGIONS = {
   port: { slot: [60, 130], poly: [[0, 0], [450, 0], [450, 570], [450, 712], [0, 712]] },
   works: { slot: [880, 130], poly: [[850, 0], [MAP_W, 0], [MAP_W, 712], [850, 712], [850, 570]] },
   square: { slot: [470, 596], poly: [[450, 570], [850, 570], [850, 712], [850, 812], [450, 812], [450, 712]] },
-  studio: { slot: [60, 760], poly: [[0, 712], [450, 712], [450, 812], [450, MAP_H], [0, MAP_H]] },
-  desk: { slot: [470, 862], poly: [[450, 812], [850, 812], [850, MAP_H], [450, MAP_H]] },
-  flow: { slot: [880, 760], poly: [[850, 712], [MAP_W, 712], [MAP_W, MAP_H], [850, MAP_H], [850, 812]] },
+  studio: { slot: [60, 760], poly: [[0, 712], [450, 712], [450, 812], [450, VALLEY_TOP], [0, VALLEY_TOP]] },
+  desk: { slot: [470, 862], poly: [[450, 812], [850, 812], [850, VALLEY_TOP], [450, VALLEY_TOP]] },
+  flow: { slot: [880, 760], poly: [[850, 712], [MAP_W, 712], [MAP_W, VALLEY_TOP], [850, VALLEY_TOP], [850, 812]] },
+  // Verb Valley: the whole bottom of the island, a wide valley of fields with its plateau in the middle.
+  valley: { slot: [470, VALLEY_TOP + 30], poly: [[0, VALLEY_TOP], [450, VALLEY_TOP], [850, VALLEY_TOP], [MAP_W, VALLEY_TOP], [MAP_W, MAP_H], [0, MAP_H]] },
   peaks: { poly: [[450, 0], [850, 0], [850, 570], [450, 570]] },
 };
 // The ground of each region, seen from above.
-const LAND = { square: "#9fd17f", port: "#ecd79c", works: "#c2bb98", studio: "#eab9cc", flow: "#bcadde", desk: "#d3c193", peaks: "#a9c98f" };
+const LAND = { square: "#9fd17f", port: "#ecd79c", works: "#c2bb98", studio: "#eab9cc", flow: "#bcadde", desk: "#d3c193", valley: "#cfe0a0", peaks: "#a9c98f" };
 const LAKE = [652, 470]; // the lake under Grammar Peaks
 
 /** A border between regions, wiggled like a real one. The same two ends always give the same line. */
@@ -533,7 +560,7 @@ function peaksSvg(summits = 0, boats = 0) {
 }
 
 // Scenery scattered over each region's open ground.
-const SCENERY = { square: ["🌳", "🌳", "🌷"], port: ["🌴", "🌴", "🐚"], works: ["🪨", "🌲", "🪨"], studio: ["🌸", "🌳", "🌷"], flow: ["🌲", "🌲", "🪨"], desk: ["🌳", "🌲", "🌳"] };
+const SCENERY = { square: ["🌳", "🌳", "🌷"], port: ["🌴", "🌴", "🐚"], works: ["🪨", "🌲", "🪨"], studio: ["🌸", "🌳", "🌷"], flow: ["🌲", "🌲", "🪨"], desk: ["🌳", "🌲", "🌳"], valley: ["🌾", "🌳", "🌼", "🌾"] };
 
 /** Trees, rocks and flowers on a region's open ground: not on an area, a road, a border or the beach. */
 function scenerySvg(id, poly, boxes, roads) {
@@ -551,7 +578,7 @@ function scenerySvg(id, poly, boxes, roads) {
       if (boxes.some((b) => x > b.x - 24 && x < b.x + b.w + 30 && y > b.y - 8 && y < b.y + b.h + 50)) continue;
       if ((k * 7) % 5 === 0 || nearRoad(x, y)) continue;
       const kind = kinds[k % kinds.length];
-      const size = kind === "🐚" || kind === "🌷" ? 18 : 28;
+      const size = kind === "🐚" || kind === "🌷" || kind === "🌼" ? 18 : kind === "🌾" ? 24 : 28;
       out.push(`<ellipse cx="${x + 4}" cy="${y - 1}" rx="${size * 0.38}" ry="3.5" fill="#000" opacity=".15"/><text x="${x}" y="${y}" text-anchor="middle" font-size="${size}">${kind}</text>`);
     }
   }
@@ -579,6 +606,15 @@ function roadCurves(player, areas, districts) {
       end = [b.x + start[0], b.y + start[1]];
       const side = ENTRY[d.id].side;
       into = side === "top" ? [0, -1] : side === "left" ? [-1, 0] : [1, 0];
+    }
+    if (d.id === "valley" && !d.locked) {
+      // Out of the Town Square's left side, down the lane between Sentence Studio and Revision Ridge, into the valley.
+      const lane = 445;
+      const [x0, y0] = exits.left;
+      curves.push([[x0, y0], [x0 - 22, y0], [lane, y0 + 14], [lane, y0 + 48]]);
+      curves.push([[lane, y0 + 48], [lane, y0 + 300], [lane, end[1] - 300], [lane, end[1] - 40]]);
+      curves.push([[lane, end[1] - 40], [lane, end[1] - 10], [end[0] - 18, end[1]], end]);
+      continue;
     }
     const from = end[0] < sq.x ? exits.left : end[0] > sq.x + sq.w ? exits.right : end[1] > sq.y ? exits.bottom : exits.top;
     const out = from === exits.left ? [-1, 0] : from === exits.right ? [1, 0] : from === exits.bottom ? [0, 1] : [0, -1];
@@ -652,7 +688,7 @@ export function townSvg(player, { fresh = null, rising = null, week = null, revi
     <defs><clipPath id="island"><path d="${coast}"/></clipPath>
       <radialGradient id="sun" cx=".3" cy=".2" r=".9"><stop offset="0" stop-color="#fff" stop-opacity=".25"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs>
     <rect x="-3000" y="-3000" width="${MAP_W + 6000}" height="${MAP_H + 6000}" fill="#5aa7de"/>
-    ${[[120, 34], [980, 26], [40, 700], [1240, 520], [300, 1440], [1100, 1436]].map(([x, y]) => wave(y, x, x + 90)).join("")}
+    ${[[120, 34], [980, 26], [40, 700], [1240, 520], [20, 1500], [1250, 1380], [300, MAP_H - 10], [1100, MAP_H - 14]].map(([x, y]) => wave(y, x, x + 90)).join("")}
     <path d="${coast}" fill="#2f6f9e" opacity=".45" transform="translate(10 30)"/>
     <path d="${coast}" fill="#8a6342" transform="translate(0 22)"/>
     <path d="${coast}" fill="#a57a52" transform="translate(0 12)"/>
