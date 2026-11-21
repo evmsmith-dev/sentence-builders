@@ -15,7 +15,7 @@ import {
   parseJoin, parseCombine, checkCombine, checkDictation, dictationPhrases, dictationWords, parseLabels, parseMark, parseProofread, parseSort, parseWhich, mistakeKind,
 } from "../lib/parse.js";
 import { FLOW_LABELS, LABELS, PATTERNS, SENTENCE_KINDS, trickyAdverb } from "../config.js";
-import { WORKSHOP_PATTERNS, checkWorkshop, parseWorkshop, workshopExample, workshopFlowItem, workshopGoal, workshopText } from "../lib/workshop.js";
+import { REUSABLE_KINDS, WORKSHOP_PATTERNS, checkWorkshop, parseWorkshop, workshopExample, workshopFlowItem, workshopGoal, workshopText } from "../lib/workshop.js";
 
 const LABELS_BUTTON = '<button type="button" class="labels-help" data-labels-help>🏷️ Labels</button>';
 // Q&A Flow and Diagramming put their instruction in the card, so the rule and read-aloud buttons sit beside it
@@ -1484,11 +1484,15 @@ function renderWorkshop(root, item, hooks) {
   </div>`;
   const slots = root.querySelector(".ws-slots");
   const bankEl = root.querySelector(".ws-bank");
-  const tile = (t, where) => `<button type="button" class="tile" data-wt="${t.id}" data-where="${where}" ${phase !== "build" ? "disabled" : ""}>${esc(t.word)}</button>`;
+  let copies = 0; // the, a, an, my… can be used again: tapping one in the bank puts a copy in the sentence
+  const tile = (t, where) => {
+    const again = where === "bank" && REUSABLE_KINDS.has(t.kind);
+    return `<button type="button" class="tile${again ? " ws-again" : ""}" data-wt="${t.id}" data-where="${where}" ${again ? `aria-label="${esc(t.word)} (can be used again)"` : ""} ${phase !== "build" ? "disabled" : ""}>${esc(t.word)}</button>`;
+  };
   function draw() {
     const shown = placed.map((t, n) => (n === 0 ? { ...t, word: t.word[0].toUpperCase() + t.word.slice(1) } : t));
     slots.innerHTML = placed.length ? shown.map((t) => tile(t, "slot")).join("") + '<span class="ws-end" aria-hidden="true">.</span>'
-      : '<span class="slots-empty">Tap tiles to build your sentence. You won\'t need them all.</span>';
+      : '<span class="slots-empty">Tap tiles to build your sentence. You won\'t need them all, and words marked ↻ can be used again.</span>';
     bankEl.innerHTML = bank.map((t) => tile(t, "bank")).join("");
   }
   function startLabeling() {
@@ -1524,7 +1528,7 @@ function renderWorkshop(root, item, hooks) {
     }
     if (phase !== "build") return;
     if (event.target.closest("[data-ws-clear]")) {
-      bank = [...bank, ...placed];
+      bank = [...bank, ...placed.filter((t) => !REUSABLE_KINDS.has(t.kind))];
       placed = [];
       onTap(); draw(); onChange();
       return;
@@ -1538,9 +1542,15 @@ function renderWorkshop(root, item, hooks) {
     }
     const el = event.target.closest("[data-wt]");
     if (!el) return;
-    const id = Number(el.dataset.wt);
-    const [from, to] = el.dataset.where === "bank" ? [bank, placed] : [placed, bank];
-    to.push(from.splice(from.findIndex((t) => t.id === id), 1)[0]);
+    const id = el.dataset.wt;
+    if (el.dataset.where === "bank") {
+      const t = bank.find((x) => String(x.id) === id);
+      if (REUSABLE_KINDS.has(t.kind)) placed.push({ ...t, id: `${t.id}-${(copies += 1)}` });
+      else placed.push(bank.splice(bank.indexOf(t), 1)[0]);
+    } else {
+      const t = placed.splice(placed.findIndex((x) => String(x.id) === id), 1)[0];
+      if (!REUSABLE_KINDS.has(t.kind)) bank.push(t);
+    }
     onTap(); draw(); onChange();
   });
   draw();

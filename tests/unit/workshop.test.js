@@ -18,6 +18,24 @@ test("Sentence Workshop: the structure is checked, not the exact words", () => {
   assert.equal(workshopText(byWords(p1, "a brown kitten wiggled happily")), "A brown kitten wiggled happily.");
 });
 
+test("Sentence Workshop: the, a, an and my can be used again, so every noun can have its own the", () => {
+  const item = items.find((i) => i.id === "workshop-2-15");
+  const the = parseWorkshop(item).tiles.find((t) => t.word === "the");
+  const placed = byWords(item, "careful baker hummed in kitchen");
+  const sentence = [the, ...placed.slice(0, 3), placed[3], the, placed[4]];
+  assert.equal(workshopText(sentence), "The careful baker hummed in the kitchen.");
+  assert.equal(checkWorkshop(item, sentence).right, true);
+  // Every item can be built with "the" before every noun that needs a word there.
+  for (const it of items) {
+    const words = it.example.split(" ");
+    const tiles = parseWorkshop(it).tiles;
+    if ((it.need || []).includes("PPA")) continue;
+    const thes = words.map((w) => { const t = tiles.find((x) => x.word === w); return t.kind === "A" || t.kind === "PPA" ? "the" : w; });
+    const built = thes.map((w) => tiles.find((x) => x.word === w));
+    assert.equal(checkWorkshop(it, built).right, true, `${it.id}: ${thes.join(" ")}`);
+  }
+});
+
 test("Sentence Workshop: a wrong build says what to fix", () => {
   assert.match(checkWorkshop(p1, byWords(p1, "puppy napped outside")).why, /needs a word like the, a or my/);
   assert.match(checkWorkshop(p1, byWords(p1, "napped the puppy")).why, /Start with the subject/);

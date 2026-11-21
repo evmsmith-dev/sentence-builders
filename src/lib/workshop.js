@@ -6,6 +6,10 @@
 // Sentences use past-tense verbs, so the only agreement to check is was/were and a/an.
 import { nounInfo } from "./nouns.js";
 
+/** Articles and possessives stay in the bank and can be used again: kids say "the" before every noun, and
+ * running out of them has nothing to do with the pattern being practiced. */
+export const REUSABLE_KINDS = new Set(["A", "PPA"]);
+
 export const WORKSHOP_KINDS = ["A", "PPA", "Adj", "N", "Np", "V", "Vt", "LV", "Adv", "P"];
 
 /** Goals a level can ask for, besides the pattern itself. */
@@ -241,6 +245,6 @@ export function workshopExample(item) {
   return item.example.trim().split(/\s+/).map((w) => {
     const at = pool.findIndex((t) => t.word === w);
     if (at < 0) throw new Error(`${item.id}: "${w}" in the example isn't a tile`);
-    return pool.splice(at, 1)[0];
+    return REUSABLE_KINDS.has(pool[at].kind) ? pool[at] : pool.splice(at, 1)[0];
   });
 }

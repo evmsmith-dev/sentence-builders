@@ -1476,3 +1476,6 @@ body.island-home #home .home-tools .backpack-btn .tool-emoji { font-size: 1.4rem
 .ws-head { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
 .ws-ask { margin: 0; font-weight: 700; font-size: 1.05rem; flex: 1; }
 .ws-goal strong { word-spacing: 0.25em; }
+/* the, a, an, my… stay in the bank and can be used again: a small ↻ in the corner says so. */
+.ws-bank .tile.ws-again { position: relative; border-style: dashed; }
+.ws-bank .tile.ws-again::after { content: "↻"; position: absolute; top: -8px; right: -6px; width: 20px; height: 20px; border-radius: 50%; background: #b5651d; color: #fff; font-size: 0.75rem; line-height: 20px; text-align: center; font-weight: 800; }

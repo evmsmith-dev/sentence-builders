@@ -3,6 +3,7 @@ import { expect, test } from "@playwright/test";
 import { answer, currentItem, diagramIt, markUp, miss, openApp, openBoard, openGrownUps, openMore, openWorld, player, startLevel } from "./helpers.js";
 import { parseFlow } from "../../src/lib/parse.js";
 import { markupTasks } from "../../src/lib/markup.js";
+import { parseWorkshop } from "../../src/lib/workshop.js";
 import { buildDiagram } from "../../src/lib/diagram.js";
 import { weekFor, weekKey } from "../../src/lib/week.js";
 
@@ -225,6 +226,24 @@ test("Sentence Workshop: build your own sentence, hear what to fix, label it wit
   await page.locator("#home [data-progress]").click();
   await expect(page.locator(".notebook-list li")).toHaveCount(1);
   await expect(page.locator(".notebook-list")).toContainText(saved[0].text);
+});
+
+test("Sentence Workshop: the, a, an and my stay in the bank, so a child can put the before every noun", async ({ page }) => {
+  await openApp(page, { players: [player({ grade: 4 })], current: "p1" });
+  await startLevel(page, "workshop", 2, "flow");
+  let item = await currentItem(page);
+  // An item with two nouns that need the (not one where the goal asks for my).
+  while (item.need.includes("PPA") || item.example.split(" ").length < 6) { await answer(page); await page.locator("#next-btn").click(); item = await currentItem(page); }
+  const tiles = parseWorkshop(item).tiles;
+  const the = tiles.find((t) => t.word === "the");
+  await expect(page.locator(`#item .ws-bank [data-wt="${the.id}"]`)).toHaveClass(/ws-again/);
+  // Pip's sentence with "the" before every noun (and "my" kept where the goal asks for one).
+  const words = item.example.split(" ").map((w) => { const t = tiles.find((x) => x.word === w); return t.kind === "A" || (t.kind === "PPA" && !item.need.includes("PPA")) ? "the" : w; });
+  for (const w of words) await page.locator(`#item .ws-bank [data-wt="${tiles.find((t) => t.word === w).id}"]`).click();
+  await expect(page.locator(`#item .ws-bank [data-wt="${the.id}"]`)).toBeVisible(); // still there after use
+  await expect(page.locator("#item .ws-slots .tile", { hasText: /^the$/i })).toHaveCount(words.filter((w) => w === "the").length);
+  await page.locator("#check-btn").click();
+  await expect(page.locator("#item .ws-built-note")).toContainText("Good sentence");
 });
 
 test("Sentence Workshop: a level 3 sentence for its pattern, and the wrong kind of verb says why", async ({ page }) => {
