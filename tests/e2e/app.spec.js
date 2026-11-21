@@ -246,6 +246,62 @@ test("Sentence Workshop: the, a, an and my stay in the bank, so a child can put 
   await expect(page.locator("#item .ws-built-note")).toContainText("Good sentence");
 });
 
+test("Sentence Workshop: drag a tile between two words, move it, or drag it back; a held finger lifts a tile and a swipe doesn't", async ({ page }) => {
+  await openApp(page, { players: [player()], current: "p1" });
+  await startLevel(page, "workshop", 1, "flow");
+  const item = await currentItem(page);
+  const tiles = parseWorkshop(item).tiles;
+  const words = item.example.split(" ");
+  const adjAt = words.findIndex((w) => tiles.find((t) => t.word === w).kind === "Adj");
+  const adj = tiles.find((t) => t.word === words[adjAt]);
+  const slotWords = () => page.locator("#item .ws-slots .tile").allInnerTexts();
+  const center = async (loc) => { const b = await loc.boundingBox(); return [b.x + b.width / 2, b.y + b.height / 2]; };
+  // Tap everything but the adjective, then drag the adjective in front of the noun with a mouse.
+  for (const w of words.filter((_, n) => n !== adjAt)) await page.locator(`#item .ws-bank [data-wt="${tiles.find((t) => t.word === w).id}"]`).click();
+  const noun = page.locator("#item .ws-slots .tile").nth(adjAt);
+  const [nx, ny] = await center(noun);
+  const nb = await noun.boundingBox();
+  await page.mouse.move(...(await center(page.locator(`#item .ws-bank [data-wt="${adj.id}"]`))));
+  await page.mouse.down();
+  await page.mouse.move(nx, ny, { steps: 4 });
+  await page.mouse.move(nb.x + 6, ny, { steps: 3 });
+  await expect(page.locator(".tile-ghost")).toBeVisible();
+  await expect(page.locator("#item .drop-caret")).toBeVisible();
+  await page.mouse.up();
+  await expect(page.locator(".tile-ghost")).toHaveCount(0);
+  const expected = words.map((w, n) => (n === 0 ? w[0].toUpperCase() + w.slice(1) : w));
+  expect(await slotWords()).toEqual(expected);
+  // Drag the last word back onto the tiles: it's taken out.
+  const last = page.locator("#item .ws-slots .tile").last();
+  await page.mouse.move(...(await center(last)));
+  await page.mouse.down();
+  await page.mouse.move(...(await center(page.locator("#item .ws-bank .tile").first())), { steps: 5 });
+  await page.mouse.up();
+  expect(await slotWords()).toEqual(expected.slice(0, -1));
+  await expect(page.locator(`#item .ws-bank .tile`, { hasText: new RegExp(`^${words.at(-1)}$`) })).toHaveCount(1);
+  // On a touchscreen: a quick swipe across a tile doesn't lift it; holding it does.
+  const touch = (type, el, x, y) => page.evaluate(([type, sel, x, y]) => {
+    const target = sel ? document.querySelector(sel) : document.elementFromPoint(x, y);
+    (type === "pointerdown" ? target : window).dispatchEvent(new PointerEvent(type, { bubbles: true, pointerType: "touch", clientX: x, clientY: y, isPrimary: true }));
+  }, [type, el, x, y]);
+  const lastSel = `#item .ws-bank [data-wt="${tiles.find((t) => t.word === words.at(-1)).id}"]`;
+  const [lx, ly] = await center(page.locator(lastSel));
+  await touch("pointerdown", lastSel, lx, ly);
+  await touch("pointermove", null, lx, ly - 40);
+  await page.waitForTimeout(350);
+  await expect(page.locator(".tile-ghost")).toHaveCount(0);
+  await touch("pointerup", null, lx, ly - 40);
+  await touch("pointerdown", lastSel, lx, ly);
+  await page.waitForTimeout(350);
+  await expect(page.locator(".tile-ghost")).toBeVisible();
+  const lastSlot = await page.locator("#item .ws-slots .tile").last().boundingBox();
+  await touch("pointermove", null, lastSlot.x + lastSlot.width + 10, lastSlot.y + lastSlot.height / 2);
+  await touch("pointerup", null, lastSlot.x + lastSlot.width + 10, lastSlot.y + lastSlot.height / 2);
+  expect(await slotWords()).toEqual(expected);
+  await page.locator("#check-btn").click();
+  await expect(page.locator("#item .ws-built-note")).toContainText("Good sentence");
+});
+
 test("Sentence Workshop: a level 3 sentence for its pattern, and the wrong kind of verb says why", async ({ page }) => {
   await openApp(page, { players: [player({ grade: 5 })], current: "p1" });
   await startLevel(page, "workshop", 3, "flow");

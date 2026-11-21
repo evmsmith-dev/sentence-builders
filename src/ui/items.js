@@ -274,6 +274,116 @@ function renderWhich(root, item, { answer, onTap }) {
   };
 }
 
+/**
+ * Drag word tiles into place, as well as tapping them. Tapping still adds a tile at the end or takes it out; a
+ * drag drops it between two words, moves it within the sentence, or (dropped back on the tiles) takes it out.
+ * With a mouse or pen the drag starts once the pointer moves; on a touchscreen a tile lifts after a short
+ * press-and-hold, so a quick swipe across the tiles still scrolls the page. While dragging, the tile follows
+ * the finger and a bright line shows where it will land. `move({ id, from, to, index })` does the move:
+ * from/to are "bank" or "slot", and index is the place in the sentence (counted without the dragged tile).
+ */
+function tileDrag(root, { slots, bank, attr, enabled, move }) {
+  const HOLD_MS = 250;
+  let press = null;
+  let drag = null;
+  let swallowClick = false;
+  const tilesIn = (box, except) => [...box.querySelectorAll(`[${attr}]`)].filter((el) => el !== except);
+  // The window listeners live only while a tile is pressed, so nothing is left behind when the item changes.
+  function cancelPress() {
+    if (press?.timer) clearTimeout(press.timer);
+    press = null;
+    window.removeEventListener("pointermove", onMove);
+    window.removeEventListener("pointerup", onUp);
+    window.removeEventListener("pointercancel", onCancel);
+  }
+  function start(x, y) {
+    if (!press) return;
+    const { el } = press;
+    const r = el.getBoundingClientRect();
+    const ghost = el.cloneNode(true);
+    ghost.classList.add("tile-ghost");
+    ghost.removeAttribute(attr);
+    ghost.style.width = `${r.width}px`;
+    document.body.appendChild(ghost);
+    const caret = document.createElement("span");
+    caret.className = "drop-caret";
+    caret.hidden = true;
+    slots.appendChild(caret);
+    el.classList.add("drag-source");
+    drag = { ghost, caret, w: r.width, h: r.height, target: null };
+    navigator.vibrate?.(10);
+    follow(x, y);
+  }
+  function follow(x, y) {
+    const { ghost, caret } = drag;
+    // The lifted tile floats just above the finger, so the finger and the tile don't hide the landing line.
+    ghost.style.transform = `translate(${x - drag.w / 2}px, ${y - drag.h - 16}px) scale(1.08)`;
+    const hit = document.elementFromPoint(x, y);
+    slots.classList.remove("drop-here");
+    bank.classList.remove("drop-here");
+    caret.hidden = true;
+    drag.target = null;
+    if (hit && slots.contains(hit)) {
+      const others = tilesIn(slots, press.el);
+      let index = others.findIndex((t) => { const b = t.getBoundingClientRect(); return y < b.top || (y <= b.bottom && x < b.left + b.width / 2); });
+      if (index < 0) index = others.length;
+      drag.target = { to: "slot", index };
+      slots.classList.add("drop-here");
+      const box = slots.getBoundingClientRect();
+      const ref = others[index] || others[others.length - 1];
+      if (ref) {
+        const b = ref.getBoundingClientRect();
+        const left = others[index] ? b.left - 5 : b.right + 3;
+        caret.style.left = `${left - box.left + slots.scrollLeft}px`;
+        caret.style.top = `${b.top - box.top + slots.scrollTop}px`;
+        caret.style.height = `${b.height}px`;
+      } else {
+        caret.style.left = "12px"; caret.style.top = "10px"; caret.style.height = "40px";
+      }
+      caret.hidden = false;
+    } else if (hit && bank.contains(hit) && press.from === "slot") {
+      drag.target = { to: "bank" };
+      bank.classList.add("drop-here");
+    }
+  }
+  function finish() {
+    const { ghost, caret, target } = drag;
+    ghost.remove(); caret.remove();
+    slots.classList.remove("drop-here"); bank.classList.remove("drop-here");
+    press.el.classList.remove("drag-source");
+    const done = { id: press.id, from: press.from };
+    drag = null;
+    cancelPress();
+    swallowClick = true;
+    setTimeout(() => { swallowClick = false; }, 400);
+    if (target) move({ ...done, ...target });
+  }
+  root.addEventListener("pointerdown", (event) => {
+    const el = event.target.closest(`[${attr}]`);
+    if (!el || el.disabled || !enabled() || event.button > 0 || !(slots.contains(el) || bank.contains(el))) return;
+    cancelPress();
+    press = { el, id: el.getAttribute(attr), from: el.dataset.where, x: event.clientX, y: event.clientY, touch: event.pointerType === "touch" };
+    if (press.touch) press.timer = setTimeout(() => { press.timer = null; start(press.x, press.y); }, HOLD_MS);
+    window.addEventListener("pointermove", onMove, { passive: false });
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onCancel);
+  });
+  function onMove(event) {
+    if (!press) return;
+    if (drag) { event.preventDefault(); follow(event.clientX, event.clientY); return; }
+    const moved = Math.hypot(event.clientX - press.x, event.clientY - press.y);
+    if (press.touch) { if (moved > 10) cancelPress(); } // a swipe: let the page scroll
+    else if (moved > 6) start(event.clientX, event.clientY);
+  }
+  function onUp() { if (drag) finish(); else cancelPress(); }
+  function onCancel() { if (drag) { drag.target = null; finish(); } else cancelPress(); }
+  // Once a tile is lifted, the page mustn't scroll under the finger, and a long press shouldn't open a menu.
+  root.addEventListener("touchmove", (event) => { if (drag) event.preventDefault(); }, { passive: false });
+  root.addEventListener("contextmenu", (event) => { if (press || drag) event.preventDefault(); });
+  // The click that follows a drop isn't a tap.
+  root.addEventListener("click", (event) => { if (swallowClick) { swallowClick = false; event.stopImmediatePropagation(); event.preventDefault(); } }, true);
+}
+
 function renderBuild(root, item, { onChange, onTap }) {
   const parsed = parseBuild(item);
   // Shuffle until the order differs from the answer, so there's always something to do.
@@ -292,6 +402,15 @@ function renderBuild(root, item, { onChange, onTap }) {
     slots.innerHTML = placed.length ? placed.map((t) => tile(t, "slot")).join("") : '<span class="slots-empty">Tap the pieces below</span>';
     bankEl.innerHTML = bank.map((t) => tile(t, "bank")).join("");
   }
+  tileDrag(root, {
+    slots, bank: bankEl, attr: "data-tile", enabled: () => !locked,
+    move: ({ id, from, to, index }) => {
+      const list = from === "bank" ? bank : placed;
+      const t = list.splice(list.findIndex((x) => String(x.id) === id), 1)[0];
+      if (to === "slot") placed.splice(index, 0, t); else bank.push(t);
+      onTap(); draw(); onChange();
+    },
+  });
   root.addEventListener("click", (event) => {
     const el = event.target.closest("[data-tile]");
     if (!el || locked) return;
@@ -304,7 +423,7 @@ function renderBuild(root, item, { onChange, onTap }) {
   });
   draw();
   return {
-    prompt: "Tap the pieces in order to build the sentence.",
+    prompt: "Tap the pieces in order to build the sentence, or drag them into place.",
     usesCheck: true,
     canCheck: () => bank.length === 0,
     check: () => checkBuild(parsed, placed.map((t) => t.text)),
@@ -1492,7 +1611,7 @@ function renderWorkshop(root, item, hooks) {
   function draw() {
     const shown = placed.map((t, n) => (n === 0 ? { ...t, word: t.word[0].toUpperCase() + t.word.slice(1) } : t));
     slots.innerHTML = placed.length ? shown.map((t) => tile(t, "slot")).join("") + '<span class="ws-end" aria-hidden="true">.</span>'
-      : '<span class="slots-empty">Tap tiles to build your sentence. You won\'t need them all, and words marked ↻ can be used again.</span>';
+      : '<span class="slots-empty">Tap tiles to build your sentence, or hold and drag one into place. You won\'t need them all, and words marked ↻ can be used again.</span>';
     bankEl.innerHTML = bank.map((t) => tile(t, "bank")).join("");
   }
   function startLabeling() {
@@ -1520,6 +1639,22 @@ function renderWorkshop(root, item, hooks) {
     hooks.cardPrompt?.(true);
     onChange();
   }
+  tileDrag(root, {
+    slots, bank: bankEl, attr: "data-wt", enabled: () => phase === "build",
+    move: ({ id, from, to, index }) => {
+      let t;
+      if (from === "bank") {
+        t = bank.find((x) => String(x.id) === id);
+        if (REUSABLE_KINDS.has(t.kind)) t = { ...t, id: `${t.id}-${(copies += 1)}` };
+        else bank.splice(bank.indexOf(t), 1);
+      } else {
+        t = placed.splice(placed.findIndex((x) => String(x.id) === id), 1)[0];
+      }
+      if (to === "slot") placed.splice(index, 0, t);
+      else if (!REUSABLE_KINDS.has(t.kind)) bank.push(t);
+      onTap(); draw(); onChange();
+    },
+  });
   root.addEventListener("click", (event) => {
     if (event.target.closest("[data-ws-save]")) {
       hooks.saveSentence({ text: built, pattern: Number(item.pattern) });

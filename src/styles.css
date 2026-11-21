@@ -1479,3 +1479,13 @@ body.island-home #home .home-tools .backpack-btn .tool-emoji { font-size: 1.4rem
 /* the, a, an, my… stay in the bank and can be used again: a small ↻ in the corner says so. */
 .ws-bank .tile.ws-again { position: relative; border-style: dashed; }
 .ws-bank .tile.ws-again::after { content: "↻"; position: absolute; top: -8px; right: -6px; width: 20px; height: 20px; border-radius: 50%; background: #b5651d; color: #fff; font-size: 0.75rem; line-height: 20px; text-align: center; font-weight: 800; }
+
+/* Dragging word tiles (Sentence Workshop, Build a sentence): the lifted tile follows the finger, a bright line
+   shows where it will land, and the sentence or the tiles light up as the drop target. */
+.build-slots { position: relative; }
+.build-slots .tile, .build-bank .tile { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+.tile-ghost { position: fixed; left: 0; top: 0; z-index: 1000; pointer-events: none; margin: 0; box-shadow: 0 10px 22px rgba(0, 0, 0, 0.28); background: #fff; opacity: 0.95; }
+.tile.drag-source { opacity: 0.3; }
+.drop-caret { position: absolute; width: 5px; border-radius: 3px; background: var(--accent, #f5b400); box-shadow: 0 0 0 2px rgba(245, 180, 0, 0.35); pointer-events: none; }
+.build-slots.drop-here { border-color: var(--accent, #f5b400); background: #fffbea; }
+.build-bank.drop-here { outline: 3px dashed var(--accent, #f5b400); outline-offset: 4px; border-radius: 12px; }
