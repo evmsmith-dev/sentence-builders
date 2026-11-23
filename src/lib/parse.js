@@ -519,7 +519,20 @@ export function diagramText(item) {
 }
 
 /** Throws if an item can't be shown or can't be answered. Used by the validator. */
+// "Rosa and I cleaned my room" is right too if it's my room: a possessive could mean someone else's unless the
+// sentence ties it back to the subject, with "own" or a body part (wagged their tails).
+const BODY_PARTS = /\b(tails?|hands?|wings?|paws?|knees?|heads?|feet|foot|arms?|eyes?|teeth|fur|feathers?|petals?|leaves)\b/i;
+function checkPossessiveChoices(item) {
+  const m = (item.text || "").match(/\[([^\]]+)\]/);
+  if (!m) return;
+  const people = m[1].split("|").filter((o) => /^(my|our|his|her|their|your)$/.test(o));
+  if (people.length >= 2 && !/\bown\b/i.test(item.text) && !BODY_PARTS.test(item.text)) {
+    throw new Error(`${item.id}: ${people.join(" and ")} could both be right ("${people[0]} ${item.text.split("]")[1].trim().split(" ")[0]}" may belong to someone else). Add own, or use a body part`);
+  }
+}
+
 export function validateItem(item) {
+  checkPossessiveChoices(item);
   if (!item.id || !item.skill || !item.level || !item.hint) throw new Error(`${item.id || "?"}: needs id, skill, level and hint`);
   if (!ITEM_TYPES.includes(item.type)) throw new Error(`${item.id}: unknown type ${item.type}`);
   if (item.type === "mark") {

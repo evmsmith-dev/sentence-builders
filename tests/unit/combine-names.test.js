@@ -182,3 +182,10 @@ test("Listen and Write: a name that sounds like another (Mia, Maya) isn't counte
   assert.match(checkDictation(t, "mia was born on May 4, 2016.").hint, /capital/);
   assert.match(checkDictation("Ben and I went to the park.", "Ben and I went to the zoo.").hint, /different/);
 });
+
+test("A possessive pronoun question needs one right answer: my and our can both fit unless own ties it back", () => {
+  const item = (text) => ({ id: "t", skill: "pronouns", level: 2, type: "fix", text, hint: "h" });
+  assert.throws(() => validateItem(item("Rosa and I cleaned [my|our|their] room together.")), /could both be right/);
+  assert.ok(validateItem(item("Rosa and I cleaned [their|our|my] own room together.")));
+  assert.ok(validateItem(item("The dogs wagged [its|their|his] tails.")));
+});
